@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { HAZARD_COLORS, HAZARD_LABELS, gridOverlayPixels, hazardRuns, type Hazard } from '../map/overlays'
+import { HAZARD_COLORS, HAZARD_LABELS, cellHazard, gridOverlayPixels, hazardRuns, type Hazard } from '../map/overlays'
 import type { RouteParams } from '../route/cost'
 import { cardStations, cropAround, farthestFromSafety, hillshadePixels, marsClockAt, type Crop } from '../stats/card'
 import { findSunset } from '../stats/conditions'
@@ -271,7 +271,7 @@ export function PrintCard(props: Props) {
         </section>
 
         <section className="sheet-profile">
-          <ElevationProfile track={stats.track} hoverIndex={null} onHover={() => {}} />
+          <ElevationProfile track={stats.track} hazards={stats.track.map((p) => cellHazard(grid, p.cell, routeParams))} hoverIndex={null} onHover={() => {}} />
         </section>
 
         <footer className="sheet-foot">

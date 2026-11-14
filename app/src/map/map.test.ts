@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { METERS_PER_DEG_LAT } from '../config'
 import { DEFAULT_ROUTE_PARAMS } from '../route/cost'
 import { gridFrom } from '../testing/grids'
-import { cellHazard, gridOverlayPixels, hazardRuns, legHazardSeconds, walkHomePixels } from './overlays'
+import { cellHazard, gridOverlayPixels, hazardRuns, hazardSpans, legHazardSeconds, walkHomePixels } from './overlays'
 import { metresPerPixel, tileAt, tileDegrees } from './tiles'
 
 describe('Mars Trek tile matrix (from curiosity_hirise_mosaic WMTSCapabilities.xml)', () => {
@@ -73,6 +73,18 @@ describe('route hazards', () => {
       { hazard: 'sand', cells: [2, 3, 4] },
       { hazard: 'clear', cells: [4, 5] },
     ])
+  })
+})
+
+describe('hazard spans along a track', () => {
+  test('equal neighbours merge; spans share their boundary point so the line is unbroken', () => {
+    expect(hazardSpans(['clear', 'clear', 'sand', 'sand', 'sand', 'clear'])).toEqual([
+      { hazard: 'clear', from: 0, to: 2 },
+      { hazard: 'sand', from: 2, to: 5 },
+      { hazard: 'clear', from: 5, to: 5 },
+    ])
+    expect(hazardSpans(['steep'])).toEqual([{ hazard: 'steep', from: 0, to: 0 }])
+    expect(hazardSpans([])).toEqual([])
   })
 })
 

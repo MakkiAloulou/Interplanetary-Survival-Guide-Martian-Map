@@ -110,6 +110,23 @@ export function legHazardSeconds(
 }
 
 /**
+ * Index spans of equal hazard along a sequence (e.g. a route track), for colouring a line by hazard.
+ * Neighbouring spans share their boundary index so a drawn line has no gaps.
+ */
+export function hazardSpans(hazards: Hazard[]): { hazard: Hazard; from: number; to: number }[] {
+  const spans: { hazard: Hazard; from: number; to: number }[] = []
+  hazards.forEach((hazard, i) => {
+    const last = spans.at(-1)
+    if (last && last.hazard === hazard) last.to = i
+    else {
+      if (last) last.to = i // the previous span runs on to this point
+      spans.push({ hazard, from: i, to: i })
+    }
+  })
+  return spans
+}
+
+/**
  * Splits a path into runs of the same hazard, for drawing each run in its colour.
  * Consecutive runs share their boundary cell so the drawn line has no gaps.
  */
