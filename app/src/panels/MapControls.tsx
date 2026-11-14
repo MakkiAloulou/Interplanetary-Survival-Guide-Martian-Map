@@ -135,8 +135,10 @@ export function MapControls(props: Props) {
                 <label className="layer-toggle">
                   <input type="checkbox" checked={showTraverse} onChange={(e) => onShowTraverse(e.target.checked)} />
                   <span className="layer-name">
-                    <span className="traverse-key" aria-hidden="true" />
-                    {traverse.rover}'s real path, sols {traverse.points[0].sol}–{traverse.points[traverse.points.length - 1].sol}
+                    <span>
+                      <span className="traverse-key" aria-hidden="true" />
+                      {traverse.rover}'s real path, sols {traverse.points[0].sol}–{traverse.points[traverse.points.length - 1].sol}
+                    </span>
                     <small>rover traverse</small>
                   </span>
                   <StatusBadge status={traverse.status} />

@@ -4,7 +4,7 @@ import type { CopilotLive } from '../copilot/useCopilot'
 import { MARS_CRS } from '../map/crs'
 import { INK } from '../map/overlays'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
-import { formatDistance, formatDuration } from '../stats/format'
+import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
 import { liveWarnings } from '../stats/live'
 import { sphericalDistanceM, type RouteStats } from '../stats/stats'
@@ -198,7 +198,9 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
           {plan.length > 0 && (
             <ul className="tablet-plan">
               {plan.map((r) => (
-                <li key={r.code}>{r.message}</li>
+                <li key={r.code} title={r.message}>
+                  {shortReason(r.message)}
+                </li>
               ))}
             </ul>
           )}
