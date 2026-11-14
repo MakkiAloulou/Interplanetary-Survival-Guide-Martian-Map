@@ -5,18 +5,21 @@ import type { CostGridMeta } from '../types'
 import { DEFAULT_ROUTE_PARAMS, prepareGrid, SAFEST_ROUTE_PARAMS, type PreparedGrid, type RouteParams, type RouteProfile } from './cost'
 import { planRoute, type RouteResult } from './route'
 import { findPath, walkHomeField } from './search'
+import { combinedViewshed, type Antenna } from './viewshed'
 
 export type WorkerRequest =
   | { type: 'init'; id: number; meta: CostGridMeta; buffer: ArrayBuffer; params?: RouteParams }
   | { type: 'route'; id: number; stops: number[]; profile?: RouteProfile }
   | { type: 'walkHome'; id: number; base: number }
   | { type: 'matrix'; id: number; cells: number[] }
+  | { type: 'viewshed'; id: number; antennas: Antenna[]; targetHeightM: number }
 
 export type WorkerResponse =
   | { type: 'init'; id: number }
   | { type: 'route'; id: number; result: RouteResult }
   | { type: 'walkHome'; id: number; field: Float32Array }
   | { type: 'matrix'; id: number; times: number[][] }
+  | { type: 'viewshed'; id: number; visible: Uint8Array }
   | { type: 'error'; id: number; message: string }
 
 export interface WorkerState {
@@ -44,6 +47,10 @@ export function handleRequest(state: WorkerState, req: WorkerRequest): { respons
       const p = state.prepared
       const times = req.cells.map((a) => req.cells.map((b) => (a === b ? 0 : (findPath(p, a, b)?.timeS ?? Infinity))))
       return { response: { type: 'matrix', id: req.id, times }, transfer: [] }
+    }
+    if (req.type === 'viewshed') {
+      const visible = combinedViewshed(state.prepared.grid, req.antennas, req.targetHeightM)
+      return { response: { type: 'viewshed', id: req.id, visible }, transfer: [visible.buffer] }
     }
     const field = walkHomeField(state.prepared, req.base)
     return { response: { type: 'walkHome', id: req.id, field }, transfer: [field.buffer] }

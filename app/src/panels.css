@@ -288,6 +288,46 @@ button.stop-text:hover {
   color: var(--text-3);
 }
 
+.traverse-key {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-top: 3px dashed var(--traverse);
+}
+
+.rover-compare {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.space-weather {
+  margin-top: 14px;
+}
+
+.sw-events {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.sw-events li {
+  padding-left: 10px;
+  border-left: 3px solid var(--line);
+}
+
+.sw-events li.at-mars {
+  border-left-color: var(--amber);
+}
+
 .source-link {
   color: var(--blue-text);
   text-decoration: underline;
@@ -686,7 +726,7 @@ button.tl-stop.is-selected {
   gap: 14px;
   margin-top: 4px;
   font-weight: 600;
-  font-size: 40px;
+  font-size: clamp(28px, 4.6vh, 40px);
 }
 
 .hud-num {
@@ -709,7 +749,7 @@ button.tl-stop.is-selected {
 }
 
 .hud-compass svg {
-  width: min(40vh, 320px);
+  width: min(30vh, 300px); /* shrinks on short screens so alerts never reach the control bar */
   height: auto;
 }
 
@@ -733,7 +773,7 @@ button.tl-stop.is-selected {
 .hud-compass strong {
   display: block;
   font-weight: 600;
-  font-size: 56px;
+  font-size: clamp(36px, 6.5vh, 56px);
   line-height: 1;
 }
 

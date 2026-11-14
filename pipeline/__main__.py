@@ -35,14 +35,24 @@ def main(argv: list[str] | None = None) -> int:
     gale.add_argument("--refresh", action="store_true", help="download the clip again instead of using data/raw/")
 
     commands.add_parser("msl-targets", help="Curiosity boxwork campaign -> science targets for the Gale site")
+    commands.add_parser("msl-traverse", help="Curiosity's drive path inside the site -> map line")
     commands.add_parser("msl-images", help="Curiosity raw images at the science stops -> stop views")
     commands.add_parser("gale-panoramas", help="360° views at the habitat and stops, rendered from the real terrain")
+    commands.add_parser("donki", help="NASA DONKI space weather around the planned sol -> alerts and events")
     commands.add_parser("msl-weather", help="Curiosity REMS daily weather report -> conditions for the planned sol")
     commands.add_parser("gale-surface", help="sand and boulder masks from the HiRISE orthophoto -> CostGrid rebuilt with them")
     commands.add_parser("themis-night-ir", help="THEMIS night-time infrared (Mars Trek) -> thermal overlay for the site")
 
     args = parser.parse_args(argv)
-    if args.command == "gale-panoramas":
+    if args.command == "donki":
+        from pipeline.sources.donki import convert as convert_donki
+
+        print(json.dumps(convert_donki(), indent=2))
+    elif args.command == "msl-traverse":
+        from pipeline.sources.msl_targets import convert_traverse
+
+        print(json.dumps(convert_traverse(), indent=2))
+    elif args.command == "gale-panoramas":
         from pipeline.sources.gale_panoramas import convert as convert_panoramas
 
         print(json.dumps(convert_panoramas(), indent=2))

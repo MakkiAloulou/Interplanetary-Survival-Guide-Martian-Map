@@ -94,3 +94,30 @@ def convert(
     targets, dropped = place_targets(read_costgrid(grid_json), base, stops, load_waypoints(cache))
     Path(out_json).write_text(json.dumps(targets, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return {"targets": [t["id"] for t in targets], "dropped": dropped, "file": str(out_json)}
+
+
+def convert_traverse(
+    out_json: Path = C.DATA_DIR / "processed" / "gale" / "curiosity_traverse.json",
+    config_json: Path = C.DATA_DIR / "config.json",
+    cache: Path = C.DATA_DIR / "raw" / "MSL_waypoints.json",
+) -> dict:
+    """Curiosity's drive path inside the site (RoverTraverse): every MMGIS waypoint within the site bounds, in order."""
+    b = json.loads(Path(config_json).read_text(encoding="utf-8"))["site"]["bounds"]
+    inside = [
+        w for w in load_waypoints(cache)
+        if b["latMin"] <= w["lat"] <= b["latMax"] and b["lonMin"] <= w["lon"] <= b["lonMax"]
+    ]
+    if not inside:
+        raise ValueError("no Curiosity waypoint inside the site")
+    drive_m = inside[-1]["dist_total_m"] - inside[0]["dist_total_m"]
+    traverse = {
+        "rover": "Curiosity",
+        "points": [{"sol": w["sol"], "lat": round(w["lat"], 7), "lon": round(w["lon"], 7)} for w in inside],
+        "source": (
+            f"Curiosity (NASA/JPL-Caltech) localized drive end-points, JPL MMGIS: {len(inside)} waypoints inside the site, "
+            f"sols {inside[0]['sol']}-{inside[-1]['sol']}, {drive_m / 1000:.1f} km driven. {C.MSL_WAYPOINTS_URL}"
+        ),
+        "status": "OBSERVED",
+    }
+    Path(out_json).write_text(json.dumps(traverse, indent=1) + "\n", encoding="utf-8")
+    return {"points": len(inside), "sols": [inside[0]["sol"], inside[-1]["sol"]], "driveKm": round(drive_m / 1000, 2)}

@@ -3,7 +3,7 @@ import { prepareGrid } from '../route/cost'
 import { planLoop } from '../route/route'
 import { gridFrom } from '../testing/grids'
 import type { Conditions, PovImage, ScienceTarget, Waypoint } from '../types'
-import { buildTimeline, compassPoint, initialBearingDeg, nearestPov, povsNear, positionAt, withSimulatedStorm } from './eva'
+import { buildTimeline, compassPoint, initialBearingDeg, nearestPov, povsNear, positionAt, roverSolsAt, withSimulatedStorm } from './eva'
 import { routeStats } from './stats'
 
 function loop() {
@@ -104,3 +104,21 @@ test('crewAtStop: the rover is staged at one stop and stands by elsewhere', asyn
   expect(crewAtStop(stop, [], 'Scarp').rover).toBe('Standing by at Scarp as safe haven')
   expect(crewAtStop(stop, [], null).rover).toBe('Standing by at the habitat')
 })
+
+describe('roverSolsAt', () => {
+  const points = [
+    { sol: 100, lat: 0, lon: 0 },
+    { sol: 105, lat: 0, lon: 0.001 }, // ~59 m east
+    { sol: 140, lat: 0, lon: 0.01 }, // ~590 m east
+  ]
+  test('first to last sol of the traverse points near the stops', () => {
+    expect(roverSolsAt(points, [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.01 }])).toEqual({ first: 100, last: 140, sols: 41, earthDays: 42, stopsMatched: 2 })
+  })
+  test('one stop on the traverse', () => {
+    expect(roverSolsAt(points, [{ lat: 0, lon: 0.001 }, { lat: 1, lon: 1 }])).toMatchObject({ first: 105, last: 105, sols: 1, stopsMatched: 1 })
+  })
+  test('no stop on the traverse', () => {
+    expect(roverSolsAt(points, [{ lat: 1, lon: 1 }])).toBeNull()
+  })
+})
+

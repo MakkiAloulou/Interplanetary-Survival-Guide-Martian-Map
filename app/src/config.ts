@@ -110,3 +110,21 @@ export const WALK_HOME_CONTINGENCY_FACTOR = 1.5
  * Hassler et al. (2014), Science 343, 1244797 (0.64 ± 0.12 mSv/day).
  */
 export const RAD_BASELINE_DOSE_MSV_PER_DAY = 0.64
+
+// ---------- Radio line of sight ----------
+// A suited crew member is "in contact" when there is a straight, unobstructed line from the helmet antenna to the
+// habitat mast or to the staged rover's antenna. Direct line of sight only: no relay via orbiters or diffraction, so
+// this is conservative. All heights MODELED: team assumptions.
+
+/** Habitat radio mast height above the ground, m. */
+export const HABITAT_ANTENNA_HEIGHT_M = 5
+
+/** Support rover antenna height above the ground, m. */
+export const ROVER_ANTENNA_HEIGHT_M = 3
+
+/** Suit (helmet) antenna height above the ground, m. */
+export const SUIT_ANTENNA_HEIGHT_M = 1.8
+
+/** Out of line of sight for at least this long in total → a caution, minutes. */
+export const COMMS_CAUTION_MIN = 1
+

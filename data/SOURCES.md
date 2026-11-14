@@ -65,6 +65,17 @@ Template:
 - Processing applied: `python -m pipeline msl-weather` (pipeline/sources/msl_weather.py). 25 samples, one per Mars hour, from local mean midnight at the habitat (Mars24 time scale; sol numbered from Curiosity's landing, 2012-08-06T05:17:57Z): 2025-11-13T06:43:30Z to 2025-11-14T07:23:06Z. Temperature: reported minimum at the reported sunrise, maximum at 13:30 local, half-cosine between (shape MODELED). Pressure: the reported value all sol (no diurnal cycle). Dust opacity 0.6 assumed for "Sunny" (MODELED). Radiation alert false (no public alert data; MODELED). Sun elevation in the file is approximate; the app recomputes it with its Mars24 clock (DERIVED). Checks: the app's Mars24 sunrise 05:23:00 and sunset 17:20:26 local mean time match the report's 05:22 / 17:20; Curiosity's sol-4718 Front Hazcam frame (20:17:38Z) falls inside the window.
 - Used as: `processed/gale/conditions.json` (Conditions[]), status MODELED (each sample mixes measured and assumed values; its `source` says which)
 
+## NASA DONKI space weather around sol 4718
+- Mission / instrument: NASA Community Coordinated Modeling Center (CCMC) DONKI database: WSA-Enlil CME simulations (model) and solar energetic particle events (spacecraft near Earth, STEREO-A)
+- Product ID: DONKI `WSAEnlilSimulations` 2025-11-06 to 2025-11-14 and `SEP` 2025-11-10 to 2025-11-15; the Mars impact: simulation WSA-ENLIL/42563 (run 2025-11-10T02:34Z) for CME 2025-11-09T21:12:00-CME-001 (975 km/s), arrival at Mars 2025-11-13T04:00Z, direct, minor impact
+- URL: https://api.nasa.gov/DONKI/ (key: NASA_API_KEY or the public DEMO_KEY); event pages https://ccmc.gsfc.nasa.gov/DONKI/
+- Resolution: event catalogue; forecast arrival times (typical error about half a day)
+- Coverage of site: Mars-wide (arrival at Mars); SEP events are near Earth / STEREO-A, not at Mars (listed as context only)
+- License / credit: NASA CCMC / DONKI
+- Date retrieved: 2026-11-14 (flare endpoint returned 404 that day; flares not used)
+- Processing applied: `python -m pipeline donki`. Mars impacts from WSA-Enlil runs, one per arrival time (earliest run). Rule (MODELED): direct non-minor arrival = radiation ALERT (written into the conditions as radiationAlert by `msl-weather`, NO-GO); minor or glancing = ADVISORY (caution), each for arrival ± 12 h. Result for sol 4718: one ADVISORY, 2025-11-12T16:00Z to 2025-11-13T16:00Z; no alerts.
+- Used as: `processed/gale/space_weather.json` (SpaceWeather), status MODELED; radiationAlert in `processed/gale/conditions.json`
+
 ## Curiosity boxwork campaign: traverse and science stops
 - Mission / instrument: Mars Science Laboratory, Curiosity rover (NASA/JPL-Caltech). Positions from the rover's localized drive end-points; science from the mission blog and JPL news.
 - Product ID: MMGIS layer "Waypoints" (`MSL_waypoints.json`, 1389 points, sol 3-5073 at retrieval)
@@ -75,6 +86,7 @@ Template:
 - Date retrieved: 2026-11-14
 - Processing applied: `python -m pipeline msl-targets`. 7 curated stops (first ridge close-up, Altadena drill, nodules, panorama viewpoint, Valle de la Luna hollow drill, Nevado Sajama ridge drill, final-phase workspace), each placed at the last waypoint on or before its sol. Earth dates converted to sols from the blog's own pairs (sol 4560 = 2025-06-04, sol 4718 = 2025-11-13). A stop the habitat cannot reach on foot moves to the nearest reachable cell within 20 m and says so (nodules: 3 m off a 36° ridge wall); none dropped. `why` texts paraphrase the reports; crew kit is our MODELED choice.
 - Used as: `processed/gale/science_targets.json` (ScienceTarget[]), status DERIVED
+- Used as: `processed/gale/curiosity_traverse.json` (RoverTraverse: the 143 waypoints inside the site, sols 4462-4983, 3.8 km; `python -m pipeline msl-traverse`), status OBSERVED: drawn on the map and compared with the plan's stops
 
 ## Curiosity raw images at the science stops (Navcam, Front Hazcam)
 - Mission / instrument: Mars Science Laboratory, Curiosity rover: left Navcam (NAV_LEFT_B) and left Front Hazcam (FHAZ_LEFT_B), engineering cameras (NASA/JPL-Caltech)

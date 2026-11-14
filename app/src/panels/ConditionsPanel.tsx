@@ -1,7 +1,7 @@
 import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import { findSunset, sunElevationAt } from '../stats/conditions'
 import type { StartOption } from '../stats/sun'
-import type { Conditions } from '../types'
+import type { Conditions, SpaceWeather } from '../types'
 import { CloseIcon } from '../ui/icons'
 import { SourceLine } from '../ui/SourceLine'
 import { StatusBadge } from '../ui/StatusBadge'
@@ -15,6 +15,8 @@ interface Props {
   lonEast: number
   endTime: string | null
   storm: boolean
+  /** NASA DONKI events and windows for the planned sol, or null */
+  spaceWeather: SpaceWeather | null
   onStormChange: (on: boolean) => void
   onClose: () => void
 }
@@ -22,7 +24,7 @@ interface Props {
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16)
 
 /** Weather, daylight and space weather for the EVA window, plus the solar-storm drill. */
-export function ConditionsPanel({ conditions, startTime, startChoices, onStartTime, lonEast, endTime, storm, onStormChange, onClose }: Props) {
+export function ConditionsPanel({ conditions, startTime, startChoices, onStartTime, lonEast, endTime, storm, onStormChange, spaceWeather, onClose }: Props) {
   const local = (ms: number) => formatMarsClock(ltstHours(marsTime(ms), lonEast)).slice(0, 5)
   const startMs = Date.parse(startTime)
   const endMs = endTime ? Date.parse(endTime) : null
@@ -30,6 +32,9 @@ export function ConditionsPanel({ conditions, startTime, startChoices, onStartTi
   const sunNow = sunElevationAt(conditions, startMs)
   const sunset = findSunset(conditions, startMs)
   const status = at?.status ?? 'MOCK'
+  const windowAt = (level: 'alert' | 'advisory') =>
+    spaceWeather?.windows.find((w) => w.level === level && Date.parse(w.start) <= startMs && startMs <= Date.parse(w.end)) ?? null
+  const radiation = storm ? 'Storm drill' : at?.radiationAlert || windowAt('alert') ? 'Alert' : windowAt('advisory') ? 'Advisory' : 'Background'
 
   // Sun elevation over the sol, with the EVA window shaded.
   const t0 = Date.parse(conditions[0].time)
@@ -90,13 +95,35 @@ export function ConditionsPanel({ conditions, startTime, startChoices, onStartTi
         </div>
         <div>
           <dt>Radiation</dt>
-          <dd className={storm ? 'is-alert' : ''}>{storm ? 'Storm alert' : 'Background'}</dd>
+          <dd className={radiation === 'Background' ? '' : 'is-alert'}>{radiation}</dd>
         </div>
       </dl>
       {at?.source && (
         <p className="panel-source">
           <SourceLine source={at.source} />
         </p>
+      )}
+
+      {spaceWeather && (
+        <section className="space-weather" aria-label="Space weather">
+          <p className="panel-sub">
+            Space weather · NASA DONKI <StatusBadge status={spaceWeather.status} />
+          </p>
+          {spaceWeather.events.length === 0 ? (
+            <p className="panel-source">No solar events catalogued around this sol.</p>
+          ) : (
+            <ul className="sw-events">
+              {spaceWeather.events.map((e) => (
+                <li key={e.time + e.kind} className={e.atMars ? 'at-mars' : ''}>
+                  <strong>{e.atMars ? 'At Mars' : 'Near Earth'}</strong> <SourceLine source={`${e.summary} ${e.link}`} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="panel-source">
+            <SourceLine source={spaceWeather.source} />
+          </p>
+        </section>
       )}
 
       <figure className="sunchart">

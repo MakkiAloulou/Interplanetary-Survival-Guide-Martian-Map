@@ -17,6 +17,8 @@ const LIMIT_LABEL: Record<Binding, string> = {
   STEEP_SECTIONS: 'Steep ground',
   SAND: 'Loose sand',
   BOULDERS: 'Boulders',
+  COMMS: 'Radio line of sight',
+  SPACE_WEATHER: 'Space weather',
   NO_HAVEN: 'No safe haven',
   ALREADY_LEFT: 'Already left',
   ALREADY_PLANNED: 'Already on the plan',

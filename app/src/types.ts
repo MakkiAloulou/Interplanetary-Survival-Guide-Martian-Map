@@ -135,6 +135,24 @@ export interface Conditions {
   status: DataStatus
 }
 
+/** A rover's drive path through the site (e.g. Curiosity from JPL MMGIS), in drive order. */
+export interface RoverTraverse {
+  rover: string
+  points: { sol: number; lat: number; lon: number }[]
+  source: string
+  status: DataStatus
+}
+
+/** Space weather around the planned sol (NASA DONKI): catalogued events, and the windows our rule turns into checks. */
+export interface SpaceWeather {
+  window: { start: string; end: string }
+  events: { time: string; kind: 'cme-mars' | 'sep' | 'flare'; summary: string; atMars: boolean; link: string }[]
+  /** 'alert' windows are also radiationAlert in the conditions (NO-GO); 'advisory' windows give a caution */
+  windows: { start: string; end: string; level: 'alert' | 'advisory'; reason: string; link: string }[]
+  source: string
+  status: DataStatus
+}
+
 /** Shape of data/config.json. All paths are relative to data/. */
 export interface DataConfig {
   site: {
@@ -160,4 +178,8 @@ export interface DataConfig {
   conditions: { path: string; status: DataStatus }
   /** JSON file holding Waypoint[]: the base and the rover's start position */
   waypoints: { path: string; status: DataStatus }
+  /** Optional: JSON file holding a RoverTraverse, drawn on the map and compared with the plan */
+  roverTraverse?: { path: string; status: DataStatus }
+  /** Optional: JSON file holding SpaceWeather for the planned sol */
+  spaceWeather?: { path: string; status: DataStatus }
 }

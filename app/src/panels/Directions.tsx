@@ -28,6 +28,8 @@ interface Props {
   /** "10:30 Mars local (13:12 UTC)" */
   startLabel: string
   o2DurationS: number
+  /** when a rover worked at the plan's stops, for comparison; null when no stop is on its path */
+  roverSols: { rover: string; first: number; last: number; sols: number; earthDays: number; stopsMatched: number } | null
   targets: ScienceTarget[]
   onAddTarget: (target: ScienceTarget) => void
   onRemove: (id: string) => void
@@ -117,7 +119,7 @@ function RouteOptions(props: {
 }
 
 export function Directions(props: Props) {
-  const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startLabel, o2DurationS } = props
+  const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startLabel, o2DurationS, roverSols } = props
   const { targets, onAddTarget, onRemove, onMove, onClear, onSavePlan, onPrint, selected, onSelect, hoverIndex, onHover } = props
   const { roverAt, onRoverAt, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
   const [showReasons, setShowReasons] = useState(false)
@@ -187,6 +189,14 @@ export function Directions(props: Props) {
                     </div>
                   )}
                 </div>
+                {stats && roverSols && (
+                  <p className="rover-compare">
+                    <span className="traverse-key" aria-hidden="true" />
+                    {roverSols.sols > 1
+                      ? `${roverSols.rover} worked ${roverSols.stopsMatched === 1 ? 'this stop' : `these ${roverSols.stopsMatched} stops`} over sols ${roverSols.first}–${roverSols.last}: ${roverSols.sols} sols (${roverSols.earthDays} Earth days). This crew: one ${formatDuration(stats.totalS)} Marswalk.`
+                      : `${roverSols.rover} was at this stop on sol ${roverSols.first}.`}
+                  </p>
+                )}
                 {routeOptions ? (
                   <RouteOptions options={routeOptions} profile={profile} onProfile={onProfile} grid={grid} routeParams={routeParams} />
                 ) : (

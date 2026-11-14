@@ -277,3 +277,50 @@ describe('radiation dose', () => {
     expect(v.doseMSv).toBeGreaterThan(0)
   })
 })
+
+describe('radio line of sight check', () => {
+  test('no line-of-sight data: no COMMS reason at all', () => {
+    const v = evaluateEva(evaInput(['..........'], [[0, 0], [0, 9], [0, 0]]))
+    expect(v.reasons.some((r) => r.code === 'COMMS')).toBe(false)
+  })
+
+  test('always in sight: a passed check; long out of sight: a caution, never a NO-GO by itself', () => {
+    const seen = evaluateEva(evaInput(['..........'], [[0, 0], [0, 9], [0, 0]], { lineOfSight: new Uint8Array(10).fill(1) }))
+    expect(seen.reasons.find((r) => r.code === 'COMMS')?.severity).toBe('info')
+    const hidden = new Uint8Array(10).fill(1)
+    hidden.fill(0, 3)
+    const v = evaluateEva(evaInput(['..........'], [[0, 0], [0, 9], [0, 0]], { lineOfSight: hidden, dwellS: 120 }))
+    const r = v.reasons.find((x) => x.code === 'COMMS')
+    expect(r?.severity).toBe('caution')
+    expect(r?.message).toMatch(/Out of radio line of sight/)
+    expect(v.verdict).toBe('GO')
+  })
+})
+
+describe('space-weather advisory check', () => {
+  const win = (start: string, end: string, level: 'alert' | 'advisory' = 'advisory') => ({ start, end, level, reason: 'CME forecast.', link: 'https://x' })
+  test('an advisory overlapping the walk gives a caution, not a NO-GO', () => {
+    const v = evaluateEva(evaInput(['..........'], [[0, 0], [0, 9], [0, 0]], { spaceWeather: [win('2000-01-01T00:00:00.000Z', '2100-01-01T00:00:00.000Z')] }))
+    const r = v.reasons.find((x) => x.code === 'SPACE_WEATHER')
+    expect(r?.severity).toBe('caution')
+    expect(r?.message).toMatch(/Space-weather advisory until/)
+    expect(v.verdict).toBe('GO')
+  })
+  test('no overlapping advisory: a passed check; alert windows are left to the conditions (radiationAlert)', () => {
+    const v = evaluateEva(evaInput(['..........'], [[0, 0], [0, 9], [0, 0]], { spaceWeather: [win('1990-01-01T00:00:00.000Z', '1990-01-02T00:00:00.000Z'), win('2000-01-01T00:00:00.000Z', '2100-01-01T00:00:00.000Z', 'alert')] }))
+    expect(v.reasons.find((x) => x.code === 'SPACE_WEATHER')?.severity).toBe('info')
+  })
+})
+
+describe('shortReason (helmet visor text)', () => {
+  test('first clause only', async () => {
+    const { shortReason } = await import('./format')
+    expect(shortReason('Space-weather advisory until 16:00 UTC: CME launched 2025-11-09. Watch.')).toBe('Space-weather advisory until 16:00 UTC')
+    expect(shortReason('Out of radio line of sight with the habitat and the rover for 3 h 15 min in total (longest 2 h 32 min). Agree.')).toBe(
+      'Out of radio line of sight with the habitat and the rover for 3 h 15 min in total',
+    )
+    expect(shortReason('About 600 m of route on slopes over 15° (max 25°).')).toBe('About 600 m of route on slopes over 15°')
+    expect(shortReason('Sunset comes 1 h 28 min before the crew is back.')).toBe('Sunset comes 1 h 28 min before the crew is back')
+  })
+})
+

@@ -75,3 +75,17 @@ def test_curated_file_is_complete():
     for t in curated:
         assert t["why"] and t["instrumentsNeeded"] and t["sources"] and isinstance(t["sol"], int)
         assert all(u.startswith("https://") for u in t["sources"])
+
+
+def test_traverse_keeps_only_the_waypoints_inside_the_site(tmp_path):
+    from pipeline.sources.msl_targets import convert_traverse
+
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({"site": {"bounds": BOUNDS}}))
+    feats = [wp(1, 50, 50, dist=0), wp(2, 10, 10, dist=40), {"sol": 3, "lat": LAT + 1, "lon": LON, "site": 1, "drive": 0, "dist_total_m": 90}]
+    cache = tmp_path / "w.json"
+    cache.write_text(json.dumps({"features": [{"properties": f} for f in feats]}))
+    out = convert_traverse(tmp_path / "t.json", cfg, cache)
+    t = json.loads((tmp_path / "t.json").read_text())
+    assert out["points"] == 2 and [p["sol"] for p in t["points"]] == [1, 2]
+    assert t["status"] == "OBSERVED" and "sols 1-2" in t["source"]

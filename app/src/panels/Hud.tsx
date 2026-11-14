@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { CopilotLive } from '../copilot/useCopilot'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
-import { formatDistance, formatDuration } from '../stats/format'
+import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
 import { sphericalDistanceM, type RouteStats } from '../stats/stats'
 import type { Waypoint } from '../types'
@@ -158,9 +158,10 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
       </div>
 
       <ul className="hud-alerts" aria-live="polite">
-        {alerts.map((r) => (
-          <li key={r.code} className={`sev-${r.severity}`}>
-            {r.message}
+        {/* The visor shows the first clause of the three most serious alerts; the full text is on the planning card. */}
+        {alerts.slice(0, 3).map((r) => (
+          <li key={r.code} className={`sev-${r.severity}`} title={r.message}>
+            {shortReason(r.message)}
           </li>
         ))}
       </ul>

@@ -154,3 +154,20 @@ export function withSimulatedStorm(conditions: Conditions[], fromMs: number, toM
     return t >= fromMs - 3600_000 && t <= toMs ? { ...c, radiationAlert: true } : c
   })
 }
+
+/** Earth days per Mars sol (Mars24). */
+const DAYS_PER_SOL = 1.0274912517
+
+/**
+ * When the rover worked at the given stops: the sols of its traverse points within maxM of any stop.
+ * Null when no stop is on the traverse. `sols` counts first to last, inclusive.
+ */
+export function roverSolsAt(points: { sol: number; lat: number; lon: number }[], stops: { lat: number; lon: number }[], maxM = 30) {
+  const sols = points.filter((p) => stops.some((s) => sphericalDistanceM(p, s) <= maxM)).map((p) => p.sol)
+  if (sols.length === 0) return null
+  const first = Math.min(...sols)
+  const last = Math.max(...sols)
+  const matched = stops.filter((s) => points.some((p) => sphericalDistanceM(p, s) <= maxM)).length
+  return { first, last, sols: last - first + 1, earthDays: Math.round((last - first + 1) * DAYS_PER_SOL), stopsMatched: matched }
+}
+

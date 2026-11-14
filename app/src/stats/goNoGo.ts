@@ -1,9 +1,10 @@
 // GO / NO-GO for one planned EVA, always with reasons (CLAUDE.md §2 Safety).
 
-import { O2_RESERVE_MIN, RAD_BASELINE_DOSE_MSV_PER_DAY, SUIT_O2_DURATION_MIN, SUNSET_MARGIN_MIN, WALK_HOME_CONTINGENCY_FACTOR } from '../config'
+import { COMMS_CAUTION_MIN, O2_RESERVE_MIN, RAD_BASELINE_DOSE_MSV_PER_DAY, SUIT_O2_DURATION_MIN, SUNSET_MARGIN_MIN, WALK_HOME_CONTINGENCY_FACTOR } from '../config'
 import { isPassable, type PreparedGrid } from '../route/cost'
 import type { RouteResult } from '../route/route'
-import { TERRAIN, type Conditions, type DataStatus } from '../types'
+import { TERRAIN, type Conditions, type DataStatus, type SpaceWeather } from '../types'
+import { commsGaps } from './comms'
 import { coversWindow, findSunset, radiationAlertsIn, sunElevationAt } from './conditions'
 import { formatDistance, formatDuration } from './format'
 import { routeStats, type RouteStats } from './stats'
@@ -24,6 +25,8 @@ export type ReasonCode =
   | 'STEEP_SECTIONS'
   | 'SAND'
   | 'BOULDERS'
+  | 'COMMS'
+  | 'SPACE_WEATHER'
 
 export interface Reason {
   code: ReasonCode
@@ -55,6 +58,10 @@ export interface EvaInput {
   conditions: Conditions[]
   dwellS?: number | number[]
   params?: EvaParams
+  /** 1 per cell with radio line of sight to the habitat or the staged rover; omitted = not checked */
+  lineOfSight?: Uint8Array
+  /** space-weather windows (NASA DONKI); 'advisory' ones overlapping the EVA give a caution. Omitted = not checked */
+  spaceWeather?: SpaceWeather['windows']
 }
 
 export interface EvaVerdict {
@@ -173,6 +180,17 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   } else if (covered) {
     add('RADIATION', 'info', 'No radiation alert during the Marswalk.')
   }
+  // Space-weather advisories (minor or glancing CME forecasts for Mars) overlapping the walk.
+  if (input.spaceWeather) {
+    const overlapping = input.spaceWeather.filter((w) => w.level === 'advisory' && Date.parse(w.start) < endMs && Date.parse(w.end) > startMs)
+    if (overlapping.length > 0) {
+      const until = new Date(Math.max(...overlapping.map((w) => Date.parse(w.end)))).toISOString().slice(11, 16)
+      add('SPACE_WEATHER', 'caution', `Space-weather advisory until ${until} UTC: ${overlapping[0].reason} Watch the radiation monitor and be ready to shelter.`)
+    } else {
+      add('SPACE_WEATHER', 'info', 'No CME forecast to reach Mars during the Marswalk (NASA DONKI).')
+    }
+  }
+
   // Background dose of the walk itself (suit shielding not counted, so this is an upper bound for the background).
   const dose = evaDoseMSv(stats.totalS)
   add(
@@ -183,6 +201,21 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   )
   if (!covered) {
     add('NO_CONDITIONS', 'caution', 'Conditions data does not cover the whole Marswalk: daylight and radiation are not fully checked.')
+  }
+
+  // Radio contact: time out of line of sight with every antenna (habitat mast, staged rover).
+  if (input.lineOfSight) {
+    const gaps = commsGaps(stats.track, input.lineOfSight)
+    if (gaps.outS >= COMMS_CAUTION_MIN * 60) {
+      add(
+        'COMMS',
+        'caution',
+        `Out of radio line of sight with the habitat and the rover for ${formatDuration(gaps.outS)} in total ` +
+          `(longest ${formatDuration(gaps.longestS)}, from ${at(gaps.longestStart)}). Agree check-in points, or stage the rover with a view of the route.`,
+      )
+    } else {
+      add('COMMS', 'info', 'In radio line of sight with the habitat or the rover for the whole Marswalk.')
+    }
   }
 
   // Hazards along the route.
