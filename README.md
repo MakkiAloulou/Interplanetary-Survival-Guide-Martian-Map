@@ -37,7 +37,12 @@ npm run build      # static build
 # Pipeline (from repo root)
 pip install -r pipeline/requirements.txt
 python -m pytest
-python -m pipeline mock   # writes the MOCK site to data/processed/mock/ (~30 s)
-python -m pipeline build --dem dtm.tif --bbox 137.36,-4.82,137.40,-4.78 --out data/processed/gale
-                          # real elevation model -> CostGrid + hillshade (see --help for --sand/--boulders masks)
+python -m pipeline mock        # writes the MOCK site to data/processed/mock/ (~30 s)
+python -m pipeline gale-dem    # rebuilds data/processed/gale/ from the USGS Gale DEM (downloads ~1-2 min, cached in data/raw/)
+python -m pipeline msl-targets # re-places the Curiosity boxwork science stops on that grid
+
+# Generic converter for any other elevation GeoTIFF (replace <your_dem.tif>; writes to a NEW folder,
+# never over data/processed/gale/, which must match data/config.json):
+python -m pipeline build --dem <your_dem.tif> --bbox <lonmin,latmin,lonmax,latmax> --out data/processed/<name>
+                               # see --help for the --sand/--boulders masks
 ```

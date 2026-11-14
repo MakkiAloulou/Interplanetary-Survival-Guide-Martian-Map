@@ -1,5 +1,6 @@
 """CLI entry point: python -m pipeline <command>. `mock` writes the synthetic site; `build` converts a real DEM;
-`gale-dem` clips and converts the USGS Gale DEM for the site; `msl-targets` places Curiosity's boxwork stops."""
+`gale-dem` clips and converts the USGS Gale DEM for the site; `msl-targets` places Curiosity's boxwork stops;
+`msl-images` fetches Curiosity raw images at those stops; `themis-night-ir` cuts the THEMIS night-IR overlay."""
 
 import argparse
 import json
@@ -31,9 +32,19 @@ def main(argv: list[str] | None = None) -> int:
     gale.add_argument("--refresh", action="store_true", help="download the clip again instead of using data/raw/")
 
     commands.add_parser("msl-targets", help="Curiosity boxwork campaign -> science targets for the Gale site")
+    commands.add_parser("msl-images", help="Curiosity raw images at the science stops -> stop views")
+    commands.add_parser("themis-night-ir", help="THEMIS night-time infrared (Mars Trek) -> thermal overlay for the site")
 
     args = parser.parse_args(argv)
-    if args.command == "msl-targets":
+    if args.command == "themis-night-ir":
+        from pipeline.sources.trek_overlay import convert_themis_night_ir
+
+        print(json.dumps(convert_themis_night_ir(), indent=2))
+    elif args.command == "msl-images":
+        from pipeline.sources.msl_images import convert as convert_images
+
+        print(json.dumps(convert_images(), indent=2))
+    elif args.command == "msl-targets":
         from pipeline.sources.msl_targets import convert as convert_targets
 
         print(json.dumps(convert_targets(), indent=2))

@@ -122,3 +122,23 @@ MSL_WAYPOINTS_URL = "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoi
 # A rover stop on ground a suited walker cannot reach (e.g. a steep ridge wall) moves to the nearest reachable cell
 # within this distance; farther than this, the stop is dropped. MODELED: team rule (arm's reach plus a few steps).
 TARGET_MAX_SNAP_M = 20.0
+
+# Curiosity raw images (official resource 5, Curiosity equivalent). JSON API behind the raw-image gallery.
+MSL_RAW_IMAGES_API = "https://mars.nasa.gov/api/v1/raw_image_items/"
+MSL_RAW_IMAGE_PAGE = "https://mars.nasa.gov/raw_images/"
+# Stop views: Navcam frames looking out over the terrain (mast elevation in this range, degrees), up to this many per
+# stop, spread around the compass. Copies are resized for the app (team choice, keeps the repo small).
+POV_NAVCAM_EL_RANGE_DEG = (-25.0, -5.0)
+POV_NAVCAM_PER_STOP = 3
+# Mast azimuths within this many degrees of straight back (180° in the rover frame) mostly show the rover's own deck
+# and power source; such frames are used only when nothing else exists. Measured on the selected frames (~190°).
+POV_SKIP_REAR_HALF_ANGLE_DEG = 35.0
+POV_IMAGE_PX = 768
+POV_THUMB_PX = 240
+
+# THEMIS night-time infrared, controlled global mosaic, 100 m (Mars Odyssey; ASU / USGS), served by NASA Mars Trek.
+# Deepest TileMatrix in its WMTSCapabilities is 9 (~81 m per tile pixel at the equator).
+THEMIS_NIGHT_IR_LAYER = "THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018"
+THEMIS_NIGHT_IR_ZOOM = 9
+# Side of site image overlays sampled from tiles, px (each source pixel shows as a ~10 px block; no smoothing).
+OVERLAY_PX = 500
