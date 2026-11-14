@@ -1,6 +1,7 @@
 import L from 'leaflet'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { MARS_CRS } from '../map/crs'
+import { INK } from '../map/overlays'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
@@ -50,20 +51,21 @@ function TabletMap(props: { config: DataConfig; stats: RouteStats; stations: Way
     }
     const pts = stats.track.map((p) => L.latLng(p.lat, p.lon))
     const line = { lineCap: 'round', lineJoin: 'round', interactive: false } as const
-    L.polyline(pts, { ...line, color: '#ffffff', weight: 12 }).addTo(m)
-    const ahead = L.polyline(pts, { ...line, color: '#1a73e8', weight: 7 }).addTo(m)
-    const walked = L.polyline([], { ...line, color: '#9aa0a6', weight: 7 }).addTo(m)
-    const abortLine = L.polyline([], { ...line, color: '#d93025', weight: 7, dashArray: '2 12' }).addTo(m)
+    L.polyline(pts, { ...line, color: INK.white, weight: 12 }).addTo(m)
+    const ahead = L.polyline(pts, { ...line, color: INK.blue, weight: 7 }).addTo(m)
+    const walked = L.polyline([], { ...line, color: INK.walked, weight: 7 }).addTo(m)
+    const abortLine = L.polyline([], { ...line, color: INK.red, weight: 7, dashArray: '2 12' }).addTo(m)
     stations.forEach((s, i) => {
       if (i === stations.length - 1) return
       const home = i === 0
       L.marker([s.lat, s.lon], {
         icon: L.divIcon({ className: `map-mark ${home ? 'mark-home' : 'mark-stop'}`, html: home ? '' : String(i), iconSize: [30, 30], iconAnchor: [15, 15] }),
+        keyboard: false,
         interactive: false,
       }).addTo(m)
     })
     m.createPane('crew').style.zIndex = '650' // above the stop pins, so the crew stays visible while working at a stop
-    const crewDot = L.circleMarker([stats.track[0].lat, stats.track[0].lon], { pane: 'crew', radius: 10, color: '#ffffff', weight: 4, fillColor: '#188038', fillOpacity: 1, className: 'crew-dot', interactive: false }).addTo(m)
+    const crewDot = L.circleMarker([stats.track[0].lat, stats.track[0].lon], { pane: 'crew', radius: 10, color: INK.white, weight: 4, fillColor: INK.green, fillOpacity: 1, className: 'crew-dot', interactive: false }).addTo(m)
     m.setView([stats.track[0].lat, stats.track[0].lon], config.site.zoom.max - 1)
     map.current = m
     parts.current = { walked, ahead, crew: crewDot, abort: abortLine }
@@ -159,7 +161,7 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
               <p>
                 {pos.atStop
                   ? `Leave at ${elapsed(times[nextIndex]?.departS ?? 0)}`
-                  : `${formatDistance(distance)} · ${compassPoint(bearing)} ${Math.round(bearing)}° · arrive ${elapsed(times[nextIndex]?.arriveS ?? 0)}`}
+                  : `${formatDistance(distance)} straight line · ${compassPoint(bearing)} ${Math.round(bearing)}° · arrive ${elapsed(times[nextIndex]?.arriveS ?? 0)}`}
               </p>
             )}
           </section>

@@ -5,7 +5,7 @@
   z-index: 3000;
   inset: 0;
   overflow-y: auto;
-  background: #e8eaed;
+  background: var(--backdrop);
 }
 
 .print-toolbar {
@@ -38,7 +38,7 @@
   overflow: hidden;
   margin: 24px auto;
   padding: 11mm 12mm;
-  background: #fff;
+  background: var(--surface);
   box-shadow: var(--shadow-card);
   font-size: 11px;
   line-height: 1.35;
@@ -101,7 +101,7 @@
   font-size: 24px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .sheet-verdict.is-small {
@@ -123,7 +123,7 @@
 
 .sheet-verdict .badge {
   border-color: rgba(255, 255, 255, 0.7);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* Key figures */
@@ -176,7 +176,7 @@
 
 .sheet-route-casing {
   fill: none;
-  stroke: #fff;
+  stroke: var(--on-accent);
   stroke-width: 5px;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -191,20 +191,20 @@
 
 .sheet-pin {
   fill: var(--blue);
-  stroke: #fff;
+  stroke: var(--on-accent);
   stroke-width: 0.6;
 }
 
 .sheet-pin-base {
   fill: var(--text);
-  stroke: #fff;
+  stroke: var(--on-accent);
   stroke-width: 0.6;
 }
 
 .sheet-map text {
   font-weight: 600;
   text-anchor: middle;
-  fill: #fff;
+  fill: var(--on-accent);
 }
 
 .sheet-far {
@@ -215,7 +215,7 @@
 }
 
 .sheet-rover {
-  fill: #fff;
+  fill: var(--on-accent);
   stroke: var(--text);
   stroke-width: 0.6;
 }
@@ -287,25 +287,13 @@
   gap: 3px;
 }
 
-.sheet-reasons li {
-  padding-left: 6px;
-  border-left: 3px solid var(--line);
-}
 
 .sheet-reasons b {
   font-weight: 600;
 }
 
-.sheet-reasons .sev-no-go {
-  border-color: var(--red);
-}
-
 .sheet-reasons .sev-no-go b {
   color: var(--red);
-}
-
-.sheet-reasons .sev-caution {
-  border-color: var(--amber);
 }
 
 .sheet-reasons .sev-caution b {
@@ -401,7 +389,7 @@
   .app {
     height: auto !important;
     overflow: visible !important;
-    background: #fff !important;
+    background: var(--surface) !important;
   }
 
   .app > :not(.print-view),

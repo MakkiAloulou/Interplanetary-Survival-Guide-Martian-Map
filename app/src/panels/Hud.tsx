@@ -137,7 +137,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
         </strong>
       </div>
 
-      <Compass bearing={bearing} big={pos.atStop || done ? '—' : formatDistance(distance)} sub={`${compassPoint(bearing)} ${Math.round(bearing)}°`} />
+      <Compass bearing={bearing} big={pos.atStop || done ? '—' : formatDistance(distance)} sub={`${compassPoint(bearing)} ${Math.round(bearing)}° · straight line`} />
 
       <div className="hud-gauges">
         <div className={o2Left < params.o2ReserveS ? 'is-alert' : ''}>

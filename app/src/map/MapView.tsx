@@ -6,7 +6,7 @@ import type { RouteParams } from '../route/cost'
 import { cellCenter, type RouteResult } from '../route/route'
 import type { Bounds, CostGrid, DataConfig, Layer, ScienceTarget, Waypoint } from '../types'
 import { MARS_CRS } from './crs'
-import { gridOverlayPixels, HAZARD_COLORS, hazardRuns, walkHomePixels, type GridOverlayMode } from './overlays'
+import { gridOverlayPixels, HAZARD_COLORS, hazardRuns, INK, walkHomePixels, type GridOverlayMode } from './overlays'
 
 export interface LayerState {
   visible: boolean
@@ -194,8 +194,8 @@ export function MapView(props: Props) {
         return L.latLng(lat, lon)
       })
       const line = { pane: 'alt', lineCap: 'round', lineJoin: 'round' } as const
-      L.polyline(points, { ...line, color: '#ffffff', weight: 9, opacity: 0.9, interactive: false }).addTo(group)
-      L.polyline(points, { ...line, color: '#8ab4f8', weight: 5, className: 'alt-route' })
+      L.polyline(points, { ...line, color: INK.white, weight: 9, opacity: 0.9, interactive: false }).addTo(group)
+      L.polyline(points, { ...line, color: INK.alternative, weight: 5, className: 'alt-route' })
         .bindTooltip('Other option: click to switch', { sticky: true, className: 'map-tip' })
         .on('click', () => callbacks.current.onPickAlternative())
         .addTo(group)
@@ -211,9 +211,9 @@ export function MapView(props: Props) {
     const dot = L.circleMarker([hoverPoint.lat, hoverPoint.lon], {
       pane: 'pins',
       radius: 7,
-      color: '#ffffff',
+      color: INK.white,
       weight: 3,
-      fillColor: '#202124',
+      fillColor: INK.black,
       fillOpacity: 1,
       interactive: false,
     }).addTo(mapRef.current!)
@@ -234,7 +234,7 @@ export function MapView(props: Props) {
         })
         // White casing under the colour, as on a road map, so the line holds on dark and light ground alike.
         const line = { pane: 'route', interactive: false, lineCap: 'round', lineJoin: 'round' } as const
-        L.polyline(points, { ...line, color: '#ffffff', weight: 10 }).addTo(group)
+        L.polyline(points, { ...line, color: INK.white, weight: 10 }).addTo(group)
         L.polyline(points, { ...line, color: HAZARD_COLORS[run.hazard], weight: 6 }).addTo(group)
       }
     }

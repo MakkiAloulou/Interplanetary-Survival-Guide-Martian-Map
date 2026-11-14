@@ -14,6 +14,14 @@ export const INK = {
   orange: '#e8710a',
   red: '#d93025',
   black: '#202124',
+  /** casing under every route line, so it reads on any imagery */
+  white: '#ffffff',
+  /** the crew's position on the tablet */
+  green: '#188038',
+  /** the part of the route already walked */
+  walked: '#9aa0a6',
+  /** the route option not chosen */
+  alternative: '#8ab4f8',
 } as const
 
 export const HAZARD_COLORS: Record<Hazard, string> = {

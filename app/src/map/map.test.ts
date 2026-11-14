@@ -1,8 +1,9 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 import { METERS_PER_DEG_LAT } from '../config'
 import { DEFAULT_ROUTE_PARAMS } from '../route/cost'
 import { gridFrom } from '../testing/grids'
-import { cellHazard, gridOverlayPixels, hazardRuns, hazardSpans, legHazardSeconds, walkHomePixels } from './overlays'
+import { INK, cellHazard, gridOverlayPixels, hazardRuns, hazardSpans, legHazardSeconds, walkHomePixels } from './overlays'
 import { metresPerPixel, tileAt, tileDegrees } from './tiles'
 
 describe('Mars Trek tile matrix (from curiosity_hirise_mosaic WMTSCapabilities.xml)', () => {
@@ -73,6 +74,21 @@ describe('route hazards', () => {
       { hazard: 'sand', cells: [2, 3, 4] },
       { hazard: 'clear', cells: [4, 5] },
     ])
+  })
+})
+
+describe('one palette', () => {
+  test('the CSS tokens and the map inks are the same colours', () => {
+    const css = readFileSync(new URL('../index.css', import.meta.url), 'utf8')
+    const token = (name: string) => css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`))?.[1].toLowerCase()
+    expect({ blue: token('blue'), amber: token('amber'), red: token('red'), green: token('green'), text: token('text'), onAccent: token('on-accent') }).toEqual({
+      blue: INK.blue,
+      amber: INK.amber,
+      red: INK.red,
+      green: INK.green,
+      text: INK.black,
+      onAccent: INK.white,
+    })
   })
 })
 

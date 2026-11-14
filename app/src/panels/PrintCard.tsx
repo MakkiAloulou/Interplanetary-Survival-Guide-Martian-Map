@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { HAZARD_COLORS, HAZARD_LABELS, cellHazard, gridOverlayPixels, hazardRuns, type Hazard } from '../map/overlays'
+import { HAZARD_COLORS, HAZARD_LABELS, INK, cellHazard, gridOverlayPixels, hazardRuns, type Hazard } from '../map/overlays'
 import type { RouteParams } from '../route/cost'
 import { cardStations, cropAround, farthestFromSafety, hillshadePixels, marsClockAt, type Crop } from '../stats/card'
 import { findSunset } from '../stats/conditions'
@@ -190,7 +190,7 @@ export function PrintCard(props: Props) {
                 return (
                   <g key={row.number} transform={`translate(${x} ${y})`}>
                     <circle r={9 * k} className={base ? 'sheet-pin-base' : 'sheet-pin'} />
-                    {base ? <circle r={3 * k} fill="#fff" /> : <text fontSize={11 * k} dy={4 * k}>{row.number}</text>}
+                    {base ? <circle r={3 * k} fill={INK.white} /> : <text fontSize={11 * k} dy={4 * k}>{row.number}</text>}
                   </g>
                 )
               })}

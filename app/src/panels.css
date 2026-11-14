@@ -140,7 +140,7 @@ button.stop-text:hover {
   transform: translateX(-50%);
   border-radius: 50%;
   background: var(--blue);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 10px;
 }
@@ -184,7 +184,7 @@ button.stop-text:hover {
 .pano {
   position: relative;
   height: 190px;
-  background-color: #2b2b2b;
+  background-color: var(--pano-bg);
   background-repeat: repeat-x;
   cursor: grab;
   touch-action: pan-y;
@@ -202,7 +202,7 @@ button.stop-text:hover {
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(32, 33, 36, 0.72);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
 }
 
@@ -264,7 +264,7 @@ button.stop-text:hover {
 
 .side-panel {
   width: 340px;
-  max-height: calc(100vh - 96px);
+  max-height: calc(100vh - 216px); /* clear of the zoom buttons and scale bar */
   overflow-y: auto;
   padding: 14px 16px 16px;
 }
@@ -418,13 +418,13 @@ button.tl-stop {
   padding: 0;
   border: 0;
   background: var(--blue);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 12px;
 }
 
 button.tl-stop:hover {
-  background: #1765cc;
+  background: var(--blue-hover);
 }
 
 button.tl-stop.is-selected {
@@ -507,12 +507,12 @@ button.tl-stop.is-selected {
 
 .grip {
   position: absolute;
-  left: -20px;
+  left: -24px;
   top: 50%;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 28px;
+  width: 24px;
+  height: 32px;
   padding: 0;
   transform: translateY(-50%);
   border: 0;
@@ -575,8 +575,8 @@ button.tl-stop.is-selected {
   grid-template-rows: auto 1fr auto auto;
   gap: 24px;
   padding: 32px 40px 96px;
-  background: radial-gradient(ellipse at 50% 40%, #10161c 0%, #000 70%);
-  color: #f5f5f5;
+  background: radial-gradient(ellipse at 50% 40%, var(--hud-bg) 0%, var(--black) 70%);
+  color: var(--hud-text);
 }
 
 .hud-exit {
@@ -590,7 +590,7 @@ button.tl-stop.is-selected {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
   background: transparent;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .hud-label {
@@ -653,7 +653,7 @@ button.tl-stop.is-selected {
 }
 
 .hud-arrow {
-  fill: #4caf50;
+  fill: var(--hud-green);
 }
 
 .hud-compass strong {
@@ -686,7 +686,7 @@ button.tl-stop.is-selected {
 }
 
 .hud-gauges .is-alert strong {
-  color: #ff5f52;
+  color: var(--hud-red);
 }
 
 .hud-alerts {
@@ -705,12 +705,12 @@ button.tl-stop.is-selected {
 
 .hud-alerts .sev-caution {
   background: rgba(249, 171, 0, 0.16);
-  color: #fdd663;
+  color: var(--hud-amber);
 }
 
 .hud-alerts .sev-no-go {
   background: rgba(217, 48, 37, 0.25);
-  color: #ff8a80;
+  color: var(--hud-alert);
 }
 
 .hud-controls {
@@ -733,7 +733,7 @@ button.tl-stop.is-selected {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
   background: transparent;
-  color: #fff;
+  color: var(--on-accent);
   font: inherit;
 }
 
@@ -743,7 +743,7 @@ button.tl-stop.is-selected {
 
 .hud-controls input {
   flex: 1;
-  accent-color: #4caf50;
+  accent-color: var(--hud-green);
 }
 
 /* ---------- Plan tools: rover staging and optimise ---------- */
@@ -797,12 +797,12 @@ button.tl-stop.is-selected {
 
 .notice.notice-info {
   background: var(--blue-bg);
-  color: #174ea6;
+  color: var(--blue-text);
 }
 
 .map.leaflet-container .mark-rover {
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
@@ -820,8 +820,8 @@ button.tl-stop.is-selected {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border-color: #ff8a80;
-  color: #ff8a80;
+  border-color: var(--hud-alert);
+  color: var(--hud-alert);
 }
 
 .hud-controls .hud-abort:hover {
@@ -829,11 +829,11 @@ button.tl-stop.is-selected {
 }
 
 .hud.is-abort {
-  background: radial-gradient(ellipse at 50% 40%, #2a0d0b 0%, #000 70%);
+  background: radial-gradient(ellipse at 50% 40%, var(--hud-bg-abort) 0%, var(--black) 70%);
 }
 
 .hud.is-abort .hud-arrow {
-  fill: #ff8a80;
+  fill: var(--hud-alert);
 }
 
 .hud-clock {
@@ -895,7 +895,7 @@ button.tl-stop.is-selected {
   border-radius: 3px;
   font-weight: 600;
   font-size: 10.5px;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .mini-verdict.is-go {
@@ -917,6 +917,12 @@ button.tl-stop.is-selected {
 }
 
 /* ---------- Narrow screens ---------- */
+
+@media (max-width: 600px) {
+  .tl-axis span:nth-child(even) {
+    display: none; /* hourly labels only, so they do not run together */
+  }
+}
 
 @media (max-width: 960px) {
   .detail,
@@ -998,11 +1004,11 @@ button.tl-stop.is-selected {
   border-radius: 999px;
   background: var(--blue);
   font-weight: 500;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover {
-  background: #1765cc;
+  background: var(--blue-hover);
 }
 
 .saved-current,
@@ -1075,7 +1081,7 @@ button.tl-stop.is-selected {
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.04em;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .saved-verdict.is-go {
