@@ -119,8 +119,9 @@ def build(
             terrain[np.isfinite(mask) & _OPS[op](np.nan_to_num(mask, nan=0.0), value)] = code
     terrain[missing] = C.TERRAIN_NO_GO
 
-    # Elevation and slope come from stereo photogrammetry: DERIVED. Classes from thresholds on masks are our call.
-    array_status = {"elevation": "DERIVED", "slopeDeg": "DERIVED", "terrainClass": "MODELED" if (sand or boulders) else "DERIVED"}
+    # Elevation and slope come from stereo photogrammetry: DERIVED. Terrain classes are MODELED either way: thresholds
+    # on masks are our call, and without masks "all measured ground is bedrock" is an assumption, not a measurement.
+    array_status = {"elevation": "DERIVED", "slopeDeg": "DERIVED", "terrainClass": "MODELED"}
     write_costgrid(
         out_dir / "costgrid.json",
         elevation.astype(np.float32),

@@ -1,4 +1,5 @@
-"""CLI entry point: python -m pipeline <command>. `mock` writes the synthetic site; `build` converts a real DEM."""
+"""CLI entry point: python -m pipeline <command>. `mock` writes the synthetic site; `build` converts a real DEM;
+`gale-dem` clips and converts the USGS Gale DEM for the site."""
 
 import argparse
 import json
@@ -25,8 +26,16 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--boulders", help="boulder mask raster with a rule, e.g. rocks.tif:>0")
     build.add_argument("--source", default="", help="provenance line stored in the CostGrid metadata")
 
+    gale = commands.add_parser("gale-dem", help="USGS MSL Gale Merged DEM 1m -> CostGrid for the site in data/config.json")
+    gale.add_argument("--out", type=Path, default=config.DATA_DIR / "processed" / "gale")
+    gale.add_argument("--refresh", action="store_true", help="download the clip again instead of using data/raw/")
+
     args = parser.parse_args(argv)
-    if args.command == "build":
+    if args.command == "gale-dem":
+        from pipeline.sources.gale_dem import convert
+
+        print(json.dumps(convert(args.out, refresh=args.refresh), indent=2))
+    elif args.command == "build":
         from pipeline.build import build as build_grid, parse_bbox
 
         summary = build_grid(

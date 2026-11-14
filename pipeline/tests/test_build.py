@@ -91,7 +91,8 @@ def test_output_matches_the_phase_2_format(tmp_path):
     build(tmp_path / "dem.tif", bbox_m(100), tmp_path / "out", cell_size_m=2.0, source="test DEM")
     grid = read_costgrid(tmp_path / "out" / "costgrid.json")
     assert grid["status"] == "DERIVED"
-    assert grid["arrayStatus"] == {"elevation": "DERIVED", "slopeDeg": "DERIVED", "terrainClass": "DERIVED"}
+    # No masks: every measured cell is assumed bedrock, which is MODELED, not DERIVED.
+    assert grid["arrayStatus"] == {"elevation": "DERIVED", "slopeDeg": "DERIVED", "terrainClass": "MODELED"}
     assert grid["source"] == "test DEM"
     assert grid["elevation"].dtype == np.dtype("<f4") and grid["terrainClass"].dtype == np.uint8
     assert np.isfinite(grid["elevation"]).all() and (grid["slopeDeg"] < 90).all()

@@ -95,3 +95,24 @@ POV_WIDTH_PX = 1024
 POV_HEIGHT_PX = 256
 POV_VFOV_DEG = 90.0
 POV_MAX_DISTANCE_M = 1500.0
+
+# ---------- Real datasets (CLAUDE.md §8; provenance in data/SOURCES.md) ----------
+
+# USGS MSL Gale Merged DEM 1m v3 (Parker & Calef 2016; HiRISE + CTX + HRSC tied to MOLA). Same product as the
+# Mars Trek layer Gale_DEM_SMG_1m. Source: https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m
+GALE_DEM_URL = "https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif"
+# Extra DEM read around the site before warping, m, so bilinear resampling at the edges has neighbours.
+GALE_DEM_CLIP_MARGIN_M = 100.0
+
+# ---------- Habitat placement on a real site (MODELED: team rule, no official habitat site exists) ----------
+
+# A pad this wide, every cell under the slope limit, for the habitat and the rover to park on.
+HABITAT_PAD_RADIUS_M = 30.0
+HABITAT_PAD_MAX_SLOPE_DEG = 8.0
+# Keep the habitat and its traffic off the science terrain it was sent to study.
+HABITAT_MIN_DISTANCE_FROM_SCIENCE_M = 300.0
+# Rover parked this far east of the habitat, on the same pad.
+ROVER_OFFSET_EAST_M = 30.0
+# Science centre of the site: Curiosity's 2025-26 boxwork campaign, mean of MMGIS waypoints sols 4560-4841
+# (https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json, retrieved 2026-11-14). OBSERVED positions.
+GALE_SCIENCE_CENTER = (-4.8051, 137.3814)

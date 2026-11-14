@@ -6,7 +6,6 @@ import re
 import pytest
 
 from pipeline import config
-from pipeline.costgrid import bounds_from_center
 
 TYPES_TS = (config.REPO_ROOT / "app" / "src" / "types.ts").read_text(encoding="utf-8")
 CONFIG_JSON = config.DATA_DIR / "config.json"
@@ -39,7 +38,8 @@ def test_data_config_statuses_are_valid():
 
 
 @needs_data
-def test_site_bounds_match_mock_grid():
+def test_site_bounds_match_the_cost_grid():
     cfg = json.loads(CONFIG_JSON.read_text(encoding="utf-8"))
-    expected = bounds_from_center(config.MOCK_CENTER_LAT, config.MOCK_CENTER_LON, config.MOCK_SIZE_M, config.MOCK_SIZE_M)
-    assert cfg["site"]["bounds"] == expected
+    grid = json.loads((config.DATA_DIR / cfg["costGrid"]).read_text(encoding="utf-8"))
+    for key, value in grid["bounds"].items():
+        assert cfg["site"]["bounds"][key] == pytest.approx(value, abs=1e-6)
