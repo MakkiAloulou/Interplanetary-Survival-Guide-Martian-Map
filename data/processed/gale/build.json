@@ -12,8 +12,8 @@
   ],
   "fraction": {
     "noData": 0.0,
-    "sand": 0.0,
-    "boulders": 0.0,
+    "sand": 0.065,
+    "boulders": 0.009,
     "slopeImpassable": 0.18
   },
   "arrayStatus": {

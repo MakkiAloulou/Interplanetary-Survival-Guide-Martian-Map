@@ -22,6 +22,7 @@ We used **Claude Code** (Anthropic's AI coding assistant, model Claude Opus) thr
 |---|---|---|---|
 | MRO HiRISE Curiosity roving-site mosaic | NASA/JPL-Caltech/University of Arizona | NASA Mars Trek, layer `curiosity_hirise_mosaic` (https://trek.nasa.gov/mars/) | Base map, shown as served |
 | MSL Gale Merged DEM 1m v3 | USGS Astrogeology Science Center; T. Parker and F. J. Calef III (2016). Built from MRO HiRISE (NASA/JPL-Caltech/University of Arizona), MRO CTX (NASA/JPL-Caltech/MSSS), Mars Express HRSC (ESA/DLR/FU Berlin) and MGS MOLA (NASA/GSFC) | https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m (Mars Trek layer `Gale_DEM_SMG_1m`) | Elevation, slope, hillshade and walking costs at 2 m |
+| MSL Gale Merged Orthophoto Mosaic 25cm v3 | USGS Astrogeology Science Center; MRO HiRISE (NASA/JPL-Caltech/University of Arizona) | https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm | Mapping sand (smooth, dark hollow floors) and rocky ground, by our own rule (MODELED) |
 | Curiosity traverse (rover waypoints) | NASA/JPL-Caltech, MMGIS | https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json | Locating the 2025–26 boxwork campaign; choosing the site and the science centre; placing the science stops where Curiosity stood |
 | Boxwork science stops: what Curiosity studied and why | NASA/JPL-Caltech: Curiosity mission blog (science.nasa.gov/blog), posts for sols 4561–4562, 4689–4694, 4709–4715, 4716–4722 and 4804–4811; JPL news 2025-06-23 and 2026-02-23 | URLs per stop in `pipeline/sources/msl_boxwork_targets.json` | Stop names, dates and the "why" texts (paraphrased) |
 | Curiosity raw images at the stops (Navcam, Front Hazcam) | NASA/JPL-Caltech | https://mars.nasa.gov/msl/multimedia/raw-images/ (each image links to its own page) | Stop photos: what the ground looks like on arrival, and the drill workspaces. Resized copies; no other change. |
@@ -39,7 +40,7 @@ Full processing details for each dataset are in `data/SOURCES.md`.
 | Resource | Used? |
 |---|---|
 | NASA Mars Trek | Yes: HiRISE base map, Gale elevation model, Curiosity traverse, THEMIS night-infrared layer. Its CRISM mineral mosaics do not cover our site (checked). |
-| USGS Astrogeology interactive maps | Yes: the same Gale elevation model is published there |
+| USGS Astrogeology interactive maps | Yes: the Gale elevation model and the Gale 25 cm HiRISE orthophoto (used to map sand and rocky ground) |
 | Curiosity's proposed path up Mount Sharp (2019 animation) | Context for the demo story only |
 | NASA Worldview | Design reference only (layered maps, data-source labels). No data used. |
 | Mars 2020 raw images | Its Curiosity equivalent is used: the stop photos come from the Curiosity raw-image archive (https://mars.nasa.gov/msl/multimedia/raw-images/), because our site is Gale, not Jezero |

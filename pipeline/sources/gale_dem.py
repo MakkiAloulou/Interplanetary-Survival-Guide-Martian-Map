@@ -62,14 +62,38 @@ def convert(
     src: str = C.GALE_DEM_URL,
     refresh: bool = False,
     science: tuple[float, float] = C.GALE_SCIENCE_CENTER,
+    sand: str | None = None,
+    boulders: str | None = None,
 ) -> dict:
-    """Clip (cached in data/raw/ unless refresh), build the CostGrid at the app's 2 m cells, place the habitat."""
+    """Clip (cached in data/raw/ unless refresh), build the CostGrid at the app's 2 m cells, place the habitat.
+    `sand` / `boulders`: optional mask rasters with a rule, as for `python -m pipeline build`."""
     bbox = bbox or site_bbox()
     clipped = None
     if refresh or not Path(raw_tif).exists():
         clipped = clip(src, bbox, raw_tif)
-    summary = build(Path(raw_tif), bbox, out_dir, C.MOCK_CELL_SIZE_M, source=SOURCE)
+    source = SOURCE + ("; sand and boulders from the HiRISE orthophoto (pipeline/surface.py, MODELED)" if sand or boulders else "")
+    summary = build(Path(raw_tif), bbox, out_dir, C.MOCK_CELL_SIZE_M, sand=sand, boulders=boulders, source=source)
     # The habitat must stand on this terrain: place it by the MODELED rule in pipeline/habitat.py.
     waypoints = place_habitat(read_costgrid(Path(out_dir) / "costgrid.json"), science)
     (Path(out_dir) / "waypoints.json").write_text(json.dumps(waypoints, indent=2) + "\n", encoding="utf-8")
     return summary | {"clip": clipped or "cached", "waypoints": waypoints}
+
+
+def convert_surface(
+    out_dir: Path = C.DATA_DIR / "processed" / "gale",
+    ortho_tif: Path = C.DATA_DIR / "raw" / "gale_ortho_25cm_site.tif",
+    mask_dir: Path = C.DATA_DIR / "raw",
+) -> dict:
+    """Sand and boulder masks from the HiRISE orthophoto, then the CostGrid rebuilt with them (habitat re-placed)."""
+    from pipeline.surface import classify, features, write_mask
+
+    if not Path(ortho_tif).exists():
+        clip(C.GALE_ORTHO_URL, site_bbox(), ortho_tif, margin_m=20)  # ~50 MB over HTTP, a few minutes
+    plain = convert(out_dir)  # the grid without masks fixes the cells and gives the slope for the sand rule
+    grid = read_costgrid(Path(out_dir) / "costgrid.json")
+    f = features(ortho_tif, grid)
+    sand, boulders = classify(f["brightness"], f["speckle"], grid["slopeDeg"])
+    write_mask(sand, grid["bounds"], Path(mask_dir) / "gale_sand_mask.tif")
+    write_mask(boulders, grid["bounds"], Path(mask_dir) / "gale_boulder_mask.tif")
+    summary = convert(out_dir, sand=str(Path(mask_dir) / "gale_sand_mask.tif"), boulders=str(Path(mask_dir) / "gale_boulder_mask.tif"))
+    return summary | {"withoutMasks": plain["fraction"]}

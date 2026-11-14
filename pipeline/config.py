@@ -142,3 +142,16 @@ THEMIS_NIGHT_IR_LAYER = "THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018"
 THEMIS_NIGHT_IR_ZOOM = 9
 # Side of site image overlays sampled from tiles, px (each source pixel shows as a ~10 px block; no smoothing).
 OVERLAY_PX = 500
+
+# ---------- Sand and boulders from the HiRISE orthophoto (pipeline/surface.py; MODELED: team rule) ----------
+
+# USGS MSL Gale Merged Orthophoto Mosaic 25cm v3 (same project as the Gale DEM). Source:
+# https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm
+GALE_ORTHO_URL = "https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_Orthophoto_Mosaic_25cm_v3.tif"
+SURFACE_SAMPLE_M = 0.25  # orthophoto samples per cell side: 2 m / 0.25 m = 8
+SURFACE_CONTEXT_CELLS = 5  # "darker than the surroundings" = below the mean of the 11 x 11 cells (22 m) around
+SAND_SMOOTH_PERCENTILE = 35.0  # smooth = speckle in the lowest 35% of the site
+SAND_MAX_SLOPE_DEG = 15.0  # sand settles in hollows, not on steep faces
+SAND_MIN_NEIGHBOURS = 5  # of the 3 x 3 cells, so sand comes in patches, not single cells
+BOULDER_SPECKLE_PERCENTILE = 98.0  # the most speckled 2% of the site
+BOULDER_MIN_NEIGHBOURS = 4  # of the 3 x 3 cells: clusters, not single fractures

@@ -1,6 +1,7 @@
 """CLI entry point: python -m pipeline <command>. `mock` writes the synthetic site; `build` converts a real DEM;
 `gale-dem` clips and converts the USGS Gale DEM for the site; `msl-targets` places Curiosity's boxwork stops;
-`msl-images` fetches Curiosity raw images at those stops; `themis-night-ir` cuts the THEMIS night-IR overlay."""
+`msl-images` fetches Curiosity raw images at those stops; `themis-night-ir` cuts the THEMIS night-IR overlay;
+`gale-surface` maps sand and boulders from HiRISE and rebuilds the CostGrid with them."""
 
 import argparse
 import json
@@ -33,10 +34,15 @@ def main(argv: list[str] | None = None) -> int:
 
     commands.add_parser("msl-targets", help="Curiosity boxwork campaign -> science targets for the Gale site")
     commands.add_parser("msl-images", help="Curiosity raw images at the science stops -> stop views")
+    commands.add_parser("gale-surface", help="sand and boulder masks from the HiRISE orthophoto -> CostGrid rebuilt with them")
     commands.add_parser("themis-night-ir", help="THEMIS night-time infrared (Mars Trek) -> thermal overlay for the site")
 
     args = parser.parse_args(argv)
-    if args.command == "themis-night-ir":
+    if args.command == "gale-surface":
+        from pipeline.sources.gale_dem import convert_surface
+
+        print(json.dumps(convert_surface(), indent=2))
+    elif args.command == "themis-night-ir":
         from pipeline.sources.trek_overlay import convert_themis_night_ir
 
         print(json.dumps(convert_themis_night_ir(), indent=2))
