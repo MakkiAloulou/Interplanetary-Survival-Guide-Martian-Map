@@ -30,6 +30,13 @@ class Settings:
     warmup: bool = True
     host: str = "127.0.0.1"
     port: int = 8787
+    # Pages allowed to call the server from the browser: the local dev server, and the deployed site (production and
+    # its preview deployments), which reaches the server through the tunnel (start-llm-tunnel.ps1).
+    cors_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,"
+        "https://interplanetary-survival-guide-marti-red.vercel.app"
+    )
+    cors_origin_regex: str = r"https://interplanetary-survival-guide-[a-z0-9-]+\.vercel\.app"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -47,4 +54,6 @@ class Settings:
             warmup=_env("COPILOT_WARMUP", "1") not in ("0", "false", "no"),
             host=_env("COPILOT_HOST", cls.host),
             port=int(_env("COPILOT_PORT", str(cls.port))),
+            cors_origins=_env("COPILOT_CORS_ORIGINS", cls.cors_origins),
+            cors_origin_regex=_env("COPILOT_CORS_ORIGIN_REGEX", cls.cors_origin_regex),
         )
