@@ -9,7 +9,7 @@ import { MapControls } from './panels/MapControls'
 import { StopDetail } from './panels/StopDetail'
 import { Timeline } from './panels/Timeline'
 import { createRouteClient, type RouteClient } from './route/client'
-import { DEFAULT_ROUTE_PARAMS, isPassable, prepareGrid } from './route/cost'
+import { DEFAULT_ROUTE_PARAMS, isPassable, prepareGrid, type RouteProfile } from './route/cost'
 import type { Message } from './panels/Directions'
 import type { AbortPlan } from './panels/Hud'
 import { bestOrder, nearestHaven, tourTime } from './route/optimize'
@@ -17,6 +17,7 @@ import { cellAt, cellCenter, type RouteResult } from './route/route'
 import { findPath } from './route/search'
 import { sphericalDistanceM } from './stats/stats'
 import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, withSimulatedStorm } from './stats/eva'
+import { FASTER_ALTERNATIVE_MIN_SAVING_MIN } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
 import type { Conditions, DataConfig, PovImage, ScienceTarget, Waypoint } from './types'
 
@@ -83,7 +84,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   )
   const [overlay, setOverlay] = useState<GridOverlayMode>('none')
   const [stops, setStops] = useState<Waypoint[]>([])
-  const [route, setRoute] = useState<RouteResult | null>(null)
+  const [routes, setRoutes] = useState<Record<RouteProfile, RouteResult> | null>(null)
+  /** the user's pick when a real trade-off is offered; the safest route otherwise */
+  const [profile, setProfile] = useState<RouteProfile>('safest')
   const [walkHome, setWalkHome] = useState<Float32Array | null>(null)
   const [routing, setRouting] = useState(false)
   const [notice, setNoticeState] = useState<Message | null>(null)
@@ -116,7 +119,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   // Re-plan habitat → stations → habitat whenever the stations change; ignore answers to outdated requests.
   useEffect(() => {
     if (stops.length === 0) {
-      setRoute(null)
+      setRoutes(null)
       return
     }
     let current = true
@@ -124,8 +127,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     setRouting(true)
     const c = client.current!
     c.ready
-      .then(() => c.client.route(cells))
-      .then((r) => current && setRoute(r))
+      // Plan both alternatives together, so switching between them is instant.
+      .then(() => Promise.all([c.client.route(cells, 'fastest'), c.client.route(cells, 'safest')]))
+      .then(([fastest, safest]) => current && setRoutes({ fastest, safest }))
       .catch((e: unknown) => current && setNotice(`Route failed: ${e instanceof Error ? e.message : String(e)}`))
       .finally(() => current && setRouting(false))
     return () => {
@@ -157,13 +161,19 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const roverField = roverCell !== null ? (havenFields[roverCell] ?? null) : null
   const safeHaven = useMemo(() => (walkHome && roverField ? nearestHaven([walkHome, roverField]) : walkHome), [walkHome, roverField])
 
-  const verdict = useMemo(
-    () =>
-      route && safeHaven
-        ? evaluateEva({ prepared, route, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams })
-        : null,
-    [route, safeHaven, prepared, startTime, effectiveConditions, evaParams],
-  )
+  // Both alternatives are judged on the same walking model; safety first, so the safest route is the default and
+  // the fastest is offered only when it saves enough time to be worth the extra hazard.
+  const judge = (r: RouteResult | null) =>
+    r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams }) : null
+  const fastVerdict = useMemo(() => judge(routes?.fastest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams])
+  const safeVerdict = useMemo(() => judge(routes?.safest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams])
+  const savingS = fastVerdict?.stats && safeVerdict?.stats ? safeVerdict.stats.totalS - fastVerdict.stats.totalS : 0
+  const tradeOff = savingS >= FASTER_ALTERNATIVE_MIN_SAVING_MIN * 60
+  const active: RouteProfile = tradeOff ? profile : 'safest'
+  const route = routes ? routes[active] : null
+  const altRoute = routes && tradeOff ? routes[active === 'fastest' ? 'safest' : 'fastest'] : null
+  const verdict = active === 'fastest' ? fastVerdict : safeVerdict
+  const routeOptions = tradeOff && fastVerdict && safeVerdict ? { fastest: fastVerdict, safest: safeVerdict } : null
   // Stats only while the route matches the current stops (the render right after an edit still holds the old route).
   const routeMatches = route?.ok === true && route.legs.length === stops.length + 1
   const stats = stops.length > 0 && !routing && routeMatches ? (verdict?.stats ?? null) : null
@@ -252,6 +262,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           targets={targets}
           stops={stops}
           route={route}
+          altRoute={altRoute}
+          onPickAlternative={() => setProfile((p) => (p === 'fastest' ? 'safest' : 'fastest'))}
           onMapClick={(lat, lon) => {
             viaCount.current += 1
             addStop({ id: `via-${viaCount.current}`, lat, lon, kind: 'via', name: `Via point ${viaCount.current}` })
@@ -327,6 +339,10 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
         verdict={stops.length > 0 && !routing ? verdict : null}
         routing={routing}
         failedLeg={route && !route.ok ? route.failedLeg : null}
+        profile={active}
+        onProfile={setProfile}
+        routeOptions={stops.length > 0 && !routing ? routeOptions : null}
+        savingS={savingS}
         notice={notice}
         startTime={startTime}
         o2DurationS={evaParams.o2DurationS}

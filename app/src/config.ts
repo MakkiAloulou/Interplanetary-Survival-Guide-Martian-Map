@@ -59,6 +59,27 @@ export const TERRAIN_COST_MULTIPLIER: Record<TerrainClass, number> = {
   [TERRAIN.NO_GO]: Infinity,
 }
 
+// ---------- "Safest" route alternative ----------
+// The safest route is searched with these heavier penalties, so it detours around hazards when it can; its time
+// is then reported with the normal walking model above, so both options are compared on the same clock.
+
+/** Search-cost multipliers for the safest route. MODELED: team assumption. */
+export const SAFE_ROUTE_TERRAIN_MULTIPLIER: Record<TerrainClass, number> = {
+  [TERRAIN.BEDROCK]: 1,
+  [TERRAIN.SAND]: 6,
+  [TERRAIN.BOULDERS]: 12,
+  [TERRAIN.NO_GO]: Infinity,
+}
+
+/** Extra search cost per degree above the penalty start for the safest route (×7 at 25°). MODELED: team assumption. */
+export const SAFE_ROUTE_SLOPE_PENALTY_PER_DEG = 0.6
+
+/**
+ * The safest route is the default. The fastest one is offered as an alternative only when it saves at least this
+ * many minutes; below that the safe route costs nothing worth choosing against. Team UX choice.
+ */
+export const FASTER_ALTERNATIVE_MIN_SAVING_MIN = 5
+
 // ---------- Life support and EVA timeline ----------
 
 /**

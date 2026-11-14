@@ -1,14 +1,15 @@
 // Promise wrapper around the route worker, for the UI.
 
 import type { CostGridMeta } from '../types'
-import type { RouteParams } from './cost'
+import type { RouteParams, RouteProfile } from './cost'
 import type { RouteResult } from './route'
 import type { WorkerResponse } from './workerHandler'
 
 export interface RouteClient {
   /** Hands the grid to the worker. The buffer is transferred: it is unusable on this thread afterwards. */
   init(meta: CostGridMeta, buffer: ArrayBuffer, params?: RouteParams): Promise<void>
-  route(stops: number[]): Promise<RouteResult>
+  /** 'safest' searches with heavy hazard penalties; leg times are then search costs, so re-time with routeStats. */
+  route(stops: number[], profile?: RouteProfile): Promise<RouteResult>
   walkHome(base: number): Promise<Float32Array>
   /** Walking time between every ordered pair of cells, seconds (Infinity where there is no path). */
   matrix(cells: number[]): Promise<number[][]>
@@ -40,8 +41,8 @@ export function createRouteClient(): RouteClient {
     init: async (meta, buffer, params) => {
       await send({ type: 'init', meta, buffer, params }, [buffer])
     },
-    route: async (stops) => {
-      const r = await send({ type: 'route', stops })
+    route: async (stops, profile = 'fastest') => {
+      const r = await send({ type: 'route', stops, profile })
       if (r.type !== 'route') throw new Error(`unexpected response ${r.type}`)
       return r.result
     },

@@ -2,13 +2,13 @@
 
 import { parseCostGrid } from '../costGrid'
 import type { CostGridMeta } from '../types'
-import { DEFAULT_ROUTE_PARAMS, prepareGrid, type PreparedGrid, type RouteParams } from './cost'
+import { DEFAULT_ROUTE_PARAMS, prepareGrid, SAFEST_ROUTE_PARAMS, type PreparedGrid, type RouteParams, type RouteProfile } from './cost'
 import { planRoute, type RouteResult } from './route'
 import { findPath, walkHomeField } from './search'
 
 export type WorkerRequest =
   | { type: 'init'; id: number; meta: CostGridMeta; buffer: ArrayBuffer; params?: RouteParams }
-  | { type: 'route'; id: number; stops: number[] }
+  | { type: 'route'; id: number; stops: number[]; profile?: RouteProfile }
   | { type: 'walkHome'; id: number; base: number }
   | { type: 'matrix'; id: number; cells: number[] }
 
@@ -21,6 +21,8 @@ export type WorkerResponse =
 
 export interface WorkerState {
   prepared: PreparedGrid | null
+  /** the same grid with the safest-route penalties, prepared on first use */
+  safest?: PreparedGrid
 }
 
 /** Handles one request. Returns the response and any buffers to transfer back. */
@@ -28,11 +30,14 @@ export function handleRequest(state: WorkerState, req: WorkerRequest): { respons
   try {
     if (req.type === 'init') {
       state.prepared = prepareGrid(parseCostGrid(req.meta, req.buffer), req.params ?? DEFAULT_ROUTE_PARAMS)
+      state.safest = undefined
       return { response: { type: 'init', id: req.id }, transfer: [] }
     }
     if (!state.prepared) throw new Error('route worker not initialised: send init first')
     if (req.type === 'route') {
-      return { response: { type: 'route', id: req.id, result: planRoute(state.prepared, req.stops) }, transfer: [] }
+      let grid = state.prepared
+      if (req.profile === 'safest') grid = state.safest ??= prepareGrid(state.prepared.grid, SAFEST_ROUTE_PARAMS)
+      return { response: { type: 'route', id: req.id, result: planRoute(grid, req.stops) }, transfer: [] }
     }
     if (req.type === 'matrix') {
       // Walking time between every ordered pair of points (asymmetric: uphill and downhill differ).

@@ -4,6 +4,8 @@ import {
   SLOPE_IMPASSABLE_DEG,
   SLOPE_PENALTY_PER_DEG,
   SLOPE_PENALTY_START_DEG,
+  SAFE_ROUTE_SLOPE_PENALTY_PER_DEG,
+  SAFE_ROUTE_TERRAIN_MULTIPLIER,
   SUIT_SPEED_FACTOR,
   TERRAIN_COST_MULTIPLIER,
   TOBLER_DECAY,
@@ -27,6 +29,15 @@ export const DEFAULT_ROUTE_PARAMS: RouteParams = {
   slopePenaltyPerDeg: SLOPE_PENALTY_PER_DEG,
   terrainMultiplier: TERRAIN_COST_MULTIPLIER,
 }
+
+/** Search costs for the "safest" alternative: same physics, much heavier hazard penalties (config.ts). */
+export const SAFEST_ROUTE_PARAMS: RouteParams = {
+  ...DEFAULT_ROUTE_PARAMS,
+  slopePenaltyPerDeg: SAFE_ROUTE_SLOPE_PENALTY_PER_DEG,
+  terrainMultiplier: SAFE_ROUTE_TERRAIN_MULTIPLIER,
+}
+
+export type RouteProfile = 'fastest' | 'safest'
 
 /** A CostGrid plus the per-cell cost multiplier and scratch buffers the searches reuse. */
 export interface PreparedGrid {

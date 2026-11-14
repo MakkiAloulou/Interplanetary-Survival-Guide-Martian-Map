@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ElevationProfile } from './ElevationProfile'
 import { HAZARD_COLORS, HAZARD_LABELS, legHazardSeconds, type Hazard } from '../map/overlays'
-import type { RouteParams } from '../route/cost'
+import type { RouteParams, RouteProfile } from '../route/cost'
 import { formatDistance, formatDuration } from '../stats/format'
 import type { EvaVerdict } from '../stats/goNoGo'
 import type { CostGrid, DataStatus, ScienceTarget, Waypoint } from '../types'
@@ -29,6 +29,12 @@ interface Props {
   targets: ScienceTarget[]
   onAddTarget: (target: ScienceTarget) => void
   onRemove: (id: string) => void
+  profile: RouteProfile
+  onProfile: (profile: RouteProfile) => void
+  /** both alternatives' verdicts, only when the fastest saves enough time to be a real choice */
+  routeOptions: Record<RouteProfile, EvaVerdict> | null
+  /** seconds the fastest route saves over the safest */
+  savingS: number
   /** 'habitat' or the id of the stop where the rover is staged as a safe haven */
   roverAt: string
   onRoverAt: (at: string) => void
@@ -56,10 +62,58 @@ function arrivals(verdict: EvaVerdict | null): number[] {
 
 const HAZARD_CHIPS: Hazard[] = ['steep', 'sand', 'boulders']
 
+const PROFILE_LABEL: Record<RouteProfile, string> = { fastest: 'Fastest', safest: 'Safest' }
+
+/** Walking seconds on steep ground, sand and boulders over the whole route. */
+function hazardSeconds(grid: CostGrid, verdict: EvaVerdict, p: RouteParams): number {
+  const stats = verdict.stats
+  if (!stats) return 0
+  return stats.legs.reduce((sum, _, i) => {
+    const s = legHazardSeconds(grid, stats.track, i, p)
+    return sum + s.steep + s.sand + s.boulders
+  }, 0)
+}
+
+/** Fastest and safest side by side, like the route alternatives of a road-map app. */
+function RouteOptions(props: {
+  options: Record<RouteProfile, EvaVerdict>
+  profile: RouteProfile
+  onProfile: (p: RouteProfile) => void
+  grid: CostGrid
+  routeParams: RouteParams
+}) {
+  const { options, profile, onProfile, grid, routeParams } = props
+  return (
+    <div className="route-options" role="radiogroup" aria-label="Route options">
+      {(['fastest', 'safest'] as RouteProfile[]).map((p) => {
+        const v = options[p]
+        const hazardS = hazardSeconds(grid, v, routeParams)
+        const other = options[p === 'fastest' ? 'safest' : 'fastest']
+        const deltaS = (v.stats?.totalS ?? 0) - (other.stats?.totalS ?? 0)
+        const deltaHazardS = hazardS - hazardSeconds(grid, other, routeParams)
+        return (
+          <button key={p} type="button" role="radio" aria-checked={profile === p} className="route-option" onClick={() => onProfile(p)}>
+            <span className="route-option-name">
+              {PROFILE_LABEL[p]}
+              <span className={`mini-verdict ${v.verdict === 'GO' ? 'is-go' : 'is-nogo'}`}>{v.verdict}</span>
+            </span>
+            <strong>{v.stats ? formatDuration(v.stats.totalS) : '—'}</strong>
+            <span className="route-option-sub">
+              {deltaS < 0
+                ? `Saves ${formatDuration(-deltaS)} · ${formatDuration(Math.max(0, deltaHazardS))} more on hazards`
+                : `${formatDuration(deltaS)} longer · ${formatDuration(Math.max(0, -deltaHazardS))} less on hazards`}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function Directions(props: Props) {
   const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startTime, o2DurationS } = props
   const { targets, onAddTarget, onRemove, onMove, onClear, selected, onSelect, hoverIndex, onHover } = props
-  const { roverAt, onRoverAt, onOptimise, optimising } = props
+  const { roverAt, onRoverAt, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
   const [showReasons, setShowReasons] = useState(false)
   const [dragFrom, setDragFrom] = useState<number | null>(null)
   /** insertion position among the stops (0 … stops.length) while a stop is dragged */
@@ -127,6 +181,13 @@ export function Directions(props: Props) {
                   </div>
                 )}
               </div>
+              {routeOptions ? (
+                <RouteOptions options={routeOptions} profile={profile} onProfile={onProfile} grid={grid} routeParams={routeParams} />
+              ) : (
+                <p className="route-note">
+                  Safest route shown. {savingS >= 60 ? `A riskier one saves only ${formatDuration(savingS)}.` : 'It is also the quickest.'}
+                </p>
+              )}
               {cautions.length > 0 && (
                 <ul className="reasons">
                   {cautions.map((r) => (

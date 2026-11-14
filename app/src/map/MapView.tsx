@@ -23,6 +23,9 @@ interface Props {
   targets: ScienceTarget[]
   stops: Waypoint[]
   route: RouteResult | null
+  /** the other alternative, drawn grey under the chosen route; click it to switch */
+  altRoute: RouteResult | null
+  onPickAlternative: () => void
   onMapClick: (lat: number, lon: number) => void
   onTargetClick: (target: ScienceTarget) => void
   /** 0 = habitat, n = stop n */
@@ -56,7 +59,7 @@ function gridOverlayImage(grid: CostGrid, mode: Exclude<GridOverlayMode, 'none'>
 }
 
 export function MapView(props: Props) {
-  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, selected, hoverPoint, walkHome, rover } = props
+  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, altRoute, selected, hoverPoint, walkHome, rover } = props
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layers = useRef<Map<string, L.Layer>>(new Map())
@@ -87,6 +90,7 @@ export function MapView(props: Props) {
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map)
     map.attributionControl.setPrefix(false)
     map.createPane('grid').style.zIndex = '410'
+    map.createPane('alt').style.zIndex = '415' // the unchosen alternative, under the chosen route
     map.createPane('route').style.zIndex = '420'
     map.createPane('pins').style.zIndex = '430' // above the route line, so its casing never covers a pin
     map.on('click', (e: L.LeafletMouseEvent) => callbacks.current.onMapClick(e.latlng.lat, e.latlng.lng))
@@ -179,6 +183,27 @@ export function MapView(props: Props) {
       group.remove()
     }
   }, [config, base, targets, stops, selected])
+
+  // The other alternative, grey like an unselected route on a road map; clicking it switches.
+  useEffect(() => {
+    if (!altRoute?.ok) return
+    const group = L.layerGroup().addTo(mapRef.current!)
+    for (const leg of altRoute.legs) {
+      const points = leg.cells.map((c) => {
+        const { lat, lon } = cellCenter(grid, c)
+        return L.latLng(lat, lon)
+      })
+      const line = { pane: 'alt', lineCap: 'round', lineJoin: 'round' } as const
+      L.polyline(points, { ...line, color: '#ffffff', weight: 9, opacity: 0.9, interactive: false }).addTo(group)
+      L.polyline(points, { ...line, color: '#8ab4f8', weight: 5, className: 'alt-route' })
+        .bindTooltip('Other option: click to switch', { sticky: true, className: 'map-tip' })
+        .on('click', () => callbacks.current.onPickAlternative())
+        .addTo(group)
+    }
+    return () => {
+      group.remove()
+    }
+  }, [grid, altRoute])
 
   // The point under the cursor on the elevation profile.
   useEffect(() => {

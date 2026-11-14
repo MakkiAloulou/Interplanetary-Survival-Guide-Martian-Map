@@ -293,3 +293,40 @@ describe.skipIf(!hasData)('mock site in data/', () => {
     expect(routeMs / route.legs.length).toBeLessThan(1000)
   })
 })
+
+describe('safest route profile', () => {
+  test('detours around sand that the fastest route crosses', async () => {
+    const { SAFEST_ROUTE_PARAMS } = await import('./cost')
+    // A thick sand field: crossing it (8 steps at ×2) beats walking round it (~18 steps), unless sand costs ×6.
+    const g = gridFrom([
+      '.........', //
+      ...Array.from({ length: 9 }, () => '.sssssss.'),
+      '.........',
+    ])
+    const start = idx(g, 5, 0)
+    const goal = idx(g, 5, 8)
+    const fastest = findPath(prepareGrid(g), start, goal)!
+    const safest = findPath(prepareGrid(g, SAFEST_ROUTE_PARAMS), start, goal)!
+    const onSand = (cells: number[]) => cells.filter((c) => g.terrainClass[c] === TERRAIN.SAND).length
+    expect(onSand(fastest.cells)).toBeGreaterThan(0)
+    expect(onSand(safest.cells)).toBe(0)
+  })
+
+  test('worker answers both profiles', () => {
+    const buffer = new ArrayBuffer(9 * 6)
+    const meta: CostGridMeta = {
+      width: 3,
+      height: 2,
+      cellSizeM: 2,
+      bounds: { latMin: 0, latMax: 1, lonMin: 0, lonMax: 1 },
+      binary: 'x.bin',
+      status: 'MOCK',
+      source: 'test',
+    }
+    const state: WorkerState = { prepared: null }
+    handleRequest(state, { type: 'init', id: 1, meta, buffer })
+    const safe = handleRequest(state, { type: 'route', id: 2, stops: [0, 2], profile: 'safest' }).response
+    expect(safe.type === 'route' && safe.result.ok).toBe(true)
+    expect(state.safest).toBeDefined()
+  })
+})
