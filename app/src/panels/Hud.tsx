@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
 import { sphericalDistanceM, type RouteStats } from '../stats/stats'
 import type { Waypoint } from '../types'
 import { AlertIcon, CloseIcon } from '../ui/icons'
+import { PLAYBACK_SPEEDS, usePlayback } from './usePlayback'
 
 /** Fastest way from the crew's position to the nearer safe haven. */
 export interface AbortPlan {
@@ -27,7 +28,6 @@ interface Props {
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
-const SPEEDS = [60, 300, 900]
 /** The abort arrow points along the escape path this far ahead (in path cells), not at the haven as the crow flies. */
 const LOOK_AHEAD_CELLS = 15
 
@@ -58,11 +58,9 @@ function Compass({ bearing, big, sub }: { bearing: number; big: string; sub: str
  * scrubbed by hand), so the demo can walk the route. Abort switches to the fastest way to the nearest safe haven.
  */
 export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit }: Props) {
-  const [t, setT] = useState(0)
-  const [playing, setPlaying] = useState(false)
-  const [speed, setSpeed] = useState(300)
+  const clock = usePlayback(stats.totalS)
+  const { t, playing, speed, done } = clock
   const [abort, setAbort] = useState<{ atT: number; plan: AbortPlan | null } | null>(null)
-  const last = useRef<number | null>(null)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onExit()
@@ -70,26 +68,6 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
     return () => window.removeEventListener('keydown', onKey)
   }, [onExit])
 
-  useEffect(() => {
-    if (!playing) return
-    let raf = 0
-    const tick = (now: number) => {
-      if (last.current !== null) {
-        setT((v) => {
-          const next = v + ((now - last.current!) / 1000) * speed
-          if (next >= stats.totalS) setPlaying(false)
-          return Math.min(next, stats.totalS)
-        })
-      }
-      last.current = now
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      cancelAnimationFrame(raf)
-      last.current = null
-    }
-  }, [playing, speed, stats.totalS])
 
   const pos = positionAt(stats.track, t)
   const cell = stats.track[pos.index].cell
@@ -144,7 +122,6 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
   const distance = sphericalDistanceM(pos, next)
   const home = params.walkHomeContingency * walkHome[cell]
   const margin = usable - (t + home)
-  const done = t >= stats.totalS
 
   return (
     <div className="hud" role="dialog" aria-modal="true" aria-label="Helmet HUD view">
@@ -186,7 +163,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
       </ul>
 
       <div className="hud-controls">
-        <button type="button" onClick={() => (done ? (setT(0), setPlaying(true)) : setPlaying((v) => !v))}>
+        <button type="button" onClick={clock.toggle}>
           {playing ? 'Pause' : done ? 'Replay' : 'Play walk'}
         </button>
         <input
@@ -196,13 +173,10 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
           step={10}
           value={t}
           aria-label="EVA time"
-          onChange={(e) => {
-            setPlaying(false)
-            setT(Number(e.target.value))
-          }}
+          onChange={(e) => clock.seek(Number(e.target.value))}
         />
-        <select value={speed} aria-label="Playback speed" onChange={(e) => setSpeed(Number(e.target.value))}>
-          {SPEEDS.map((s) => (
+        <select value={speed} aria-label="Playback speed" onChange={(e) => clock.setSpeed(Number(e.target.value))}>
+          {PLAYBACK_SPEEDS.map((s) => (
             <option key={s} value={s}>
               {s}× speed
             </option>
@@ -212,7 +186,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
           type="button"
           className="hud-abort"
           onClick={() => {
-            setPlaying(false)
+            clock.pause()
             setAbort({ atT: t, plan: planAbort(cell) })
           }}
         >

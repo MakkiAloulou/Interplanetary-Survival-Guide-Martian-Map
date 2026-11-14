@@ -55,6 +55,15 @@ export function LayersIcon(props: IconProps) {
   )
 }
 
+export function TabletIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="3" width="16" height="18" rx="2.5" />
+      <path d="M10.5 18h3" />
+    </Svg>
+  )
+}
+
 /** A helmet visor seen from the front. */
 export function VisorIcon(props: IconProps) {
   return (

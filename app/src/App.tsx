@@ -7,6 +7,7 @@ import { Directions } from './panels/Directions'
 import { Hud } from './panels/Hud'
 import { MapControls } from './panels/MapControls'
 import { StopDetail } from './panels/StopDetail'
+import { Tablet } from './panels/Tablet'
 import { Timeline } from './panels/Timeline'
 import { createRouteClient, type RouteClient } from './route/client'
 import { DEFAULT_ROUTE_PARAMS, isPassable, prepareGrid, type RouteProfile } from './route/cost'
@@ -100,6 +101,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [selected, setSelected] = useState<number | null>(null)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [hud, setHud] = useState(false)
+  const [tablet, setTablet] = useState(false)
   const client = useRef<{ client: RouteClient; ready: Promise<void> } | null>(null)
   const viaCount = useRef(0)
   const baseCell = cellAt(grid, base.lat, base.lon)
@@ -288,6 +290,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           stormActive={storm}
           hudEnabled={stats !== null && safeHaven !== null}
           onHud={() => setHud(true)}
+          onTablet={() => setTablet(true)}
           conditionsPanel={
             <ConditionsPanel
               conditions={effectiveConditions}
@@ -312,6 +315,21 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           headingDeg={detail.headingDeg}
           crew={selected ? crewAtStop(detail.station, targets, roverStop?.name ?? null) : null}
           onClose={() => setSelected(null)}
+        />
+      )}
+
+      {tablet && stats && safeHaven && verdict && (
+        <Tablet
+          config={config}
+          stats={stats}
+          stations={stations}
+          walkHome={safeHaven}
+          params={evaParams}
+          planReasons={verdict.reasons}
+          conditions={effectiveConditions}
+          startTime={startTime}
+          planAbort={planAbort}
+          onExit={() => setTablet(false)}
         />
       )}
 

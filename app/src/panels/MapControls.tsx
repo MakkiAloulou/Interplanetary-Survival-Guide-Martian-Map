@@ -3,7 +3,7 @@ import type { LayerState } from '../map/MapView'
 import { HAZARD_COLORS, HAZARD_LABELS, WALK_HOME_BANDS, WALK_HOME_UNREACHABLE, type GridOverlayMode, type Hazard } from '../map/overlays'
 import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import type { DataConfig, DataStatus } from '../types'
-import { CloseIcon, LayersIcon, VisorIcon } from '../ui/icons'
+import { CloseIcon, LayersIcon, TabletIcon, VisorIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
   stormActive: boolean
   hudEnabled: boolean
   onHud: () => void
+  onTablet: () => void
 }
 
 const OVERLAYS: { mode: GridOverlayMode; label: string }[] = [
@@ -54,7 +55,7 @@ function MarsClock({ lon, open, alert, onClick }: { lon: number; open: boolean; 
 
 export function MapControls(props: Props) {
   const { config, baseLon, gridStatus, layerState, onLayerChange, overlay, onOverlayChange } = props
-  const { panel, onPanel, conditionsPanel, stormActive, hudEnabled, onHud } = props
+  const { panel, onPanel, conditionsPanel, stormActive, hudEnabled, onHud, onTablet } = props
   const toggle = (p: 'layers' | 'conditions') => onPanel(panel === p ? null : p)
   return (
     <div className="map-controls">
@@ -63,6 +64,10 @@ export function MapControls(props: Props) {
         <button type="button" className="chip-float layers-btn" aria-expanded={panel === 'layers'} aria-controls="layers-panel" onClick={() => toggle('layers')}>
           <LayersIcon size={18} />
           Layers
+        </button>
+        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Tablet carried on the walk' : 'Plan a route first'} onClick={onTablet}>
+          <TabletIcon size={18} />
+          Tablet
         </button>
         <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Helmet visor view' : 'Plan a route first'} onClick={onHud}>
           <VisorIcon size={18} />
