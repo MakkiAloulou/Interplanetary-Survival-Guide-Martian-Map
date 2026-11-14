@@ -155,3 +155,15 @@ SAND_MAX_SLOPE_DEG = 15.0  # sand settles in hollows, not on steep faces
 SAND_MIN_NEIGHBOURS = 5  # of the 3 x 3 cells, so sand comes in patches, not single cells
 BOULDER_SPECKLE_PERCENTILE = 98.0  # the most speckled 2% of the site
 BOULDER_MIN_NEIGHBOURS = 4  # of the 3 x 3 cells: clusters, not single fractures
+
+# ---------- Weather: Curiosity REMS daily reports (pipeline/sources/msl_weather.py) ----------
+
+# NASA "Mars Weather" feed of Curiosity's REMS station (Spanish Centro de Astrobiología instrument). Daily values only.
+MSL_WEATHER_URL = "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+# The sol the plan uses: sol 4718 (2025-11-13), the day Curiosity drilled Nevado Sajama on this site (mission blog).
+MSL_WEATHER_SOL = 4718
+# REMS air temperature at Gale peaks in the early afternoon; hour of the maximum, local mean solar time. MODELED.
+REMS_MAX_TEMP_LMST = 13.5
+# Column dust opacity for the feed's opacity words, which carry no number. MODELED: assumed clear-sky and cloudy values.
+SUNNY_DUST_TAU = 0.6
+CLOUDY_DUST_TAU = 1.0

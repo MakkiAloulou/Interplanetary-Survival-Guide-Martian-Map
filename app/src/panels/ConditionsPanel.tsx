@@ -3,6 +3,7 @@ import { findSunset, sunElevationAt } from '../stats/conditions'
 import type { StartOption } from '../stats/sun'
 import type { Conditions } from '../types'
 import { CloseIcon } from '../ui/icons'
+import { SourceLine } from '../ui/SourceLine'
 import { StatusBadge } from '../ui/StatusBadge'
 
 interface Props {
@@ -92,6 +93,11 @@ export function ConditionsPanel({ conditions, startTime, startChoices, onStartTi
           <dd className={storm ? 'is-alert' : ''}>{storm ? 'Storm alert' : 'Background'}</dd>
         </div>
       </dl>
+      {at?.source && (
+        <p className="panel-source">
+          <SourceLine source={at.source} />
+        </p>
+      )}
 
       <figure className="sunchart">
         <figcaption>Sun over the sol from the Mars24 clock, Marswalk shaded</figcaption>

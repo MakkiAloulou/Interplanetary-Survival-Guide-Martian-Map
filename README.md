@@ -6,7 +6,7 @@ Mars Trek and the USGS geologic maps work at global and regional scale. This too
 
 Three views of the same data: **habitat** (planning), **tablet** (on the walk), **HUD** (helmet visor).
 
-Every value is labeled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`. Terrain comes from the real USGS Gale elevation model (HiRISE/CTX/HRSC). Science targets, stop panoramas, weather, thermal and mineralogy are still `MOCK` until they are replaced with real data.
+Every value is labeled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`. All data is real NASA/USGS data: HiRISE imagery and the Gale elevation model, sand and rocky ground mapped from the HiRISE orthophoto, THEMIS night-time infrared, Curiosity's traverse, stop photos and REMS weather. Assumptions (walking model, O₂, safety limits) are labelled `MODELED`.
 
 ## Credits and AI use
 

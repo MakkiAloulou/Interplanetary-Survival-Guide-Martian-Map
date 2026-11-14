@@ -138,20 +138,21 @@ describe('sunrise / sunset', () => {
   })
 })
 
-// Compare the mock conditions' sun with the real clock (data/ is git-ignored, so this runs only locally).
+// Compare the configured conditions series with the real clock (runs only where data/ exists).
 const DATA = new URL('../../data/', import.meta.url)
-describe.skipIf(!existsSync(new URL('config.json', DATA)))('mock conditions vs Mars24', () => {
-  test('report the offset between the mock day and the true local solar day', () => {
+describe.skipIf(!existsSync(new URL('config.json', DATA)))('site conditions vs Mars24', () => {
+  test('the series is in time order and covers a full sol at the base', () => {
     const read = (path: string) => JSON.parse(readFileSync(new URL(path, DATA), 'utf-8'))
     const config = read('config.json') as DataConfig
     const base = (read(config.waypoints.path) as Waypoint[]).find((w) => w.kind === 'base')!
     const series = read(config.conditions.path) as Conditions[]
-    const first = marsTime(Date.parse(series[0].time))
+    const times = series.map((c) => Date.parse(c.time))
+    const first = marsTime(times[0])
     console.log(
-      `mock conditions start ${series[0].time}: Mars24 says LTST ${formatMarsClock(ltstHours(first, base.lon))} at the base, ` +
-        `Ls ${first.lsDeg.toFixed(1)}°, MSD ${first.msd.toFixed(3)}, sun ${solarElevationDeg(first, base.lat, base.lon).toFixed(1)}° ` +
-        `(mock series: ${series[0].sunElevationDeg}°)`,
+      `conditions start ${series[0].time}: LMST ${formatMarsClock(lmstHours(first, base.lon))}, ` +
+        `LTST ${formatMarsClock(ltstHours(first, base.lon))} at the base, Ls ${first.lsDeg.toFixed(1)}° [${series[0].status}]`,
     )
-    expect(series.every((c) => c.status === 'MOCK')).toBe(true)
+    expect(times.every((t, i) => i === 0 || t > times[i - 1])).toBe(true)
+    expect((times[times.length - 1] - times[0]) / 1000).toBeGreaterThanOrEqual(88_775 - 60) // at least one sol
   })
 })

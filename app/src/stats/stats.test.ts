@@ -164,7 +164,8 @@ describe('evaluateEva', () => {
     expect(v.verdict).toBe('GO')
     expect(codes(v, 'no-go')).toEqual([])
     expect(codes(v, 'info')).toEqual(expect.arrayContaining(['O2_BUDGET', 'POINT_OF_NO_RETURN', 'SUNSET', 'RADIATION']))
-    expect(v.status).toBe('MOCK')
+    expect(v.status).not.toBe('OBSERVED') // never better than MODELED: suit and O2 are assumptions
+    expect(v.status).not.toBe('DERIVED')
     expect(v.endTime).not.toBeNull()
   })
 
@@ -231,12 +232,12 @@ describe('evaluateEva', () => {
   })
 })
 
-// The real mock site (data/ is git-ignored, so this runs only locally).
+// The configured site in data/ (runs only where data/ exists).
 const DATA = new URL('../../../data/', import.meta.url)
 const hasData = existsSync(new URL('config.json', DATA))
 
-describe.skipIf(!hasData)('mock site in data/', () => {
-  test('mock loop through every target, started in mid-morning', () => {
+describe.skipIf(!hasData)('site in data/', () => {
+  test('loop through every target, started in the morning', () => {
     const read = (path: string) => JSON.parse(readFileSync(new URL(path, DATA), 'utf-8'))
     const config = read('config.json') as DataConfig
     const meta = read(config.costGrid) as CostGridMeta
@@ -250,11 +251,12 @@ describe.skipIf(!hasData)('mock site in data/', () => {
 
     const v = evaluateEva({ prepared: p, route: planLoop(p, base, stops), walkHome: walkHomeField(p, base), startTime: start, conditions: series })
     console.log(
-      `mock EVA from ${start}: ${v.verdict} [${v.status}], ${formatDuration(v.stats!.totalS)}\n` +
+      `site EVA from ${start}: ${v.verdict} [${v.status}], ${formatDuration(v.stats!.totalS)}\n` +
         v.reasons.map((r) => `  ${r.severity.padEnd(7)} ${r.code}: ${r.message}`).join('\n'),
     )
     expect(v.stats).not.toBeNull()
-    expect(v.status).toBe('MOCK')
+    expect(v.status).not.toBe('OBSERVED') // never better than MODELED: suit and O2 are assumptions
+    expect(v.status).not.toBe('DERIVED')
   })
 })
 

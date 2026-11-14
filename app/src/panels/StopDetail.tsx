@@ -5,7 +5,7 @@ import type { PovImage, ScienceTarget, Waypoint } from '../types'
 import { CloseIcon } from '../ui/icons'
 import { Panorama } from '../ui/Panorama'
 import { StatusBadge } from '../ui/StatusBadge'
-import { sourceParts } from '../ui/sourceLinks'
+import { SourceLine } from '../ui/SourceLine'
 
 interface Props {
   station: Waypoint
@@ -23,23 +23,6 @@ interface Props {
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
-
-/** A provenance line with its URLs shown as short "(source)" links. */
-function SourceLine({ source }: { source: string }) {
-  return (
-    <span>
-      {sourceParts(source).map((part, i) =>
-        'href' in part ? (
-          <a key={i} className="source-link" href={part.href} target="_blank" rel="noopener noreferrer">
-            ({part.label})
-          </a>
-        ) : (
-          <span key={i}>{part.text}</span>
-        ),
-      )}
-    </span>
-  )
-}
 
 /** Photos taken at this spot: one large, the others as thumbnails to switch to. */
 function PhotoGallery({ povs, label }: { povs: PovImage[]; label: string }) {

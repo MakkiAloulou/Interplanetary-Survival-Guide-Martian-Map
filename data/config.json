@@ -74,8 +74,8 @@
     "status": "OBSERVED"
   },
   "conditions": {
-    "path": "processed/mock/conditions.json",
-    "status": "MOCK"
+    "path": "processed/gale/conditions.json",
+    "status": "MODELED"
   },
   "waypoints": {
     "path": "processed/gale/waypoints.json",

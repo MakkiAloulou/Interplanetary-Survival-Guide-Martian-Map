@@ -277,6 +277,13 @@ button.stop-text:hover {
   padding-top: 4px;
 }
 
+.panel-source {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
 .source-link {
   color: var(--blue-text);
   text-decoration: underline;
