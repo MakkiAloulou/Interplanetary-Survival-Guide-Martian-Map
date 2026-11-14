@@ -1,0 +1,109 @@
+// Colours for the CostGrid overlays and for route hazards. Pure functions (no DOM), so they are testable.
+
+import { TERRAIN, type CostGrid } from '../types'
+import type { RouteParams } from '../route/cost'
+
+export type GridOverlayMode = 'none' | 'slope' | 'terrain'
+
+export type Hazard = 'clear' | 'steep' | 'sand' | 'boulders' | 'blocked'
+
+// Route and terrain colours, one meaning each: the route line, the terrain overlay and the legend share them.
+export const INK = {
+  blue: '#1a73e8',
+  amber: '#f9ab00',
+  orange: '#e8710a',
+  red: '#d93025',
+  black: '#202124',
+} as const
+
+export const HAZARD_COLORS: Record<Hazard, string> = {
+  clear: INK.blue,
+  steep: INK.amber,
+  sand: INK.orange,
+  boulders: INK.red,
+  blocked: INK.black,
+}
+
+export const HAZARD_LABELS: Record<Hazard, string> = {
+  clear: 'Bedrock',
+  steep: 'Steep 15–25°',
+  sand: 'Loose sand',
+  boulders: 'Boulders',
+  blocked: 'Impassable',
+}
+
+type RGBA = [number, number, number, number]
+const TRANSPARENT: RGBA = [0, 0, 0, 0]
+const rgba = (hex: string, a: number): RGBA => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).concat(a) as RGBA
+const TERRAIN_RGBA: Record<number, RGBA> = {
+  [TERRAIN.BEDROCK]: TRANSPARENT,
+  [TERRAIN.SAND]: rgba(INK.orange, 150),
+  [TERRAIN.BOULDERS]: rgba(INK.red, 170),
+  [TERRAIN.NO_GO]: rgba(INK.black, 210),
+}
+
+function slopeRgba(slopeDeg: number, p: Pick<RouteParams, 'slopePenaltyStartDeg' | 'slopeImpassableDeg'>): RGBA {
+  if (slopeDeg >= p.slopeImpassableDeg) return rgba(INK.black, 210)
+  if (slopeDeg <= p.slopePenaltyStartDeg) return TRANSPARENT
+  const f = (slopeDeg - p.slopePenaltyStartDeg) / (p.slopeImpassableDeg - p.slopePenaltyStartDeg)
+  return rgba(INK.amber, Math.round(70 + 140 * f))
+}
+
+/** RGBA pixels (row 0 = north) for a grid overlay; one pixel per cell. */
+export function gridOverlayPixels(
+  grid: CostGrid,
+  mode: Exclude<GridOverlayMode, 'none'>,
+  p: Pick<RouteParams, 'slopePenaltyStartDeg' | 'slopeImpassableDeg'>,
+): Uint8ClampedArray<ArrayBuffer> {
+  const n = grid.width * grid.height
+  const px = new Uint8ClampedArray(4 * n)
+  for (let i = 0; i < n; i++) {
+    px.set(mode === 'slope' ? slopeRgba(grid.slopeDeg[i], p) : TERRAIN_RGBA[grid.terrainClass[i]] ?? TRANSPARENT, 4 * i)
+  }
+  return px
+}
+
+export function cellHazard(grid: CostGrid, cell: number, p: Pick<RouteParams, 'slopePenaltyStartDeg' | 'slopeImpassableDeg'>): Hazard {
+  const t = grid.terrainClass[cell]
+  if (t === TERRAIN.NO_GO || grid.slopeDeg[cell] >= p.slopeImpassableDeg) return 'blocked'
+  if (t === TERRAIN.BOULDERS) return 'boulders'
+  if (t === TERRAIN.SAND) return 'sand'
+  if (grid.slopeDeg[cell] > p.slopePenaltyStartDeg) return 'steep'
+  return 'clear'
+}
+
+/** Walking seconds spent in each hazard on one leg (each step counted in the cell it enters). */
+export function legHazardSeconds(
+  grid: CostGrid,
+  track: { cell: number; arriveS: number; departS: number; leg: number }[],
+  leg: number,
+  p: Pick<RouteParams, 'slopePenaltyStartDeg' | 'slopeImpassableDeg'>,
+): Record<Hazard, number> {
+  const out: Record<Hazard, number> = { clear: 0, steep: 0, sand: 0, boulders: 0, blocked: 0 }
+  for (let i = 1; i < track.length; i++) {
+    if (track[i].leg === leg) out[cellHazard(grid, track[i].cell, p)] += track[i].arriveS - track[i - 1].departS
+  }
+  return out
+}
+
+/**
+ * Splits a path into runs of the same hazard, for drawing each run in its colour.
+ * Consecutive runs share their boundary cell so the drawn line has no gaps.
+ */
+export function hazardRuns(
+  grid: CostGrid,
+  cells: number[],
+  p: Pick<RouteParams, 'slopePenaltyStartDeg' | 'slopeImpassableDeg'>,
+): { hazard: Hazard; cells: number[] }[] {
+  const runs: { hazard: Hazard; cells: number[] }[] = []
+  for (const cell of cells) {
+    const hazard = cellHazard(grid, cell, p)
+    const last = runs.at(-1)
+    if (last && last.hazard === hazard) last.cells.push(cell)
+    else {
+      if (last) last.cells.push(cell)
+      runs.push({ hazard, cells: [cell] })
+    }
+  }
+  return runs
+}

@@ -143,8 +143,13 @@ export interface DataConfig {
     /** Why these bounds; flags placeholder vs verified. */
     boundsNote: string
     boundsStatus: DataStatus
+    /** Map zoom range. max = deepest TileMatrix of the base tiles (from their WMTSCapabilities). */
+    zoom: { min: number; max: number }
   }
+  /** Drawn bottom to top. Image overlays lie within the site; tile layers' bounds are their coverage. */
   layers: Layer[]
+  /** Layer ids switched on when the app opens. */
+  initialLayers: string[]
   /** Path to a CostGridMeta JSON. */
   costGrid: string
   /** JSON file holding ScienceTarget[] */

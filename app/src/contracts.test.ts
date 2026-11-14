@@ -49,8 +49,23 @@ describe.skipIf(!hasData)('data/config.json', () => {
       expect(layer.opacity).toBeGreaterThanOrEqual(0)
       expect(layer.opacity).toBeLessThanOrEqual(1)
       expect(isValidBounds(layer.bounds)).toBe(true)
-      expect(contains(config.site.bounds, layer.bounds)).toBe(true)
+      // Image overlays are cut to the site; a tile layer's bounds are its coverage, which must include the site.
+      if (layer.imageOverlay) expect(contains(config.site.bounds, layer.bounds)).toBe(true)
+      else expect(contains(layer.bounds, config.site.bounds)).toBe(true)
       expect(layer.attribution.length).toBeGreaterThan(0)
+    }
+  })
+
+  test('initial layers exist; zoom range is sane', () => {
+    const ids = new Set(config.layers.map((l) => l.id))
+    for (const id of config.initialLayers) expect(ids).toContain(id)
+    expect(config.site.zoom.min).toBeLessThan(config.site.zoom.max)
+  })
+
+  test('every non-MOCK layer has a provenance entry in data/SOURCES.md', () => {
+    const sources = readFileSync(new URL('../../data/SOURCES.md', import.meta.url), 'utf-8')
+    for (const layer of config.layers.filter((l) => l.status !== 'MOCK')) {
+      expect(sources).toContain(`Used as: layer \`${layer.id}\``)
     }
   })
 

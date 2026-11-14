@@ -1,6 +1,6 @@
-# Data and docs stay local
-data/
-docs/
+# Data and docs stay local (root folders only; app/src/data/ is code)
+/data/
+/docs/
 
 # Node
 node_modules/
@@ -26,5 +26,6 @@ Thumbs.db
 
 # Claude Code plugin state
 .omc/
+.impeccable/
 
 CLAUDE.md

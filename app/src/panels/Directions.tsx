@@ -1,0 +1,289 @@
+import { useState } from 'react'
+import { ElevationProfile } from './ElevationProfile'
+import { HAZARD_COLORS, HAZARD_LABELS, legHazardSeconds, type Hazard } from '../map/overlays'
+import type { RouteParams } from '../route/cost'
+import { formatDistance, formatDuration } from '../stats/format'
+import type { EvaVerdict } from '../stats/goNoGo'
+import type { CostGrid, DataStatus, ScienceTarget, Waypoint } from '../types'
+import { AlertIcon, CloseIcon, GripIcon, LineMark } from '../ui/icons'
+import { StatusBadge } from '../ui/StatusBadge'
+
+interface Props {
+  siteName: string
+  dataStatus: DataStatus
+  grid: CostGrid
+  routeParams: RouteParams
+  base: Waypoint
+  stops: Waypoint[]
+  verdict: EvaVerdict | null
+  routing: boolean
+  failedLeg: number | null
+  notice: string | null
+  startTime: string
+  o2DurationS: number
+  targets: ScienceTarget[]
+  onAddTarget: (target: ScienceTarget) => void
+  onRemove: (id: string) => void
+  /** move the stop at index `from` to index `to` */
+  onMove: (from: number, to: number) => void
+  onClear: () => void
+  /** 0 = habitat, n = stop n */
+  selected: number | null
+  onSelect: (station: number) => void
+  hoverIndex: number | null
+  onHover: (index: number | null) => void
+}
+
+/** Mission-elapsed clock: T+h:mm from the EVA start. */
+const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
+
+/** Arrival time (EVA clock) at the end of each leg, from the stats track. */
+function arrivals(verdict: EvaVerdict | null): number[] {
+  const out: number[] = []
+  for (const p of verdict?.stats?.track ?? []) out[p.leg] = p.arriveS
+  return out
+}
+
+const HAZARD_CHIPS: Hazard[] = ['steep', 'sand', 'boulders']
+
+export function Directions(props: Props) {
+  const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startTime, o2DurationS } = props
+  const { targets, onAddTarget, onRemove, onMove, onClear, selected, onSelect, hoverIndex, onHover } = props
+  const [showReasons, setShowReasons] = useState(false)
+  const [dragFrom, setDragFrom] = useState<number | null>(null)
+  /** insertion position among the stops (0 … stops.length) while a stop is dragged */
+  const [dropAt, setDropAt] = useState<number | null>(null)
+  const stats = verdict?.stats ?? null
+  const arrive = arrivals(verdict)
+  const start = new Date(startTime)
+  const startLabel = `${start.toISOString().slice(11, 16)} UTC, ${start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+  const cautions = verdict?.reasons.filter((r) => r.severity !== 'info') ?? []
+  const infos = verdict?.reasons.filter((r) => r.severity === 'info') ?? []
+
+  return (
+    <aside className="card directions" aria-label="Marswalk directions">
+      <header className="card-head">
+        <span className="brand-mark">
+          <LineMark size={20} />
+        </span>
+        <div className="brand-text">
+          <h1>Martian Map</h1>
+          <p>{siteName}</p>
+        </div>
+        <StatusBadge status={dataStatus} />
+      </header>
+
+      {stops.length === 0 ? (
+        <>
+          <section className="empty">
+            <h2>Plan a Marswalk</h2>
+            <p>Add science targets below, or click any walkable point on the map. Every walk starts and ends at the habitat.</p>
+          </section>
+          <section className="suggest" aria-labelledby="suggest-h">
+            <h3 id="suggest-h">Science targets</h3>
+            <ul>
+              {targets.map((t) => (
+                <li key={t.id}>
+                  <button type="button" className="suggest-btn" onClick={() => onAddTarget(t)}>
+                    <span className="pin-target" aria-hidden="true" />
+                    <div>
+                      <strong>
+                        {t.name} <StatusBadge status={t.status} />
+                      </strong>
+                      <span>{t.why}</span>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : (
+        <section className={`summary ${routing || !verdict ? 'is-busy' : ''}`} aria-live="polite">
+          {!verdict || routing ? (
+            <p className="summary-line">Planning the route…</p>
+          ) : (
+            <>
+              <div className="summary-top">
+                <span className={`verdict-pill ${verdict.verdict === 'GO' ? 'is-go' : 'is-nogo'}`}>{verdict.verdict}</span>
+                {stats && (
+                  <div className="summary-figures">
+                    <strong>{formatDuration(stats.totalS)}</strong>
+                    <span>
+                      {formatDistance(stats.distanceM)} · {formatDuration(o2DurationS - stats.totalS)} O₂ left at return
+                    </span>
+                  </div>
+                )}
+              </div>
+              {cautions.length > 0 && (
+                <ul className="reasons">
+                  {cautions.map((r) => (
+                    <li key={r.code} className={`reason sev-${r.severity}`}>
+                      <AlertIcon size={16} />
+                      <span>{r.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button type="button" className="text-btn" aria-expanded={showReasons} onClick={() => setShowReasons((v) => !v)}>
+                {showReasons ? 'Hide safety checks' : `Show safety checks (${infos.length} passed)`}
+              </button>
+              {showReasons && (
+                <ul className="checks">
+                  {infos.map((r) => (
+                    <li key={r.code}>{r.message}</li>
+                  ))}
+                </ul>
+              )}
+              {stats && stats.track.length > 1 && <ElevationProfile track={stats.track} hoverIndex={hoverIndex} onHover={onHover} />}
+              <p className="provenance">
+                Walking times and O₂ <StatusBadge status="MODELED" /> on <StatusBadge status={verdict.status} /> terrain
+              </p>
+            </>
+          )}
+        </section>
+      )}
+
+      {notice && (
+        <p className="notice" role="alert">
+          <AlertIcon size={16} />
+          {notice}
+        </p>
+      )}
+
+      {stops.length > 0 && (
+        <ol
+          className="steps"
+          aria-label="Stops and legs"
+          // The whole list is the drop zone, walk rows included: the landing spot is set by the cursor's height
+          // against the middle of each stop row, whatever element is under it.
+          onDragOver={(e) => {
+            if (dragFrom === null) return
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'move'
+            const rows = [...e.currentTarget.querySelectorAll<HTMLElement>('[data-stop]')]
+            const at = rows.filter((r) => {
+              const b = r.getBoundingClientRect()
+              return e.clientY > b.top + b.height / 2
+            }).length
+            if (at !== dropAt) setDropAt(at)
+          }}
+          onDrop={(e) => {
+            e.preventDefault()
+            if (dragFrom !== null && dropAt !== null) {
+              // Index the stop lands at once it has been lifted out of the list.
+              const to = dropAt > dragFrom ? dropAt - 1 : dropAt
+              if (to !== dragFrom) onMove(dragFrom, to)
+            }
+            setDragFrom(null)
+            setDropAt(null)
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropAt(null)
+          }}
+        >
+          <li className={`stop is-home ${selected === 0 ? 'is-selected' : ''}`}>
+            <span className="pin pin-home" aria-hidden="true" />
+            <button type="button" className="stop-text" onClick={() => onSelect(0)}>
+              <strong>{base.name}</strong>
+              <span>Start {startLabel}</span>
+            </button>
+            <span className="stop-time">T+0:00</span>
+          </li>
+          {[...stops, base].map((s, i) => {
+            const leg = stats?.legs[i]
+            const seconds = stats ? legHazardSeconds(grid, stats.track, i, routeParams) : null
+            const isHome = i === stops.length
+            return [
+              <li key={`leg-${i}`} className={`leg ${failedLeg === i ? 'is-blocked' : ''}`}>
+                <span className="leg-line" aria-hidden="true" />
+                <div className="leg-text">
+                  {failedLeg === i ? (
+                    <span className="leg-blocked">No walkable path for this leg</span>
+                  ) : leg ? (
+                    <>
+                      <span>
+                        Walk {formatDuration(leg.walkS)} · {formatDistance(leg.distanceM)}
+                      </span>
+                      {seconds && (
+                        <span className="chips">
+                          {HAZARD_CHIPS.filter((h) => seconds[h] >= 30).map((h) => (
+                            <span key={h} className="chip">
+                              <span className="dot" style={{ background: HAZARD_COLORS[h] }} />
+                              {HAZARD_LABELS[h]} {formatDuration(seconds[h])}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span>…</span>
+                  )}
+                </div>
+              </li>,
+              <li
+                key={`stop-${i}`}
+                className={[
+                  'stop',
+                  isHome ? 'is-home' : '',
+                  selected === (isHome ? 0 : i + 1) ? 'is-selected' : '',
+                  dragFrom === i ? 'is-dragging' : '',
+                  !isHome && dropAt === i ? 'drop-before' : '',
+                  i === stops.length - 1 && dropAt === stops.length ? 'drop-after' : '',
+                ].join(' ')}
+                data-stop={isHome ? undefined : i}
+                draggable={!isHome}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', s.name)
+                  setDragFrom(i)
+                }}
+                onDragEnd={() => {
+                  setDragFrom(null)
+                  setDropAt(null)
+                }}
+              >
+                {!isHome && (
+                  <button
+                    type="button"
+                    className="grip"
+                    data-grip={i}
+                    aria-label={`Reorder ${s.name}: drag, or use the arrow keys`}
+                    onKeyDown={(e) => {
+                      const to = e.key === 'ArrowUp' ? i - 1 : e.key === 'ArrowDown' ? i + 1 : null
+                      if (to === null || to < 0 || to >= stops.length) return
+                      e.preventDefault()
+                      onMove(i, to)
+                      requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-grip="${to}"]`)?.focus())
+                    }}
+                  >
+                    <GripIcon size={16} />
+                  </button>
+                )}
+                {isHome ? <span className="pin pin-home" aria-hidden="true" /> : <span className="pin">{i + 1}</span>}
+                <button type="button" className="stop-text" onClick={() => onSelect(isHome ? 0 : i + 1)}>
+                  <strong>{s.name}</strong>
+                  <span>{isHome ? 'End of walk' : s.kind === 'science' ? 'Science stop · 20 min' : 'Via point'}</span>
+                </button>
+                <span className="stop-time">{arrive[i] !== undefined ? elapsed(arrive[i]) : ''}</span>
+                {!isHome && (
+                  <button type="button" className="icon-btn" aria-label={`Remove ${s.name}`} onClick={() => onRemove(s.id)}>
+                    <CloseIcon size={16} />
+                  </button>
+                )}
+              </li>,
+            ]
+          })}
+        </ol>
+      )}
+
+      {stops.length > 0 && (
+        <footer className="card-foot">
+          <button type="button" className="btn-secondary" onClick={onClear}>
+            Clear route
+          </button>
+        </footer>
+      )}
+    </aside>
+  )
+}

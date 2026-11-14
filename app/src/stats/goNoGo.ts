@@ -101,14 +101,14 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
     add(
       'O2_BUDGET',
       'no-go',
-      `EVA takes ${formatDuration(stats.totalS)} but O2 allows ${formatDuration(usableO2)} before the ` +
+      `EVA takes ${formatDuration(stats.totalS)} but O₂ allows ${formatDuration(usableO2)} before the ` +
         `${formatDuration(params.o2ReserveS)} reserve (short by ${formatDuration(stats.totalS - usableO2)}).`,
     )
   } else {
-    add('O2_BUDGET', 'info', `Back at base with ${formatDuration(params.o2DurationS - stats.totalS)} of O2 left (reserve ${formatDuration(params.o2ReserveS)}).`)
+    add('O2_BUDGET', 'info', `Back at base with ${formatDuration(params.o2DurationS - stats.totalS)} of O₂ left (reserve ${formatDuration(params.o2ReserveS)}).`)
   }
 
-  // Point of no return: from every point, an emergency walk home must still fit in the O2 above reserve.
+  // Point of no return: from every point, an emergency walk home must still fit in the O₂ above reserve.
   let worst = Infinity
   let worstIndex = 0
   let passedIndex = -1
@@ -128,7 +128,7 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
       'no-go',
       Number.isFinite(home)
         ? `Point of no return passed ${at(passedIndex)}: an emergency walk home from there takes ` +
-            `${formatDuration(params.walkHomeContingency * home)} but only ${formatDuration(usableO2 - t.departS)} of O2 is left above reserve.`
+            `${formatDuration(params.walkHomeContingency * home)} but only ${formatDuration(usableO2 - t.departS)} of O₂ is left above reserve.`
         : `No way back to base from ${at(passedIndex)}.`,
     )
   } else {
@@ -164,7 +164,8 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   const covered = coversWindow(conditions, startMs, endMs)
   const alerts = radiationAlertsIn(conditions, startMs, endMs)
   if (alerts.length > 0) {
-    add('RADIATION', 'no-go', `Radiation alert during the EVA window (from ${alerts[0].time}): stay in the habitat or a shelter.`)
+    const from = new Date(Math.max(Date.parse(alerts[0].time), startMs)).toISOString().slice(11, 16)
+    add('RADIATION', 'no-go', `Radiation alert during the EVA window (from ${from} UTC): stay in the habitat or a shelter.`)
   } else if (covered) {
     add('RADIATION', 'info', 'No radiation alert during the EVA window.')
   }

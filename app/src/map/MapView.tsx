@@ -1,0 +1,196 @@
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { useEffect, useRef } from 'react'
+import { dataUrl } from '../data/load'
+import type { RouteParams } from '../route/cost'
+import { cellCenter, type RouteResult } from '../route/route'
+import type { Bounds, CostGrid, DataConfig, Layer, ScienceTarget, Waypoint } from '../types'
+import { MARS_CRS } from './crs'
+import { gridOverlayPixels, HAZARD_COLORS, hazardRuns, type GridOverlayMode } from './overlays'
+
+export interface LayerState {
+  visible: boolean
+  opacity: number
+}
+
+interface Props {
+  config: DataConfig
+  grid: CostGrid
+  routeParams: RouteParams
+  layerState: Record<string, LayerState>
+  overlay: GridOverlayMode
+  base: Waypoint
+  targets: ScienceTarget[]
+  stops: Waypoint[]
+  route: RouteResult | null
+  onMapClick: (lat: number, lon: number) => void
+  onTargetClick: (target: ScienceTarget) => void
+  /** 0 = habitat, n = stop n */
+  selected: number | null
+  onSelectStation: (station: number) => void
+  /** a point on the route to mark (hover on the elevation profile) */
+  hoverPoint: { lat: number; lon: number } | null
+}
+
+const toLatLngBounds = (b: Bounds) => L.latLngBounds([b.latMin, b.lonMin], [b.latMax, b.lonMax])
+
+/** zIndex = position in config.layers, so toggling a layer back on keeps the configured stacking order. */
+function createLayer(layer: Layer, zIndex: number, maxZoom: number): L.Layer {
+  const bounds = toLatLngBounds(layer.bounds)
+  const common = { opacity: layer.opacity, attribution: layer.attribution, zIndex }
+  if (layer.tileUrl) return L.tileLayer(layer.tileUrl, { ...common, bounds, maxZoom, maxNativeZoom: maxZoom })
+  return L.imageOverlay(dataUrl(layer.imageOverlay!), bounds, { ...common, className: 'pixelated' })
+}
+
+function gridOverlayImage(grid: CostGrid, mode: Exclude<GridOverlayMode, 'none'>, p: RouteParams): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = grid.width
+  canvas.height = grid.height
+  canvas.getContext('2d')!.putImageData(new ImageData(gridOverlayPixels(grid, mode, p), grid.width, grid.height), 0, 0)
+  return canvas.toDataURL()
+}
+
+export function MapView(props: Props) {
+  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, selected, hoverPoint } = props
+  const container = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const layers = useRef<Map<string, L.Layer>>(new Map())
+  const callbacks = useRef(props)
+  callbacks.current = props
+
+  // Map and data layers: once per config.
+  useEffect(() => {
+    const site = toLatLngBounds(config.site.bounds)
+    const map = L.map(container.current!, {
+      crs: MARS_CRS,
+      minZoom: config.site.zoom.min,
+      maxZoom: config.site.zoom.max,
+      maxBounds: site.pad(1),
+      zoomSnap: 1, // whole zoom levels: tiles line up exactly, so no hairline seams between them
+      zoomControl: false,
+    })
+    // On wide screens the directions card floats over the left of the map: keep the site clear of it.
+    const cardWidth = window.innerWidth > 960 ? 440 : 0
+    map.fitBounds(site, { paddingTopLeft: [cardWidth + 24, 72], paddingBottomRight: [24, 24] })
+    const zoom = L.control.zoom({ position: 'bottomright' }).addTo(map)
+    // Authored icons in place of Leaflet's text glyphs (same 24px grid and 1.75 stroke as ui/icons.tsx).
+    const icon = (d: string) =>
+      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="${d}"/></svg>`
+    const zoomBox = zoom.getContainer()!
+    zoomBox.querySelector('.leaflet-control-zoom-in')!.innerHTML = icon('M12 5v14M5 12h14')
+    zoomBox.querySelector('.leaflet-control-zoom-out')!.innerHTML = icon('M5 12h14')
+    L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map)
+    map.attributionControl.setPrefix(false)
+    map.createPane('grid').style.zIndex = '410'
+    map.createPane('route').style.zIndex = '420'
+    map.createPane('pins').style.zIndex = '430' // above the route line, so its casing never covers a pin
+    map.on('click', (e: L.LeafletMouseEvent) => callbacks.current.onMapClick(e.latlng.lat, e.latlng.lng))
+    config.layers.forEach((layer, i) => layers.current.set(layer.id, createLayer(layer, i + 1, config.site.zoom.max)))
+    mapRef.current = map
+    return () => {
+      map.remove()
+      mapRef.current = null
+      layers.current.clear()
+    }
+  }, [config])
+
+  // Layer visibility and opacity.
+  useEffect(() => {
+    const map = mapRef.current!
+    for (const layer of config.layers) {
+      const l = layers.current.get(layer.id) as L.TileLayer | L.ImageOverlay
+      const state = layerState[layer.id]
+      if (state?.visible) {
+        if (!map.hasLayer(l)) l.addTo(map)
+        l.setOpacity(state.opacity)
+      } else if (map.hasLayer(l)) {
+        l.remove()
+      }
+    }
+  }, [config, layerState])
+
+  // Slope / terrain overlay drawn from the CostGrid.
+  useEffect(() => {
+    if (overlay === 'none') return
+    const image = L.imageOverlay(gridOverlayImage(grid, overlay, routeParams), toLatLngBounds(grid.bounds), {
+      pane: 'grid',
+      className: 'pixelated',
+      interactive: false,
+    }).addTo(mapRef.current!)
+    return () => {
+      image.remove()
+    }
+  }, [config, grid, overlay, routeParams])
+
+  // Habitat, science targets and stops. Names show on hover; the numbers match the directions list.
+  useEffect(() => {
+    const group = L.layerGroup().addTo(mapRef.current!)
+    const mark = (className: string, html: string, size: number) =>
+      L.divIcon({ className: `map-mark ${className}`, html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
+    const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+    const tip = (title: string, detail: string) => `<strong>${esc(title)}</strong><span>${esc(detail)}</span>`
+    const tipOptions = (size: number): L.TooltipOptions => ({ direction: 'top', offset: [0, -size / 2 - 4], className: 'map-tip' })
+
+    const sel = (n: number) => (selected === n ? ' is-selected' : '')
+    L.marker([base.lat, base.lon], { pane: 'pins', icon: mark(`mark-home${sel(0)}`, '', 28), keyboard: false })
+      .bindTooltip(tip(base.name, 'Start and end of every walk'), tipOptions(28))
+      .on('click', () => callbacks.current.onSelectStation(0))
+      .addTo(group)
+    for (const t of targets) {
+      if (stops.some((s) => s.id === t.id)) continue
+      L.marker([t.lat, t.lon], { pane: 'pins', icon: mark('mark-target', '', 18), title: `Add ${t.name}` })
+        .bindTooltip(tip(t.name, `Science target (${t.status}) · click to add`), tipOptions(18))
+        .on('click', () => callbacks.current.onTargetClick(t))
+        .addTo(group)
+    }
+    stops.forEach((s, i) => {
+      L.marker([s.lat, s.lon], { pane: 'pins', icon: mark(`mark-stop${sel(i + 1)}`, String(i + 1), 26), keyboard: false })
+        .bindTooltip(tip(`${i + 1}. ${s.name}`, s.kind === 'science' ? 'Science stop · click for details' : 'Via point'), tipOptions(26))
+        .on('click', () => callbacks.current.onSelectStation(i + 1))
+        .addTo(group)
+    })
+    return () => {
+      group.remove()
+    }
+  }, [config, base, targets, stops, selected])
+
+  // The point under the cursor on the elevation profile.
+  useEffect(() => {
+    if (!hoverPoint) return
+    const dot = L.circleMarker([hoverPoint.lat, hoverPoint.lon], {
+      pane: 'pins',
+      radius: 7,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: '#202124',
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(mapRef.current!)
+    return () => {
+      dot.remove()
+    }
+  }, [hoverPoint])
+
+  // Route, each run coloured by its hazard.
+  useEffect(() => {
+    if (!route?.ok) return
+    const group = L.layerGroup().addTo(mapRef.current!)
+    for (const leg of route.legs) {
+      for (const run of hazardRuns(grid, leg.cells, routeParams)) {
+        const points = run.cells.map((c) => {
+          const { lat, lon } = cellCenter(grid, c)
+          return L.latLng(lat, lon)
+        })
+        // White casing under the colour, as on a road map, so the line holds on dark and light ground alike.
+        const line = { pane: 'route', interactive: false, lineCap: 'round', lineJoin: 'round' } as const
+        L.polyline(points, { ...line, color: '#ffffff', weight: 10 }).addTo(group)
+        L.polyline(points, { ...line, color: HAZARD_COLORS[run.hazard], weight: 6 }).addTo(group)
+      }
+    }
+    return () => {
+      group.remove()
+    }
+  }, [config, grid, route, routeParams])
+
+  return <div ref={container} className="map" />
+}
