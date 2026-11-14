@@ -33,4 +33,6 @@ npm run build      # static build
 pip install -r pipeline/requirements.txt
 python -m pytest
 python -m pipeline mock   # writes the MOCK site to data/processed/mock/ (~30 s)
+python -m pipeline build --dem dtm.tif --bbox 137.36,-4.82,137.40,-4.78 --out data/processed/gale
+                          # real elevation model -> CostGrid + hillshade (see --help for --sand/--boulders masks)
 ```
