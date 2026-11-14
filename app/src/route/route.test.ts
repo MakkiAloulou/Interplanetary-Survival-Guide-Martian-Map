@@ -6,39 +6,9 @@ import { TERRAIN, type CostGrid, type CostGridMeta, type DataConfig, type Scienc
 import { DEFAULT_ROUTE_PARAMS, prepareGrid, stepTime, walkingSpeedMs } from './cost'
 import { cellAt, cellCenter, planLoop, planRoute } from './route'
 import { findPath, walkHomeField } from './search'
+import { gridFrom, idx, TEST_CELL_M as CELL } from '../testing/grids'
 import { handleRequest, type WorkerState } from './workerHandler'
 
-const CELL = 2
-
-/** Grid from row strings: '.' bedrock, 's' sand, 'b' boulders, '#' no-go, '^' 30° slope (impassable). */
-function gridFrom(rows: string[], elevation?: (r: number, c: number) => number): CostGrid {
-  const height = rows.length
-  const width = rows[0].length
-  const n = width * height
-  const grid: CostGrid = {
-    width,
-    height,
-    cellSizeM: CELL,
-    bounds: { latMin: 0, latMax: 1, lonMin: 0, lonMax: 1 },
-    elevation: new Float32Array(n),
-    slopeDeg: new Float32Array(n),
-    terrainClass: new Uint8Array(n),
-    status: 'MOCK',
-  }
-  rows.forEach((row, r) =>
-    [...row].forEach((ch, c) => {
-      const i = r * width + c
-      grid.elevation[i] = elevation ? elevation(r, c) : 0
-      if (ch === 's') grid.terrainClass[i] = TERRAIN.SAND
-      if (ch === 'b') grid.terrainClass[i] = TERRAIN.BOULDERS
-      if (ch === '#') grid.terrainClass[i] = TERRAIN.NO_GO
-      if (ch === '^') grid.slopeDeg[i] = 30
-    }),
-  )
-  return grid
-}
-
-const idx = (g: CostGrid, r: number, c: number) => r * g.width + c
 const FLAT_SPEED = walkingSpeedMs(0, SUIT_SPEED_FACTOR) // m/s on level bedrock
 
 describe('walking speed', () => {
@@ -208,8 +178,9 @@ describe('cellAt / cellCenter', () => {
       const { lat, lon } = cellCenter(g, cell)
       expect(cellAt(g, lat, lon)).toBe(cell)
     }
-    expect(cellAt(g, 0.99, 0.01)).toBe(0) // north-west corner is row 0
-    expect(cellAt(g, 1.5, 0.5)).toBe(-1)
+    const { latMax, lonMin } = g.bounds
+    expect(cellAt(g, latMax * 0.99, lonMin + 1e-9)).toBe(0) // north-west corner is row 0
+    expect(cellAt(g, latMax * 1.5, lonMin)).toBe(-1)
   })
 })
 

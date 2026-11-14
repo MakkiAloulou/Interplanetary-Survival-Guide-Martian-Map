@@ -1,6 +1,7 @@
 """The mock site on a small grid: right files, right formats, terrain that behaves like boxwork."""
 
 import json
+import re
 
 import numpy as np
 import pytest
@@ -86,6 +87,7 @@ def test_conditions_cover_one_sol(site):
     out, _ = site
     conditions = json.loads((out / "conditions.json").read_text())
     assert len(conditions) == 25
+    assert all(re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z", c["time"]) for c in conditions)
     assert all(c["status"] == "MOCK" and c["radiationAlert"] is False for c in conditions)
     elevations = [c["sunElevationDeg"] for c in conditions]
     assert max(elevations) > 80 and min(elevations) < -80  # day and night

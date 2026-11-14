@@ -76,6 +76,12 @@ export const SCIENCE_STOP_DWELL_MIN = 20
 /** Crew must be back at base this long before local sunset, minutes. MODELED: team assumption. */
 export const SUNSET_MARGIN_MIN = 30
 
+/**
+ * Emergency walk home is assumed this much slower than a planned walk (fatigue, suit fault,
+ * helping a partner). Drives the point-of-no-return check. MODELED: team assumption.
+ */
+export const WALK_HOME_CONTINGENCY_FACTOR = 1.5
+
 // ---------- Radiation ----------
 
 /**

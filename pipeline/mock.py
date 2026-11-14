@@ -318,7 +318,8 @@ def mock_conditions(lat_deg: float, start: datetime) -> list[dict]:
         hour_angle = math.radians(15 * (hour - 12))
         out.append(
             {
-                "time": (start + timedelta(seconds=hour * C.MARS_SOL_S / 24)).isoformat().replace("+00:00", "Z"),
+                # Millisecond precision: microseconds are not parsed by every browser's Date.
+                "time": (start + timedelta(seconds=hour * C.MARS_SOL_S / 24)).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
                 "tempC": round(-40 - 35 * math.cos(2 * math.pi * (hour - 14) / 24), 1),
                 "pressurePa": round(820 + 15 * math.cos(2 * math.pi * (hour - 8) / 24), 1),
                 "dustTau": round(0.6 + 0.05 * math.sin(2 * math.pi * hour / 24), 3),
