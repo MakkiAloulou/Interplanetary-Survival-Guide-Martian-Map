@@ -147,7 +147,12 @@ export interface DataConfig {
   layers: Layer[]
   /** Path to a CostGridMeta JSON. */
   costGrid: string
+  /** JSON file holding ScienceTarget[] */
   scienceTargets: { path: string; status: DataStatus }
+  /** JSON file holding PovImage[] */
   povImages: { path: string; status: DataStatus }
+  /** JSON file holding Conditions[], a time series in time order */
   conditions: { path: string; status: DataStatus }
+  /** JSON file holding Waypoint[]: the base and the rover's start position */
+  waypoints: { path: string; status: DataStatus }
 }

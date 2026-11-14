@@ -1,5 +1,6 @@
-# Data: raw downloads never committed
-data/raw/
+# Data and docs stay local
+data/
+docs/
 
 # Node
 node_modules/

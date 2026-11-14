@@ -1,5 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
-import rawConfig from '../../data/config.json'
 import { SLOPE_IMPASSABLE_DEG, SLOPE_PENALTY_START_DEG, TERRAIN_COST_MULTIPLIER } from './config'
 import { TERRAIN, type Bounds, type DataConfig, type DataStatus, type DataType } from './types'
 
@@ -15,8 +15,10 @@ const DATA_TYPES: DataType[] = [
   'derived',
 ]
 
-// JSON imports widen string unions, so data/config.json is checked at runtime here.
-const config = rawConfig as DataConfig
+// data/ is git-ignored, so these checks run only where it exists (not in CI).
+const CONFIG_URL = new URL('../../data/config.json', import.meta.url)
+const hasData = existsSync(CONFIG_URL)
+const config = (hasData ? JSON.parse(readFileSync(CONFIG_URL, 'utf-8')) : null) as DataConfig
 
 function isValidBounds(b: Bounds) {
   return b.latMin < b.latMax && b.lonMin < b.lonMax && b.latMin >= -90 && b.latMax <= 90
@@ -31,7 +33,7 @@ function contains(outer: Bounds, inner: Bounds) {
   )
 }
 
-describe('data/config.json', () => {
+describe.skipIf(!hasData)('data/config.json', () => {
   test('site has valid bounds and status', () => {
     expect(isValidBounds(config.site.bounds)).toBe(true)
     expect(STATUSES).toContain(config.site.boundsStatus)
@@ -58,7 +60,7 @@ describe('data/config.json', () => {
 
   test('non-layer datasets have a path and status', () => {
     expect(config.costGrid).toMatch(/\.json$/)
-    for (const d of [config.scienceTargets, config.povImages, config.conditions]) {
+    for (const d of [config.scienceTargets, config.povImages, config.conditions, config.waypoints]) {
       expect(d.path).toMatch(/\.json$/)
       expect(STATUSES).toContain(d.status)
     }

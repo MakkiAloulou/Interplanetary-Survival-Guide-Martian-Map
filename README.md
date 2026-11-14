@@ -32,5 +32,5 @@ npm run build      # static build
 # Pipeline (from repo root)
 pip install -r pipeline/requirements.txt
 python -m pytest
-python -m pipeline --help
+python -m pipeline mock   # writes the MOCK site to data/processed/mock/ (~30 s)
 ```
