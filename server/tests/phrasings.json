@@ -1,0 +1,58 @@
+{
+  "about": "Eval set for the copilot's understanding. The same file scores the LLM (server/eval_phrasings.py, real Ollama) and the app's rule parser (app/src/copilot/phrasings.test.ts). targets: the acceptable target_id values (null = none named / here). clarify: the place is ambiguous and the copilot must ask which one. Place names are the Curiosity boxwork stops in data/processed/gale/science_targets.json.",
+  "context": {
+    "targets": [
+      { "id": "msl-first-ridge", "name": "First boxwork ridge close-up" },
+      { "id": "msl-altadena", "name": "Altadena drill site" },
+      { "id": "msl-nodules", "name": "Nodules on a ridge wall" },
+      { "id": "msl-panorama", "name": "Boxwork panorama viewpoint" },
+      { "id": "msl-valle-de-la-luna", "name": "Valle de la Luna (hollow drill site)" },
+      { "id": "msl-nevado-sajama", "name": "Nevado Sajama (ridge drill site)" },
+      { "id": "msl-final-phase", "name": "Final-phase workspace (Mollecita, Monte Cielo)" }
+    ],
+    "stops": [
+      { "id": "msl-altadena", "name": "Altadena drill site", "state": "done" },
+      { "id": "msl-nodules", "name": "Nodules on a ridge wall", "state": "current" },
+      { "id": "msl-nevado-sajama", "name": "Nevado Sajama (ridge drill site)", "state": "next" },
+      { "id": "msl-final-phase", "name": "Final-phase workspace (Mollecita, Monte Cielo)", "state": "ahead" }
+    ],
+    "current_stop_id": "msl-nodules",
+    "eva_clock": "T+1:40"
+  },
+  "cases": [
+    { "text": "We found something interesting here. Can we stay 20 more minutes?", "intent": "extend_stay", "minutes": 20, "targets": ["msl-nodules", null], "style": "spec example" },
+    { "text": "uh, can we, um, stay like twenty more minutes here", "intent": "extend_stay", "minutes": 20, "targets": ["msl-nodules", null], "style": "fillers" },
+    { "text": "Can we get another half hour here?", "intent": "extend_stay", "minutes": 30, "targets": ["msl-nodules", null], "style": "no stay verb" },
+    { "text": "How long can we stay here?", "intent": "extend_stay", "minutes": null, "targets": ["msl-nodules", null], "style": "asks the maximum" },
+    { "text": "Could we extend this stop by 10 minutes?", "intent": "extend_stay", "minutes": 10, "targets": ["msl-nodules", null], "style": "short" },
+    { "text": "Need fifteen more minutes on this outcrop, is that OK?", "intent": "extend_stay", "minutes": 15, "targets": ["msl-nodules", null], "style": "terse" },
+    { "text": "Habitat, EV1 here, the nodules look great, requesting another 25 minutes before we move on.", "intent": "extend_stay", "minutes": 25, "targets": ["msl-nodules", null], "style": "long radio call" },
+    { "text": "Can we spend an extra 10 minutes at Nevado Sajama?", "intent": "extend_stay", "minutes": 10, "targets": ["msl-nevado-sajama"], "style": "stop ahead" },
+    { "text": "Can we stay longer at the ridge?", "intent": "extend_stay", "minutes": null, "clarify": true, "style": "ambiguous: two ridge stops ahead" },
+    { "text": "Can ve stay tventy more minutes?", "intent": "extend_stay", "minutes": 20, "targets": ["msl-nodules", null], "style": "accent" },
+    { "text": "can we stay a bit linger at Altadena", "intent": "extend_stay", "minutes": null, "targets": ["msl-altadena"], "style": "ASR error (linger), stop already left" },
+    { "text": "Can we also visit the first ridge?", "intent": "add_stop", "targets": ["msl-first-ridge"], "style": "spec example" },
+    { "text": "uh could we swing by Valle de la Luna on the way back", "intent": "add_stop", "targets": ["msl-valle-de-la-luna"], "style": "fillers" },
+    { "text": "Is there time to check out the panorama viewpoint?", "intent": "add_stop", "targets": ["msl-panorama"], "style": "indirect" },
+    { "text": "Any chance we could go see the boxwork panorama too?", "intent": "add_stop", "targets": ["msl-panorama"], "style": "indirect" },
+    { "text": "Can we add the hollow drill site?", "intent": "add_stop", "targets": ["msl-valle-de-la-luna"], "style": "by description" },
+    { "text": "Can we also visit Altadena again?", "intent": "add_stop", "targets": ["msl-altadena"], "style": "already visited" },
+    { "text": "What if we skip Nevado Sajama?", "intent": "skip_stop", "targets": ["msl-nevado-sajama"], "style": "spec example" },
+    { "text": "Skip the next stop.", "intent": "skip_stop", "targets": ["msl-nevado-sajama"], "style": "short" },
+    { "text": "Let's drop the final phase workspace, we're running late.", "intent": "skip_stop", "targets": ["msl-final-phase"], "style": "long" },
+    { "text": "Can we skip the rest of this stop?", "intent": "skip_stop", "targets": ["msl-nodules"], "style": "current stop" },
+    { "text": "Wat if we skeep Nevado Sahama", "intent": "skip_stop", "targets": ["msl-nevado-sajama"], "style": "accent" },
+    { "text": "How long until we must turn back?", "intent": "time_left", "style": "spec example" },
+    { "text": "how long till we gotta turn around", "intent": "time_left", "style": "casual" },
+    { "text": "How much oxygen do we have left?", "intent": "time_left", "style": "oxygen" },
+    { "text": "When do we need to head back?", "intent": "time_left", "style": "when" },
+    { "text": "What's our point of no return?", "intent": "time_left", "style": "jargon" },
+    { "text": "I will long until we must turn back", "intent": "time_left", "style": "ASR error (How long)" },
+    { "text": "What's the fastest way back?", "intent": "go_home", "style": "spec example" },
+    { "text": "Get us home, quickest route.", "intent": "go_home", "style": "short" },
+    { "text": "We need to abort, where's the nearest shelter?", "intent": "go_home", "style": "emergency" },
+    { "text": "Take me back to the rover.", "intent": "go_home", "style": "rover" },
+    { "text": "What's the weather like on Earth?", "intent": "unknown", "style": "off topic" },
+    { "text": "Tell me a joke.", "intent": "unknown", "style": "off topic" }
+  ]
+}

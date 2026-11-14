@@ -1,0 +1,3 @@
+# Copilot server, Python 3.11. faster-whisper (speech-to-text, CPU int8) is only needed for voice.
+-r requirements-core.txt
+faster-whisper>=1.1

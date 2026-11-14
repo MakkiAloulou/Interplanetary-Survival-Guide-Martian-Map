@@ -1,0 +1,355 @@
+/* What-if copilot dock: bottom-left of the HUD (over the visor's empty corner) and of the tablet map. */
+
+.copilot {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  width: min(420px, calc(100vw - 48px));
+  font-family: inherit;
+}
+
+.copilot.is-hud {
+  bottom: 96px; /* above the HUD's playback controls */
+  color: var(--hud-text);
+}
+
+.copilot.is-tablet {
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000; /* above the Leaflet panes of the tablet map */
+  color: var(--text);
+}
+
+.copilot-bar {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.copilot-form {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.copilot-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.is-hud .copilot-input {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--hud-text);
+}
+
+.copilot-ask,
+.copilot-apply {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--blue);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copilot-ask:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.copilot-phase {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.is-tablet .copilot-phase {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: var(--shadow-chip);
+}
+
+.copilot-mode {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.copilot-speak {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.copilot-phase.phase-listening {
+  color: var(--hud-red);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.is-tablet .copilot-phase.phase-listening {
+  color: var(--red);
+}
+
+.copilot-error {
+  margin: 0;
+  color: var(--hud-alert);
+  font-size: 14px;
+}
+
+.is-tablet .copilot-error {
+  color: var(--red-text);
+}
+
+/* ---------- answer card ---------- */
+
+.copilot-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-left: 6px solid var(--blue);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+
+.is-hud .copilot-card {
+  background: rgba(16, 22, 28, 0.92);
+  color: var(--hud-text);
+  box-shadow: none;
+  outline: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.copilot-card.is-go {
+  border-left-color: var(--green);
+}
+
+.copilot-card.is-partial {
+  border-left-color: var(--amber);
+}
+
+.copilot-card.is-no_go {
+  border-left-color: var(--red);
+}
+
+.copilot-card-head {
+  display: flex;
+  gap: 8px;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.copilot-question {
+  margin: 0;
+  font-size: 14px;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.copilot-x {
+  min-width: 32px;
+  min-height: 32px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.copilot-headline {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.copilot-verdict {
+  grid-row: span 2;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--on-accent);
+}
+
+.verdict-go {
+  background: var(--green);
+}
+
+.verdict-partial {
+  background: var(--amber);
+  color: var(--black);
+}
+
+.verdict-no_go {
+  background: var(--red);
+}
+
+.copilot-big {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.copilot-big-label {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.copilot-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.copilot-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.copilot-options li {
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+.copilot-numbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.copilot-numbers dt {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.copilot-numbers dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.copilot-numbers small {
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.copilot-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.copilot-applied {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.is-hud .copilot-applied {
+  color: var(--hud-green);
+}
+
+.copilot-note {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.copilot-timing {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- push-to-talk ---------- */
+
+.copilot-ptt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 132px;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--blue);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.copilot-ptt.is-listening {
+  background: var(--red);
+  border-color: var(--on-accent);
+  animation: ptt-pulse 1.2s ease-out infinite;
+}
+
+.copilot-ptt:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@keyframes ptt-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(217, 48, 37, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copilot-ptt.is-listening {
+    animation: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .copilot,
+  .copilot.is-tablet {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}

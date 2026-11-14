@@ -1,5 +1,6 @@
 import L from 'leaflet'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { CopilotLive } from '../copilot/useCopilot'
 import { MARS_CRS } from '../map/crs'
 import { INK } from '../map/overlays'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
@@ -26,6 +27,8 @@ interface Props {
   startTime: string
   planAbort: (cell: number) => AbortPlan | null
   onExit: () => void
+  /** optional what-if copilot, given the walk clock and this view's abort */
+  copilot?: (live: CopilotLive) => ReactNode
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
@@ -95,7 +98,7 @@ function TabletMap(props: { config: DataConfig; stats: RouteStats; stations: Way
  * The tablet a crew member carries on the walk: where am I going next, what is wrong right now, what comes after.
  * High contrast for daylight, large targets for gloved hands. Plays the EVA on the plan's clock for the demo.
  */
-export function Tablet({ config, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit }: Props) {
+export function Tablet({ config, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit, copilot }: Props) {
   const clock = usePlayback(stats.totalS)
   const { t } = clock
   const [follow, setFollow] = useState(true)
@@ -246,6 +249,7 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
           </button>
         </footer>
       </aside>
+      {!abort && copilot?.({ t, index: pos.index, cell, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell) })) })}
     </div>
   )
 }

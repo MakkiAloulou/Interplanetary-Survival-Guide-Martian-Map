@@ -47,9 +47,14 @@ function dataDir(): Plugin {
   }
 }
 
+// The copilot server (server/, FastAPI) behind /api, so the app calls it on its own origin.
+const COPILOT_API = { '/api': { target: process.env.COPILOT_API_URL ?? 'http://127.0.0.1:8787', changeOrigin: true } }
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), dataDir()],
+  server: { proxy: COPILOT_API },
+  preview: { proxy: COPILOT_API },
   test: {
     include: ['src/**/*.test.ts'],
   },

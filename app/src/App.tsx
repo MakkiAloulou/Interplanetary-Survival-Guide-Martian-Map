@@ -26,6 +26,8 @@ import { PrintCard } from './panels/PrintCard'
 import { FASTER_ALTERNATIVE_MIN_SAVING_MIN } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
 import type { Conditions, DataConfig, PovImage, ScienceTarget, Waypoint } from './types'
+import { Copilot } from './copilot/Copilot'
+import { dwellWithExtras, useCopilotPlan, type DwellExtras } from './copilot/plan'
 
 interface Loaded {
   config: DataConfig
@@ -123,6 +125,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [hud, setHud] = useState(false)
   const [tablet, setTablet] = useState(false)
   const [card, setCard] = useState(false)
+  const [dwellExtras, setDwellExtras] = useState<DwellExtras>({}) // extra stop dwell applied from the copilot
   const client = useRef<{ client: RouteClient; ready: Promise<void> } | null>(null)
   const viaCount = useRef(linked?.stops.filter((s) => s.kind === 'via').length ?? 0)
   const baseCell = cellAt(grid, base.lat, base.lon)
@@ -211,9 +214,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   // Both alternatives are judged on the same walking model; safety first, so the safest route is the default and
   // the fastest is offered only when it saves enough time to be worth the extra hazard.
   const judge = (r: RouteResult | null) =>
-    r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams }) : null
-  const fastVerdict = useMemo(() => judge(routes?.fastest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams])
-  const safeVerdict = useMemo(() => judge(routes?.safest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams])
+    r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams, dwellS: dwellWithExtras(stops, dwellExtras) }) : null
+  const fastVerdict = useMemo(() => judge(routes?.fastest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras])
+  const safeVerdict = useMemo(() => judge(routes?.safest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras])
   const savingS = fastVerdict?.stats && safeVerdict?.stats ? safeVerdict.stats.totalS - fastVerdict.stats.totalS : 0
   const tradeOff = savingS >= FASTER_ALTERNATIVE_MIN_SAVING_MIN * 60
   const active: RouteProfile = tradeOff ? profile : 'safest'
@@ -224,6 +227,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   // Stats only while the route matches the current stops (the render right after an edit still holds the old route).
   const routeMatches = route?.ok === true && route.legs.length === stops.length + 1
   const stats = stops.length > 0 && !routing && routeMatches ? (verdict?.stats ?? null) : null
+  const copilotPlan = useCopilotPlan({ prepared, route: routeMatches ? route : null, profile: active, stops, targets, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams, lonEast: base.lon, extras: dwellExtras, setExtras: setDwellExtras, client, planAbort })
   const timeline = useMemo(() => (stats ? buildTimeline(stats, stops, targets) : []), [stats, stops, targets])
   const stations = [base, ...stops, base]
 
@@ -413,6 +417,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           startTime={startTime}
           planAbort={planAbort}
           onExit={() => setTablet(false)}
+          copilot={copilotPlan ? (live) => <Copilot variant="tablet" plan={copilotPlan} live={live} /> : undefined}
         />
       )}
 
@@ -446,6 +451,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           planAbort={planAbort}
           alerts={verdict.reasons.filter((r) => r.severity !== 'info')}
           onExit={() => setHud(false)}
+          copilot={copilotPlan ? (live) => <Copilot variant="hud" plan={copilotPlan} live={live} /> : undefined}
         />
       )}
 
