@@ -3,7 +3,8 @@ import { KeyboardIcon, OfflineIcon, SpeakerIcon, SpeakerOffIcon } from '../ui/ic
 import './copilot.css'
 import { CopilotCard } from './CopilotCard'
 import { PushToTalk } from './PushToTalk'
-import { useServerHealth, useServerStages } from './stages'
+import { OLLAMA_MODEL } from './ollama'
+import { useDirectOllama, useServerHealth, useServerStages } from './stages'
 import { useCopilot, type CopilotLive, type CopilotPlan } from './useCopilot'
 import { speechSupported, whisperPrompt } from './voice'
 
@@ -25,14 +26,22 @@ export function Copilot({ plan, live, variant }: Props) {
   // Off by default: the deterministic template is the answer; LLM wording is optional polish.
   const [llmWording, setLlmWording] = useState(false)
   const [typing, setTyping] = useState(false)
-  const stages = useServerStages(health, speakAnswers, llmWording)
+  const direct = useDirectOllama(!!health)
+  const stages = useServerStages(health, speakAnswers, llmWording, direct)
   const copilot = useCopilot(plan, live, stages)
   const [text, setText] = useState('')
   const prompt = useMemo(() => whisperPrompt(plan.ctx), [plan.ctx])
   const { phase, answer, timing, error } = copilot
   const busy = phase === 'thinking' || phase === 'transcribing'
-  // Fallback states, said in words: no server → typed only; server without the model → rules.
-  const fallback = !health ? 'Typed only: copilot server off' : !health.llm_ready ? 'Rules mode: language model off' : null
+  // Fallback states, said in words: no server → typed only (with the remote model, or rules); server without the
+  // model → rules.
+  const fallback = !health
+    ? direct
+      ? `Typed questions: ${OLLAMA_MODEL} on the crew laptop (remote)`
+      : 'Typed only, rules mode: language model not reachable'
+    : !health.llm_ready
+      ? 'Rules mode: language model off'
+      : null
   const showInput = typing || !health
 
   return (

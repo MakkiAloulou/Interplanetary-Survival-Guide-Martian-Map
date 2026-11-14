@@ -1,8 +1,10 @@
-// The copilot's server-backed stages, each falling back to the deterministic path: LLM understanding → rule parser.
+// The copilot's stages, each falling back to the deterministic path: LLM understanding (through the copilot server, or
+// Ollama directly when there is no server) → rule parser.
 
 import { useEffect, useMemo, useState } from 'react'
 import { explainRemote, fetchHealth, understandRemote, type Health } from './api'
 import { wordingOk } from './guard'
+import { ollamaReady, ollamaUrl, understandDirect } from './ollama'
 import { forSpeech } from './templates'
 import { resolve } from './understand'
 import { understandByRules, type Stages } from './useCopilot'
@@ -28,15 +30,42 @@ export function useServerHealth(): Health | null {
 }
 
 /**
- * Stages for the current server state: the LLM is only asked when it is loaded (otherwise rules, at once); answers are
- * spoken by the browser's speech synthesis when `speakAnswers` is on.
+ * Ollama reached directly (no copilot server, e.g. the static deployment): its address when it answers with the
+ * model, else null. Checked only while the server is unreachable.
  */
-export function useServerStages(health: Health | null, speakAnswers: boolean, llmWording: boolean): Stages {
+export function useDirectOllama(serverUp: boolean): string | null {
+  const [ready, setReady] = useState<string | null>(null)
+  useEffect(() => {
+    const base = serverUp ? null : ollamaUrl()
+    if (!base) {
+      setReady(null)
+      return
+    }
+    let alive = true
+    const check = () => ollamaReady(base).then((ok) => alive && setReady(ok ? base : null))
+    check()
+    const id = setInterval(check, HEALTH_EVERY_MS)
+    return () => {
+      alive = false
+      clearInterval(id)
+    }
+  }, [serverUp])
+  return ready
+}
+
+/**
+ * Stages for the current state: the server's LLM when it is loaded; otherwise Ollama directly when reachable; otherwise
+ * rules, at once. Answers are spoken by the browser's speech synthesis when `speakAnswers` is on.
+ */
+export function useServerStages(health: Health | null, speakAnswers: boolean, llmWording: boolean, directOllama: string | null = null): Stages {
   return useMemo<Stages>(
     () => ({
       understand: async (text, uctx) => {
         if (health?.llm_ready) {
           const u = await understandRemote(text, uctx)
+          if (u) return { resolution: resolve(text, u, uctx), source: 'llm' }
+        } else if (directOllama) {
+          const u = await understandDirect(directOllama, text, uctx)
           if (u) return { resolution: resolve(text, u, uctx), source: 'llm' }
         }
         return understandByRules(text, uctx)
@@ -52,6 +81,6 @@ export function useServerStages(health: Health | null, speakAnswers: boolean, ll
       speak: speakAnswers ? (text) => speak(forSpeech(text)) : undefined,
       stopSpeaking,
     }),
-    [health?.llm_ready, speakAnswers, llmWording],
+    [health?.llm_ready, speakAnswers, llmWording, directOllama],
   )
 }

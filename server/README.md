@@ -21,6 +21,30 @@ python -m server                             # http://127.0.0.1:8787, model warm
 
 Then run the app (`cd app && npm run dev`). Vite proxies `/api` to the server.
 
+## The deployed app (Vercel) with the laptop's model
+
+The static site has no copilot server, so its browser asks Ollama directly (`app/src/copilot/ollama.ts`). It sends the
+same prompt and schema as `server/llm.py` and applies the same checks, with the rules as fallback. Voice stays
+laptop-only. Browsers need **https**, so the laptop's Ollama is reached through a Cloudflare quick tunnel:
+
+```powershell
+winget install Cloudflare.cloudflared            # once
+powershell -ExecutionPolicy Bypass -File server\start-llm-tunnel.ps1
+```
+
+The script:
+
+1. allows the app's origins in `OLLAMA_ORIGINS`;
+2. restarts Ollama and warms `qwen3:8b`;
+3. opens the tunnel, with the Host header rewritten to localhost, which Ollama requires;
+4. prints `https://…vercel.app/?ollama=https://<name>.trycloudflare.com`.
+
+Open that link once per browser; the address is remembered there, and `?ollama=off` forgets it. A fixed address can
+also be built in with `VITE_OLLAMA_URL` (and `VITE_OLLAMA_MODEL`) in the Vercel project settings.
+
+The tunnel has no password. Browsers from other websites are refused (CORS), but anyone with the address can call
+the model directly, so run it only while you need it (Ctrl+C closes it). The address changes on every run.
+
 ## Endpoints (`/api/copilot/…`)
 
 | Method | Path | What |
