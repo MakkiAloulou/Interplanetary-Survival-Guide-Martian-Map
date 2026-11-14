@@ -7,7 +7,7 @@ import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
 import { liveWarnings } from '../stats/live'
-import { sphericalDistanceM, type RouteStats } from '../stats/stats'
+import { safetyS, sphericalDistanceM, type RouteStats } from '../stats/stats'
 import type { Conditions, DataConfig, Waypoint } from '../types'
 import { AlertSlot } from '../ui/AlertSlot'
 import { walkAlerts } from '../ui/alerts'
@@ -28,7 +28,8 @@ interface Props {
   planReasons: Reason[]
   conditions: Conditions[]
   startTime: string
-  planAbort: (cell: number) => AbortPlan | null
+  /** fastest way to the nearer safe haven from a cell; `rover` = where the rover is parked on a rover-assisted plan */
+  planAbort: (cell: number, rover?: number) => AbortPlan | null
   onExit: () => void
   /** the simulated solar-storm drill is on: its alerts are labelled SIMULATED */
   drill?: boolean
@@ -123,7 +124,7 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
   const isHomeNext = nextIndex === stations.length - 1
   const bearing = initialBearingDeg(pos, next)
   const distance = sphericalDistanceM(pos, next)
-  const emergencyHomeS = params.walkHomeContingency * walkHome[cell]
+  const emergencyHomeS = params.walkHomeContingency * safetyS(walkHome, stats.track[pos.index])
   const margin = params.o2DurationS - params.o2ReserveS - (t + emergencyHomeS)
   const live = liveWarnings({ t, startTime, emergencyHomeS, conditions, params })
   const o2Left = params.o2DurationS - t
@@ -272,14 +273,14 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
             disabled={!!abort}
             onClick={() => {
               clock.pause()
-              setAbort({ atT: t, plan: planAbort(cell) })
+              setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })
             }}
           >
             <WarningIcon size={20} /> Abort
           </button>
         </footer>
       </aside>
-      {!abort && copilot?.({ t, index: pos.index, cell, drill, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell) })) })}
+      {!abort && copilot?.({ t, index: pos.index, cell, drill, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })) })}
     </div>
   )
 }

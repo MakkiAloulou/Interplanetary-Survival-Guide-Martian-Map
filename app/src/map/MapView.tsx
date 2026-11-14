@@ -35,8 +35,8 @@ interface Props {
   hoverPoint: { lat: number; lon: number } | null
   /** seconds to the nearest safe haven from every cell, for the walk-home heatmap */
   walkHome: Float32Array | null
-  /** where the rover is staged as a safe haven, when not at the habitat */
-  rover: { lat: number; lon: number; name: string } | null
+  /** where the rover is staged or parks (safe haven), when not at the habitat */
+  rovers: { lat: number; lon: number; title: string; note: string }[]
   /** a rover's real drive path to draw, or null */
   traverse: RoverTraverse | null
   /** 1 per cell with radio line of sight to the habitat or the staged rover, for the radio overlay */
@@ -63,7 +63,7 @@ function gridOverlayImage(grid: CostGrid, mode: Exclude<GridOverlayMode, 'none'>
 }
 
 export function MapView(props: Props) {
-  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, altRoute, selected, hoverPoint, walkHome, rover, traverse, lineOfSight } = props
+  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, altRoute, selected, hoverPoint, walkHome, rovers, traverse, lineOfSight } = props
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layers = useRef<Map<string, L.Layer>>(new Map())
@@ -136,26 +136,25 @@ export function MapView(props: Props) {
     }
   }, [config, grid, overlay, routeParams, walkHome, lineOfSight])
 
-  // The rover, staged as a safe haven.
+  // The rover, staged as a safe haven, or every spot where it parks on a rover-assisted plan.
   useEffect(() => {
-    if (!rover) return
+    if (rovers.length === 0) return
     const icon = L.divIcon({
       className: 'map-mark mark-rover',
       html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18v-4l-3-4H8L5 11H3z"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/></svg>',
       iconSize: [30, 30],
       iconAnchor: [15, 34],
     })
-    const m = L.marker([rover.lat, rover.lon], { pane: 'pins', icon, keyboard: false })
-      .bindTooltip(`<strong>Rover staged here</strong><span>Safe haven and tool carrier at ${rover.name.replace(/[&<>"']/g, '')}</span>`, {
-        direction: 'top',
-        offset: [0, -34],
-        className: 'map-tip',
-      })
-      .addTo(mapRef.current!)
+    const esc = (s: string) => s.replace(/[&<>"']/g, '')
+    const marks = rovers.map((r) =>
+      L.marker([r.lat, r.lon], { pane: 'pins', icon, keyboard: false })
+        .bindTooltip(`<strong>${esc(r.title)}</strong><span>${esc(r.note)}</span>`, { direction: 'top', offset: [0, -34], className: 'map-tip' })
+        .addTo(mapRef.current!),
+    )
     return () => {
-      m.remove()
+      for (const m of marks) m.remove()
     }
-  }, [rover])
+  }, [rovers])
 
   // Habitat, science targets and stops. Names show on hover; the numbers match the directions list.
   useEffect(() => {
@@ -247,16 +246,33 @@ export function MapView(props: Props) {
   useEffect(() => {
     if (!route?.ok) return
     const group = L.layerGroup().addTo(mapRef.current!)
+    const line = { pane: 'route', interactive: false, lineCap: 'round', lineJoin: 'round' } as const
+    const toLatLng = (c: number) => {
+      const { lat, lon } = cellCenter(grid, c)
+      return L.latLng(lat, lon)
+    }
     for (const leg of route.legs) {
-      for (const run of hazardRuns(grid, leg.cells, routeParams)) {
-        const points = run.cells.map((c) => {
-          const { lat, lon } = cellCenter(grid, c)
-          return L.latLng(lat, lon)
-        })
-        // White casing under the colour, as on a road map, so the line holds on dark and light ground alike.
-        const line = { pane: 'route', interactive: false, lineCap: 'round', lineJoin: 'round' } as const
-        L.polyline(points, { ...line, color: INK.white, weight: 10 }).addTo(group)
-        L.polyline(points, { ...line, color: HAZARD_COLORS[run.hazard], weight: 6 }).addTo(group)
+      // Split each leg into ridden and walked stretches (rover-assisted plans); a shared cell joins the two.
+      const parts: { riding: boolean; cells: number[] }[] = []
+      leg.cells.forEach((c, k) => {
+        const riding = leg.ride?.[k] === 1 || (k === 0 && leg.ride?.[1] === 1)
+        const lastPart = parts[parts.length - 1]
+        if (!lastPart || lastPart.riding !== riding) parts.push({ riding, cells: lastPart ? [lastPart.cells[lastPart.cells.length - 1], c] : [c] })
+        else lastPart.cells.push(c)
+      })
+      for (const part of parts) {
+        if (part.riding) {
+          const points = part.cells.map(toLatLng)
+          L.polyline(points, { ...line, color: INK.white, weight: 9 }).addTo(group)
+          L.polyline(points, { ...line, color: INK.rover, weight: 5, dashArray: '10 8', lineCap: 'butt' }).addTo(group)
+          continue
+        }
+        for (const run of hazardRuns(grid, part.cells, routeParams)) {
+          const points = run.cells.map(toLatLng)
+          // White casing under the colour, as on a road map, so the line holds on dark and light ground alike.
+          L.polyline(points, { ...line, color: INK.white, weight: 10 }).addTo(group)
+          L.polyline(points, { ...line, color: HAZARD_COLORS[run.hazard], weight: 6 }).addTo(group)
+        }
       }
     }
     return () => {

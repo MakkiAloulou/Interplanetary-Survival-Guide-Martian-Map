@@ -42,6 +42,14 @@ interface Props {
   /** 'habitat' or the id of the stop where the rover is staged as a safe haven */
   roverAt: string
   onRoverAt: (at: string) => void
+  /** rover-assisted Marswalk on/off */
+  ride: boolean
+  onRide: (on: boolean) => void
+  /** the same stops walked all the way, s, for the comparison (rover-assisted plans only) */
+  onFootS: number | null
+  /** a clear start to suggest when the chosen start is not clear, or null */
+  suggestedStart: { time: string; ltst: string } | null
+  onStartTime: (iso: string) => void
   onOptimise: () => void
   optimising: boolean
   /** move the stop at index `from` to index `to` */
@@ -121,7 +129,8 @@ function RouteOptions(props: {
 export function Directions(props: Props) {
   const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startLabel, o2DurationS, roverSols } = props
   const { targets, onAddTarget, onRemove, onMove, onClear, onSavePlan, onPrint, selected, onSelect, hoverIndex, onHover } = props
-  const { roverAt, onRoverAt, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
+  const { suggestedStart, onStartTime } = props
+  const { roverAt, onRoverAt, ride, onRide, onFootS, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
   const [showReasons, setShowReasons] = useState(false)
   const [dragFrom, setDragFrom] = useState<number | null>(null)
   /** insertion position among the stops (0 … stops.length) while a stop is dragged */
@@ -189,6 +198,15 @@ export function Directions(props: Props) {
                     </div>
                   )}
                 </div>
+                {stats && ride && stats.rideS > 0 && (
+                  <p className="ride-compare">
+                    Rover-assisted: {formatDuration(stats.rideS)} riding, {formatDuration(stats.walkS)} walking.
+                    {onFootS !== null &&
+                      (onFootS > stats.totalS
+                        ? ` On foot the same stops take ${formatDuration(onFootS)}: the rover saves ${formatDuration(onFootS - stats.totalS)} of O₂ and daylight.`
+                        : ` On foot the same stops take ${formatDuration(onFootS)}, so riding saves no time here.`)}
+                  </p>
+                )}
                 {stats && roverSols && (
                   <p className="rover-compare">
                     <span className="traverse-key" aria-hidden="true" />
@@ -213,6 +231,14 @@ export function Directions(props: Props) {
                       </li>
                     ))}
                   </ul>
+                )}
+                {suggestedStart && (
+                  <p className="start-hint">
+                    <span>Starting at {suggestedStart.ltst} Mars local avoids the start-dependent cautions above.</span>
+                    <button type="button" className="btn-chip" onClick={() => onStartTime(suggestedStart.time)}>
+                      Start at {suggestedStart.ltst}
+                    </button>
+                  </p>
                 )}
                 <button type="button" className="text-btn" aria-expanded={showReasons} onClick={() => setShowReasons((v) => !v)}>
                   {showReasons ? 'Hide safety checks' : `Show safety checks (${infos.length} passed)`}
@@ -251,7 +277,8 @@ export function Directions(props: Props) {
           <div className="plan-tools">
             <label className="rover-select">
               <span>Rover safe haven</span>
-              <select value={roverAt} onChange={(e) => onRoverAt(e.target.value)}>
+              <select value={ride ? 'ride' : roverAt} disabled={ride} onChange={(e) => onRoverAt(e.target.value)}>
+                {ride && <option value="ride">Travels with the crew</option>}
                 <option value="habitat">At the habitat</option>
                 {stops.map((s, i) => (
                   <option key={s.id} value={s.id}>
@@ -263,6 +290,13 @@ export function Directions(props: Props) {
             <button type="button" className="btn-chip" disabled={optimising || stops.length < 2} onClick={onOptimise}>
               {optimising ? 'Optimising…' : 'Optimise order'}
             </button>
+            <label className="ride-toggle">
+              <input type="checkbox" checked={ride} onChange={(e) => onRide(e.target.checked)} />
+              <span>
+                Ride the rover between stops <StatusBadge status="MODELED" />
+                <small>The rover travels with the crew and parks by each stop. Every leg is ridden or walked, whichever is quicker.</small>
+              </span>
+            </label>
           </div>
         )}
 
@@ -318,6 +352,7 @@ export function Directions(props: Props) {
                     ) : leg ? (
                       <>
                         <span>
+                          {leg.rideS > 0 && <>Rover {formatDuration(leg.rideS)} · </>}
                           Walk {formatDuration(leg.walkS)} · {formatDistance(leg.distanceM)}
                         </span>
                         {seconds && (

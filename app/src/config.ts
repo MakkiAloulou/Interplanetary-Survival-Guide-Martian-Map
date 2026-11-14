@@ -128,3 +128,40 @@ export const SUIT_ANTENNA_HEIGHT_M = 1.8
 /** Out of line of sight for at least this long in total → a caution, minutes. */
 export const COMMS_CAUTION_MIN = 1
 
+// ---------- Rover-assisted Marswalk ("ride and walk") ----------
+// The support rover drives the crew from the habitat to a drop-off point by the first stop and back from a pick-up
+// point by the last stop. An unpressurized rover, like NASA's Artemis LTV concept: the crew stays suited, so suit O2
+// keeps counting while riding. All MODELED: team assumptions, not a vehicle specification.
+
+/** Planned driving speed over rough terrain, km/h. */
+export const ROVER_SPEED_KMH = 6
+
+/** Slope above which the rover slows, degrees. */
+export const ROVER_SLOPE_PENALTY_START_DEG = 10
+
+/**
+ * Slope at or above which the rover cannot drive, degrees: the slope Apollo's Lunar Roving Vehicle was designed to
+ * climb. On this site the only way out of the habitat floor crosses 20-25° ground, so a 20° limit traps the rover.
+ */
+export const ROVER_SLOPE_IMPASSABLE_DEG = 25
+
+/** Extra cost per degree above the rover's penalty start (cost × (1 + k·(θ − start))). */
+export const ROVER_SLOPE_PENALTY_PER_DEG = 0.1
+
+/** Rover cost per terrain class: sand slows it (wheel slip, Curiosity's lesson); rocky ground is off limits. */
+export const ROVER_TERRAIN_MULTIPLIER: Record<TerrainClass, number> = {
+  [TERRAIN.BEDROCK]: 1,
+  [TERRAIN.SAND]: 3,
+  [TERRAIN.BOULDERS]: Infinity,
+  [TERRAIN.NO_GO]: Infinity,
+}
+
+/** The rover parks at the rover-reachable cell nearest each stop, within this, m; farther stops are walked to. (MODELED) */
+export const ROVER_DROP_MAX_DISTANCE_M = 400
+
+/**
+ * Getting on and off the rover is not timed by the walking model, so a leg is ridden only when riding saves at least
+ * this much over walking it, s. Also stops the planner from hopping in for a few metres. (MODELED)
+ */
+export const ROVER_BOARDING_S = 120
+

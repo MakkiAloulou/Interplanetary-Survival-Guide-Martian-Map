@@ -13,6 +13,8 @@ export interface SharedPlan {
   roverAt: string
   profile: RouteProfile
   storm: boolean
+  /** rover-assisted: ride the rover to the first stop and back */
+  ride?: boolean
 }
 
 export interface DecodedPlan extends SharedPlan {
@@ -37,6 +39,7 @@ export function encodePlan(plan: SharedPlan): string {
   if (rover >= 0) parts.push(`rover=${rover + 1}`)
   if (plan.profile === 'fastest') parts.push('route=fastest')
   if (plan.storm) parts.push('storm=1')
+  if (plan.ride) parts.push('ride=1')
   return parts.length > 0 ? `#${parts.join('&')}` : ''
 }
 
@@ -50,7 +53,7 @@ export function decodePlan(hash: string, targets: ScienceTarget[], problem: (w: 
     const eq = part.indexOf('=')
     if (eq > 0) fields.set(part.slice(0, eq), part.slice(eq + 1))
   }
-  if (!['stops', 'start', 'rover', 'route', 'storm'].some((k) => fields.has(k))) return null
+  if (!['stops', 'start', 'rover', 'route', 'storm', 'ride'].some((k) => fields.has(k))) return null
 
   const skipped: string[] = []
   const stops: Waypoint[] = []
@@ -107,7 +110,7 @@ export function decodePlan(hash: string, targets: ScienceTarget[], problem: (w: 
     else skipped.push('The rover stop in the link was not restored: the rover stays at the habitat.')
   }
 
-  return { stops, startTime, roverAt, profile: fields.get('route') === 'fastest' ? 'fastest' : 'safest', storm: fields.get('storm') === '1', skipped }
+  return { stops, startTime, roverAt, profile: fields.get('route') === 'fastest' ? 'fastest' : 'safest', storm: fields.get('storm') === '1', ride: fields.get('ride') === '1', skipped }
 }
 
 function decodeSafe(s: string): string {

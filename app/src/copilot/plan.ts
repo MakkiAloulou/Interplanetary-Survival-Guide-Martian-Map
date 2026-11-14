@@ -41,17 +41,19 @@ interface Inputs {
   setExtras: (e: DwellExtras) => void
   client: { current: { client: RouteClient; ready: Promise<void> } | null }
   planAbort: (cell: number) => AbortPlan | null
+  /** the rover's prepared grid when the plan is rover-assisted */
+  drive?: PreparedGrid
 }
 
 /** The copilot's view of the current plan, or null while there is no walkable route. */
 export function useCopilotPlan(i: Inputs): CopilotPlan | null {
   const latest = useRef(i)
   latest.current = i
-  const { prepared, route, profile, stops, targets, walkHome, startTime, conditions, params, lonEast, extras } = i
+  const { prepared, route, profile, stops, targets, walkHome, startTime, conditions, params, lonEast, extras, drive } = i
   return useMemo(() => {
     if (!route?.ok || !walkHome) return null
     return {
-      ctx: { prepared, legs: route.legs, stops, targets, walkHome, startTime, conditions, params, lonEast, dwellS: dwellWithExtras(stops, extras) },
+      ctx: { prepared, legs: route.legs, stops, targets, walkHome, startTime, conditions, params, lonEast, dwellS: dwellWithExtras(stops, extras), drive },
       // Path searches run in the planner's route worker, with the same profile as the plan.
       findPath: async (a: number, b: number) => {
         const c = latest.current.client.current
@@ -69,5 +71,5 @@ export function useCopilotPlan(i: Inputs): CopilotPlan | null {
         return true
       },
     }
-  }, [prepared, route, profile, stops, targets, walkHome, startTime, conditions, params, lonEast, extras])
+  }, [prepared, route, profile, stops, targets, walkHome, startTime, conditions, params, lonEast, extras, drive])
 }

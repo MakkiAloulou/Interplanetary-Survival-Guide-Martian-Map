@@ -7,7 +7,7 @@ import { TERRAIN, type Conditions, type DataStatus, type SpaceWeather } from '..
 import { commsGaps } from './comms'
 import { coversWindow, findSunset, radiationAlertsIn, sunElevationAt } from './conditions'
 import { formatDistance, formatDuration } from './format'
-import { routeStats, type RouteStats } from './stats'
+import { routeStats, safetyS, type RouteStats } from './stats'
 import { worstStatus } from './status'
 
 export type Severity = 'no-go' | 'caution' | 'info'
@@ -62,6 +62,8 @@ export interface EvaInput {
   lineOfSight?: Uint8Array
   /** space-weather windows (NASA DONKI); 'advisory' ones overlapping the EVA give a caution. Omitted = not checked */
   spaceWeather?: SpaceWeather['windows']
+  /** the rover's prepared grid, to time the driven steps of a rover-assisted route (route legs with `ride`) */
+  drive?: PreparedGrid
 }
 
 export interface EvaVerdict {
@@ -91,18 +93,24 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   })
 
   if (!route.ok) {
-    add('NO_PATH', 'no-go', `No walkable path for leg ${route.failedLeg + 1}: blocked by steep ground or no-go terrain.`)
+    add(
+      'NO_PATH',
+      'no-go',
+      route.reason
+        ? `No rover-assisted route: ${route.reason}. Walk this plan, or change the first or last stop.`
+        : `No walkable path for leg ${route.failedLeg + 1}: blocked by steep ground or no-go terrain.`,
+    )
     return done(null, null)
   }
 
-  const stats = routeStats(p, route.legs, input.dwellS)
+  const stats = routeStats(p, route.legs, input.dwellS, input.drive)
   const usableO2 = params.o2DurationS - params.o2ReserveS
   const startMs = Date.parse(input.startTime)
   const endMs = startMs + stats.totalS * 1000
   const at = (i: number) => `${formatDistance(stats.track[i].distanceM)} into the route (leg ${stats.track[i].leg + 1})`
 
   // Impassable cells on the route (only possible if the route was not built by the engine with these params).
-  const blocked = stats.track.filter((t) => !isPassable(p, t.cell) || p.grid.terrainClass[t.cell] === TERRAIN.NO_GO)
+  const blocked = stats.track.filter((t) => !t.riding && (!isPassable(p, t.cell) || p.grid.terrainClass[t.cell] === TERRAIN.NO_GO))
   if (blocked.length > 0) {
     add('NO_GO_CELLS', 'no-go', `Route crosses ${blocked.length} impassable cells (no-go terrain or slope ≥ ${p.params.slopeImpassableDeg}°).`)
   }
@@ -124,7 +132,8 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   let worstIndex = 0
   let passedIndex = -1
   stats.track.forEach((t, i) => {
-    const margin = usableO2 - (t.departS + params.walkHomeContingency * walkHome[t.cell])
+    if (t.riding) return // in the rover: it is the way home
+    const margin = usableO2 - (t.departS + params.walkHomeContingency * safetyS(walkHome, t))
     if (margin < worst) {
       worst = margin
       worstIndex = i
@@ -133,7 +142,7 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   })
   if (passedIndex !== -1) {
     const t = stats.track[passedIndex]
-    const home = walkHome[t.cell]
+    const home = safetyS(walkHome, t)
     add(
       'POINT_OF_NO_RETURN',
       'no-go',
@@ -219,7 +228,7 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   }
 
   // Hazards along the route.
-  const steepCells = stats.track.filter((t) => p.grid.slopeDeg[t.cell] > p.params.slopePenaltyStartDeg).length
+  const steepCells = stats.track.filter((t) => !t.riding && p.grid.slopeDeg[t.cell] > p.params.slopePenaltyStartDeg).length
   if (steepCells > 0) {
     add(
       'STEEP_SECTIONS',
