@@ -54,7 +54,7 @@ def test_stop_on_a_steep_wall_moves_to_walkable_ground_and_says_so():
     targets, dropped = place_targets(grid(slope), BASE, [stop("a", 10)], [wp(10, 50, 60)])
     assert dropped == []
     assert (targets[0]["lat"], targets[0]["lon"]) != at(50, 60)
-    assert "too steep to walk" in targets[0]["why"] and "6 m away" in targets[0]["why"]
+    assert "too steep to walk" in targets[0]["why"] and "6 m away" in targets[0]["why"]  # 3 cells of 2 m, straight east
 
 
 def test_unreachable_or_outside_stops_are_dropped_with_a_reason():

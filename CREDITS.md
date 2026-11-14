@@ -14,7 +14,7 @@ We used **Claude Code** (Anthropic's AI coding assistant, model Claude Opus) thr
 - **Design:** the AI drafted the interface layout and the app's icons. We chose the design direction, and rejected an earlier dark design.
 - **Decisions:** the site, the crew model, the safety rules and their thresholds, and the final site bounds were our decisions. The AI proposed options and we approved or changed them.
 
-**No AI-generated images or videos** are used. The stop photos are real Curiosity raw images (NASA/JPL-Caltech). Earlier mock 360° panoramas were rendered by our own code from a synthetic terrain model, never by an image-generation model; the app no longer uses them. If the demo video uses any AI-generated imagery, voice or footage, it will be watermarked as AI-generated.
+**No AI-generated images or videos** are used. The stop photos are real Curiosity raw images (NASA/JPL-Caltech). The 360° views at the stops are rendered by our own code (pipeline/panorama.py) from the real USGS elevation model and HiRISE orthophoto, not by an image-generation model; the app labels them `DERIVED` and says they are not photos. If the demo video uses any AI-generated imagery, voice or footage, it will be watermarked as AI-generated.
 
 ## Data
 

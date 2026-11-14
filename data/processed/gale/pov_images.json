@@ -262,5 +262,93 @@
     "camera": "Navcam, looking S",
     "isPanorama": false,
     "status": "OBSERVED"
+  },
+  {
+    "lat": -4.7934087,
+    "lon": 137.3677713,
+    "url": "processed/gale/pov/pano_base.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_base_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
+  },
+  {
+    "lat": -4.7978159,
+    "lon": 137.3859258,
+    "url": "processed/gale/pov/pano_msl-first-ridge.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_msl-first-ridge_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
+  },
+  {
+    "lat": -4.7998472,
+    "lon": 137.3835414,
+    "url": "processed/gale/pov/pano_msl-altadena.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_msl-altadena_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
+  },
+  {
+    "lat": -4.8065003,
+    "lon": 137.3793853,
+    "url": "processed/gale/pov/pano_msl-nodules.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_msl-nodules_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
+  },
+  {
+    "lat": -4.808271,
+    "lon": 137.3812695,
+    "url": "processed/gale/pov/pano_msl-panorama.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_msl-panorama_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
+  },
+  {
+    "lat": -4.8078392,
+    "lon": 137.3810353,
+    "url": "processed/gale/pov/pano_msl-valle-de-la-luna.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_msl-valle-de-la-luna_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
+  },
+  {
+    "lat": -4.8080076,
+    "lon": 137.3810041,
+    "url": "processed/gale/pov/pano_msl-nevado-sajama.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_msl-nevado-sajama_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
+  },
+  {
+    "lat": -4.8078367,
+    "lon": 137.38142,
+    "url": "processed/gale/pov/pano_msl-final-phase.jpg",
+    "thumbnailUrl": "processed/gale/pov/pano_msl-final-phase_thumb.jpg",
+    "source": "Rendered by pipeline/panorama.py from the USGS Gale elevation model (2 m cells) at 1.7 m eye height, ground painted with HiRISE orthophoto brightness (warm tint added); terrain beyond the 2 km site is not modelled and shows as haze. Not a photo.",
+    "sol": 0,
+    "camera": "360° view rendered from the elevation model",
+    "isPanorama": true,
+    "status": "DERIVED"
   }
 ]

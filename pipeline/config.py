@@ -167,3 +167,6 @@ REMS_MAX_TEMP_LMST = 13.5
 # Column dust opacity for the feed's opacity words, which carry no number. MODELED: assumed clear-sky and cloudy values.
 SUNNY_DUST_TAU = 0.6
 CLOUDY_DUST_TAU = 1.0
+
+# 360° views rendered from the real terrain: farthest ray, m (the site is 2 km wide; beyond the grid is haze anyway).
+PANORAMA_MAX_DISTANCE_M = 3000.0

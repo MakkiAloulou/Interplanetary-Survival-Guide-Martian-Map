@@ -58,11 +58,13 @@ def place_targets(grid: dict, base: dict, curated: list[dict], waypoints: list[d
         note = ""
         if not reach[r, c]:
             k = int(np.argmin((rr - r) ** 2 + (cc - c) ** 2))
-            snap_m = math.hypot(rr[k] - r, cc[k] - c) * cell
+            lat, lon = cell_center_latlon(bounds, slope.shape, int(rr[k]), int(cc[k]))
+            # true distance from the rover position to the new stop (not grid steps), as the app measures it
+            m_per_deg = 2 * math.pi * C.MARS_MEAN_RADIUS_M / 360
+            snap_m = math.hypot((lat - w["lat"]) * m_per_deg, (lon - w["lon"]) * m_per_deg * math.cos(math.radians(lat)))
             if snap_m > C.TARGET_MAX_SNAP_M:
                 dropped.append(f"{t['id']}: nearest walkable ground is {snap_m:.0f} m from the rover position")
                 continue
-            lat, lon = cell_center_latlon(bounds, slope.shape, int(rr[k]), int(cc[k]))
             note = f" The rover stood on ground too steep to walk (slope {slope[r, c]:.0f}°); this stop is {snap_m:.0f} m away on walkable ground."
         targets.append({
             "id": t["id"],

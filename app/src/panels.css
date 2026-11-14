@@ -228,6 +228,10 @@ button.stop-text:hover {
   margin: 0;
 }
 
+.view-switch {
+  margin: 0 16px 10px;
+}
+
 .photo-main {
   display: block;
   width: 100%;
