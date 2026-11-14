@@ -4,7 +4,7 @@ import type { CopilotLive } from '../copilot/useCopilot'
 import { MARS_CRS } from '../map/crs'
 import { INK } from '../map/overlays'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
-import { formatDistance, formatDuration } from '../stats/format'
+import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
 import { liveWarnings } from '../stats/live'
 import { sphericalDistanceM, type RouteStats } from '../stats/stats'
@@ -221,10 +221,10 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
               <h3 className="tablet-plan-head">Plan notes</h3>
               <ul className="tablet-plan">
                 {planNotes.map((a) => (
-                  <li key={a.key} className={`is-${a.level}`}>
+                  <li key={a.key} className={`is-${a.level}`} title={a.detail}>
                     {a.level === 'warning' ? <WarningIcon size={18} /> : <AlertIcon size={18} />}
                     <span>
-                      <strong>{a.level === 'warning' ? 'No-go' : 'Caution'}:</strong> {a.detail}
+                      <strong>{a.level === 'warning' ? 'No-go' : 'Caution'}:</strong> {shortReason(a.detail)}
                     </span>
                     {a.drill && <StatusBadge status="SIMULATED" />}
                   </li>

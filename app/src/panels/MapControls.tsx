@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { LayerState } from '../map/MapView'
-import { HAZARD_COLORS, HAZARD_LABELS, WALK_HOME_BANDS, WALK_HOME_UNREACHABLE, type GridOverlayMode, type Hazard } from '../map/overlays'
+import { HAZARD_COLORS, HAZARD_LABELS, WALK_HOME_BANDS, WALK_HOME_UNREACHABLE, type GridOverlayMode, type Hazard, INK } from '../map/overlays'
 import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
-import type { DataConfig, DataStatus } from '../types'
+import type { DataConfig, DataStatus, RoverTraverse } from '../types'
 import { BookmarkIcon, CloseIcon, LayersIcon, TabletIcon, VisorIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 
@@ -14,6 +14,10 @@ interface Props {
   onLayerChange: (id: string, state: LayerState) => void
   overlay: GridOverlayMode
   onOverlayChange: (mode: GridOverlayMode) => void
+  /** a rover's real path, with its own toggle; null when the site has none */
+  traverse: RoverTraverse | null
+  showTraverse: boolean
+  onShowTraverse: (on: boolean) => void
   panel: Panel | null
   onPanel: (panel: Panel | null) => void
   conditionsPanel: ReactNode
@@ -32,6 +36,7 @@ const OVERLAYS: { mode: GridOverlayMode; label: string }[] = [
   { mode: 'slope', label: 'Slope' },
   { mode: 'terrain', label: 'Terrain' },
   { mode: 'walkhome', label: 'Walk home' },
+  { mode: 'radio', label: 'Radio' },
 ]
 
 function MarsClock({ lon, open, alert, onClick }: { lon: number; open: boolean; alert: boolean; onClick: () => void }) {
@@ -58,7 +63,7 @@ function MarsClock({ lon, open, alert, onClick }: { lon: number; open: boolean; 
 }
 
 export function MapControls(props: Props) {
-  const { config, baseLon, gridStatus, layerState, onLayerChange, overlay, onOverlayChange } = props
+  const { config, baseLon, gridStatus, layerState, onLayerChange, overlay, onOverlayChange, traverse, showTraverse, onShowTraverse } = props
   const { panel, onPanel, conditionsPanel, savedPanel, savedCount, stormActive, hudEnabled, onHud, onTablet } = props
   const toggle = (p: Panel) => onPanel(panel === p ? null : p)
   return (
@@ -125,6 +130,21 @@ export function MapControls(props: Props) {
                 </li>
               )
             })}
+            {traverse && traverse.points.length > 1 && (
+              <li>
+                <label className="layer-toggle">
+                  <input type="checkbox" checked={showTraverse} onChange={(e) => onShowTraverse(e.target.checked)} />
+                  <span className="layer-name">
+                    <span>
+                      <span className="traverse-key" aria-hidden="true" />
+                      {traverse.rover}'s real path, sols {traverse.points[0].sol}–{traverse.points[traverse.points.length - 1].sol}
+                    </span>
+                    <small>rover traverse</small>
+                  </span>
+                  <StatusBadge status={traverse.status} />
+                </label>
+              </li>
+            )}
           </ul>
 
           <h3 id="overlay-h">
@@ -147,6 +167,19 @@ export function MapControls(props: Props) {
                     {b.label}
                   </li>
                 ))}
+              </ul>
+            </>
+          ) : overlay === 'radio' ? (
+            <>
+              <p className="note">
+                Shaded ground has no straight radio line to the habitat mast or the staged rover (suit antenna 1.8 m, mast 5 m, rover 3 m;
+                no orbiter relay). <StatusBadge status="MODELED" />
+              </p>
+              <ul className="legend" aria-label="Radio colours">
+                <li>
+                  <span className="swatch" style={{ background: INK.radioShadow }} />
+                  Radio shadow
+                </li>
               </ul>
             </>
           ) : (

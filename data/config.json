@@ -80,5 +80,13 @@
   "waypoints": {
     "path": "processed/gale/waypoints.json",
     "status": "MODELED"
+  },
+  "roverTraverse": {
+    "path": "processed/gale/curiosity_traverse.json",
+    "status": "OBSERVED"
+  },
+  "spaceWeather": {
+    "path": "processed/gale/space_weather.json",
+    "status": "MODELED"
   }
 }

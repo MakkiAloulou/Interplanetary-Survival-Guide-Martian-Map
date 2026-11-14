@@ -162,5 +162,7 @@ def convert(
                 "url": f"{url_prefix}/{name}.jpg", "thumbnailUrl": f"{url_prefix}/{name}_thumb.jpg",
                 "source": source, "sol": item["sol"], "camera": camera, "isPanorama": False, "status": "OBSERVED",
             })
-    Path(out_json).write_text(json.dumps(povs, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    # Keep the rendered panoramas (pipeline/sources/gale_panoramas.py) that share this file.
+    kept = [p for p in json.loads(Path(out_json).read_text(encoding="utf-8")) if p["isPanorama"]] if Path(out_json).exists() else []
+    Path(out_json).write_text(json.dumps(povs + kept, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return {"images": len(povs), "perStop": report}

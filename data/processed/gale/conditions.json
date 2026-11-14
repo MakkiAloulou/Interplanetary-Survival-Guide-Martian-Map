@@ -6,7 +6,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -89.5,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -16,7 +16,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -75.0,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -26,7 +26,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -60.1,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -36,7 +36,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -45.1,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -46,7 +46,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -30.2,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -56,7 +56,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -15.3,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -66,7 +66,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -0.4,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -76,7 +76,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 14.5,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -86,7 +86,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 29.4,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -96,7 +96,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 44.1,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -106,7 +106,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 58.7,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -116,7 +116,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 72.5,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -126,7 +126,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 80.9,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -136,7 +136,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 72.5,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -146,7 +146,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 58.7,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -156,7 +156,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 44.1,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -166,7 +166,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 29.4,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -176,7 +176,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": 14.5,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -186,7 +186,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -0.4,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -196,7 +196,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -15.3,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -206,7 +206,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -30.2,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -216,7 +216,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -45.1,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -226,7 +226,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -60.1,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -236,7 +236,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -75.0,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   },
   {
@@ -246,7 +246,7 @@
     "dustTau": 0.6,
     "sunElevationDeg": -89.5,
     "radiationAlert": false,
-    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); no radiation alert data (MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+    "source": "Curiosity REMS daily report, sol 4718 (2025-11-13), NASA/JPL-Caltech/CAB(CSIC-INTA): air -74 to -5 °C and 695 Pa measured (OBSERVED); hourly curve between them MODELED; dust opacity 0.6 assumed for \"Sunny\" (MODELED); radiation alerts from NASA DONKI CME forecasts for Mars (0 alert windows; rule MODELED). https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
     "status": "MODELED"
   }
 ]

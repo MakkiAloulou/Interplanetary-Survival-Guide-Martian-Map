@@ -16,6 +16,8 @@ const LIMIT: Partial<Record<Binding, string>> = {
   NO_GO_CELLS: 'impassable ground',
   NO_HAVEN: 'no walkable way to a safe haven',
   NO_PATH_TO_TARGET: 'no walkable path to it',
+  COMMS: 'out of radio line of sight too long',
+  SPACE_WEATHER: 'the space-weather advisory',
 }
 
 /** Answers that are not a budget (place not on the plan, already visited, walk over): said as a sentence. */

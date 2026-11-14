@@ -4,9 +4,9 @@ import { useEffect, useRef } from 'react'
 import { dataUrl } from '../data/load'
 import type { RouteParams } from '../route/cost'
 import { cellCenter, type RouteResult } from '../route/route'
-import type { Bounds, CostGrid, DataConfig, Layer, ScienceTarget, Waypoint } from '../types'
+import type { Bounds, CostGrid, DataConfig, Layer, ScienceTarget, Waypoint, RoverTraverse } from '../types'
 import { MARS_CRS } from './crs'
-import { gridOverlayPixels, HAZARD_COLORS, hazardRuns, INK, walkHomePixels, type GridOverlayMode } from './overlays'
+import { gridOverlayPixels, HAZARD_COLORS, hazardRuns, INK, walkHomePixels, type GridOverlayMode, radioPixels } from './overlays'
 
 export interface LayerState {
   visible: boolean
@@ -37,6 +37,10 @@ interface Props {
   walkHome: Float32Array | null
   /** where the rover is staged as a safe haven, when not at the habitat */
   rover: { lat: number; lon: number; name: string } | null
+  /** a rover's real drive path to draw, or null */
+  traverse: RoverTraverse | null
+  /** 1 per cell with radio line of sight to the habitat or the staged rover, for the radio overlay */
+  lineOfSight: Uint8Array | null
 }
 
 const toLatLngBounds = (b: Bounds) => L.latLngBounds([b.latMin, b.lonMin], [b.latMax, b.lonMax])
@@ -49,17 +53,17 @@ function createLayer(layer: Layer, zIndex: number, maxZoom: number): L.Layer {
   return L.imageOverlay(dataUrl(layer.imageOverlay!), bounds, { ...common, className: 'pixelated' })
 }
 
-function gridOverlayImage(grid: CostGrid, mode: Exclude<GridOverlayMode, 'none'>, p: RouteParams, walkHome: Float32Array | null): string {
+function gridOverlayImage(grid: CostGrid, mode: Exclude<GridOverlayMode, 'none'>, p: RouteParams, walkHome: Float32Array | null, lineOfSight: Uint8Array | null): string {
   const canvas = document.createElement('canvas')
   canvas.width = grid.width
   canvas.height = grid.height
-  const pixels = mode === 'walkhome' ? walkHomePixels(walkHome!) : gridOverlayPixels(grid, mode, p)
+  const pixels = mode === 'walkhome' ? walkHomePixels(walkHome!) : mode === 'radio' ? radioPixels(lineOfSight!) : gridOverlayPixels(grid, mode, p)
   canvas.getContext('2d')!.putImageData(new ImageData(pixels, grid.width, grid.height), 0, 0)
   return canvas.toDataURL()
 }
 
 export function MapView(props: Props) {
-  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, altRoute, selected, hoverPoint, walkHome, rover } = props
+  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, altRoute, selected, hoverPoint, walkHome, rover, traverse, lineOfSight } = props
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layers = useRef<Map<string, L.Layer>>(new Map())
@@ -90,6 +94,7 @@ export function MapView(props: Props) {
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map)
     map.attributionControl.setPrefix(false)
     map.createPane('grid').style.zIndex = '410'
+    map.createPane('traverse').style.zIndex = '412' // the rover's real path, under the planned routes
     map.createPane('alt').style.zIndex = '415' // the unchosen alternative, under the chosen route
     map.createPane('route').style.zIndex = '420'
     map.createPane('pins').style.zIndex = '430' // above the route line, so its casing never covers a pin
@@ -120,8 +125,8 @@ export function MapView(props: Props) {
 
   // Slope / terrain / walk-home overlay drawn from the CostGrid.
   useEffect(() => {
-    if (overlay === 'none' || (overlay === 'walkhome' && !walkHome)) return
-    const image = L.imageOverlay(gridOverlayImage(grid, overlay, routeParams, walkHome), toLatLngBounds(grid.bounds), {
+    if (overlay === 'none' || (overlay === 'walkhome' && !walkHome) || (overlay === 'radio' && !lineOfSight)) return
+    const image = L.imageOverlay(gridOverlayImage(grid, overlay, routeParams, walkHome, lineOfSight), toLatLngBounds(grid.bounds), {
       pane: 'grid',
       className: 'pixelated',
       interactive: false,
@@ -129,7 +134,7 @@ export function MapView(props: Props) {
     return () => {
       image.remove()
     }
-  }, [config, grid, overlay, routeParams, walkHome])
+  }, [config, grid, overlay, routeParams, walkHome, lineOfSight])
 
   // The rover, staged as a safe haven.
   useEffect(() => {
@@ -221,6 +226,22 @@ export function MapView(props: Props) {
       dot.remove()
     }
   }, [hoverPoint])
+
+  // The rover's real drive path: dashed, under the planned routes, with its sol range on hover.
+  useEffect(() => {
+    if (!traverse || traverse.points.length < 2) return
+    const pts = traverse.points.map((p) => L.latLng(p.lat, p.lon))
+    const first = traverse.points[0].sol
+    const last = traverse.points[traverse.points.length - 1].sol
+    const group = L.layerGroup().addTo(mapRef.current!)
+    L.polyline(pts, { pane: 'traverse', color: INK.white, weight: 6, opacity: 0.8, interactive: false }).addTo(group)
+    L.polyline(pts, { pane: 'traverse', color: INK.traverse, weight: 3, dashArray: '6 6' })
+      .bindTooltip(`${traverse.rover}'s real path, sols ${first}–${last}`, { sticky: true })
+      .addTo(group)
+    return () => {
+      group.remove()
+    }
+  }, [traverse])
 
   // Route, each run coloured by its hazard.
   useEffect(() => {

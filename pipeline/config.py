@@ -167,3 +167,14 @@ REMS_MAX_TEMP_LMST = 13.5
 # Column dust opacity for the feed's opacity words, which carry no number. MODELED: assumed clear-sky and cloudy values.
 SUNNY_DUST_TAU = 0.6
 CLOUDY_DUST_TAU = 1.0
+
+# 360° views rendered from the real terrain: farthest ray, m (the site is 2 km wide; beyond the grid is haze anyway).
+PANORAMA_MAX_DISTANCE_M = 3000.0
+
+# ---------- Space weather: NASA DONKI (pipeline/sources/donki.py; rule MODELED) ----------
+
+# How far back to look for CME simulations that could reach Mars during the planned sol (CMEs take 1-5 days), days.
+SPACE_WEATHER_LOOKBACK_DAYS = 7
+# Half-width of the window around a forecast CME arrival at Mars, hours: about the typical error of CME arrival
+# forecasts (roughly half a day). Direct non-minor arrivals = radiation ALERT (NO-GO); minor/glancing = ADVISORY.
+CME_ARRIVAL_UNCERTAINTY_H = 12.0

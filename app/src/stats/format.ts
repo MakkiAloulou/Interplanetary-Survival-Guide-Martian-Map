@@ -13,3 +13,14 @@ export function formatDuration(seconds: number): string {
 export function formatDistance(metres: number): string {
   return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`
 }
+
+/**
+ * A safety message cut to its first clause, for the helmet visor: up to the first ": ", " (" or ". ".
+ * "Space-weather advisory until 16:00 UTC: CME launched …" → "Space-weather advisory until 16:00 UTC".
+ */
+export function shortReason(message: string): string {
+  const cuts = [': ', ' (', '. '].map((sep) => message.indexOf(sep)).filter((i) => i > 0)
+  const end = cuts.length ? Math.min(...cuts) : message.length
+  return message.slice(0, end).replace(/\.$/, '')
+}
+

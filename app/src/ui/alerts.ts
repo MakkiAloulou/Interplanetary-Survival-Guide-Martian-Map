@@ -43,6 +43,8 @@ const PLAN_TITLE: Partial<Record<ReasonCode, string>> = {
   STEEP_SECTIONS: 'Steep sections on the route',
   SAND: 'Loose sand on the route',
   BOULDERS: 'Boulders on the route',
+  COMMS: 'Radio shadow on the route',
+  SPACE_WEATHER: 'Space-weather advisory',
 }
 
 function fromLive(w: LiveWarning, n: LiveNumbers, drill: boolean): WalkAlert {

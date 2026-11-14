@@ -3,7 +3,7 @@
 import { TERRAIN, type CostGrid } from '../types'
 import type { RouteParams } from '../route/cost'
 
-export type GridOverlayMode = 'none' | 'slope' | 'terrain' | 'walkhome'
+export type GridOverlayMode = 'none' | 'slope' | 'terrain' | 'walkhome' | 'radio'
 
 export type Hazard = 'clear' | 'steep' | 'sand' | 'boulders' | 'blocked'
 
@@ -22,6 +22,10 @@ export const INK = {
   walked: '#9aa0a6',
   /** the route option not chosen */
   alternative: '#8ab4f8',
+  /** Curiosity's real drive path */
+  traverse: '#a142f4',
+  /** ground with no radio line of sight to the habitat or the rover */
+  radioShadow: '#3c1e8c',
 } as const
 
 export const HAZARD_COLORS: Record<Hazard, string> = {
@@ -100,6 +104,14 @@ export function walkHomePixels(field: Float32Array): Uint8ClampedArray<ArrayBuff
     const t = field[i]
     px.set(Number.isFinite(t) ? (bands.find((b) => t < b.upToS) ?? bands[bands.length - 1]).rgba : none, 4 * i)
   }
+  return px
+}
+
+/** Radio shadow overlay: cells without line of sight tinted, cells in contact left clear. */
+export function radioPixels(visible: Uint8Array): Uint8ClampedArray<ArrayBuffer> {
+  const px = new Uint8ClampedArray(4 * visible.length)
+  const shadow = rgba(INK.radioShadow, 140)
+  for (let i = 0; i < visible.length; i++) if (!visible[i]) px.set(shadow, 4 * i)
   return px
 }
 

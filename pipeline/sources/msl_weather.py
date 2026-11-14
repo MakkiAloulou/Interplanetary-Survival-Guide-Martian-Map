@@ -100,7 +100,17 @@ def load_feed(cache: Path, url: str = C.MSL_WEATHER_URL) -> list[dict]:
     return json.loads(cache.read_text(encoding="utf-8"))["soles"]
 
 
-def conditions_for_sol(report: dict, lat: float, lon_east: float) -> list[dict]:
+def alert_windows(space_weather_json: Path) -> list[tuple[datetime, datetime, str]]:
+    """(start, end, link) of the radiation ALERT windows in space_weather.json (pipeline/sources/donki.py), if any."""
+    p = Path(space_weather_json)
+    if not p.exists():
+        return []
+    sw = json.loads(p.read_text(encoding="utf-8"))
+    parse = lambda t: datetime.fromisoformat(t.replace("Z", "+00:00"))
+    return [(parse(w["start"]), parse(w["end"]), w["link"]) for w in sw.get("windows", []) if w["level"] == "alert"]
+
+
+def conditions_for_sol(report: dict, lat: float, lon_east: float, alerts: list[tuple[datetime, datetime, str]] = ()) -> list[dict]:
     sol = int(report["sol"])
     t_min, t_max, pressure = float(report["min_temp"]), float(report["max_temp"]), float(report["pressure"])
     sunrise_h = hhmm(report["sunrise"])
@@ -108,7 +118,8 @@ def conditions_for_sol(report: dict, lat: float, lon_east: float) -> list[dict]:
     source = (
         f"Curiosity REMS daily report, sol {sol} ({report['terrestrial_date']}), NASA/JPL-Caltech/CAB(CSIC-INTA): "
         f"air {t_min:.0f} to {t_max:.0f} °C and {pressure:.0f} Pa measured (OBSERVED); hourly curve between them MODELED; "
-        f"dust opacity {tau} assumed for \"{report['atmo_opacity']}\" (MODELED); no radiation alert data (MODELED). "
+        f"dust opacity {tau} assumed for \"{report['atmo_opacity']}\" (MODELED); radiation alerts from NASA DONKI CME forecasts "
+        f"for Mars ({len(alerts)} alert window{'s' if len(alerts) != 1 else ''}; rule MODELED). "
         f"{C.MSL_WEATHER_URL}"
     )
     start = sol_start_utc(sol, lon_east)
@@ -122,7 +133,7 @@ def conditions_for_sol(report: dict, lat: float, lon_east: float) -> list[dict]:
             "pressurePa": pressure,
             "dustTau": tau,
             "sunElevationDeg": round(approx_sun_elevation(lat, float(report["ls"]), k), 1),
-            "radiationAlert": False,
+            "radiationAlert": any(a <= t <= b for a, b, _ in alerts),
             "source": source,
             "status": "MODELED",
         })
@@ -139,7 +150,7 @@ def convert(
     report = next((r for r in load_feed(cache) if int(r["sol"]) == sol), None)
     if report is None:
         raise ValueError(f"no REMS report for sol {sol}")
-    conditions = conditions_for_sol(report, base["lat"], base["lon"])
+    conditions = conditions_for_sol(report, base["lat"], base["lon"], alert_windows(Path(out_json).with_name("space_weather.json")))
     Path(out_json).write_text(json.dumps(conditions, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return {"sol": sol, "date": report["terrestrial_date"], "start": conditions[0]["time"], "end": conditions[-1]["time"],
             "tempC": [report["min_temp"], report["max_temp"]], "pressurePa": report["pressure"], "file": str(out_json)}

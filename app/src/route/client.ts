@@ -3,6 +3,7 @@
 import type { CostGridMeta } from '../types'
 import type { RouteParams, RouteProfile } from './cost'
 import type { RouteResult } from './route'
+import type { Antenna } from './viewshed'
 import type { WorkerResponse } from './workerHandler'
 
 export interface RouteClient {
@@ -13,6 +14,8 @@ export interface RouteClient {
   walkHome(base: number): Promise<Float32Array>
   /** Walking time between every ordered pair of cells, seconds (Infinity where there is no path). */
   matrix(cells: number[]): Promise<number[][]>
+  /** 1 for every cell with radio line of sight to at least one antenna */
+  viewshed(antennas: Antenna[], targetHeightM: number): Promise<Uint8Array>
   terminate(): void
 }
 
@@ -55,6 +58,11 @@ export function createRouteClient(): RouteClient {
       const r = await send({ type: 'matrix', cells })
       if (r.type !== 'matrix') throw new Error(`unexpected response ${r.type}`)
       return r.times
+    },
+    viewshed: async (antennas, targetHeightM) => {
+      const r = await send({ type: 'viewshed', antennas, targetHeightM })
+      if (r.type !== 'viewshed') throw new Error(`unexpected response ${r.type}`)
+      return r.visible
     },
     terminate: () => worker.terminate(),
   }

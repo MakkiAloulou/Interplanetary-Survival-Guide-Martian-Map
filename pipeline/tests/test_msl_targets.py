@@ -54,7 +54,7 @@ def test_stop_on_a_steep_wall_moves_to_walkable_ground_and_says_so():
     targets, dropped = place_targets(grid(slope), BASE, [stop("a", 10)], [wp(10, 50, 60)])
     assert dropped == []
     assert (targets[0]["lat"], targets[0]["lon"]) != at(50, 60)
-    assert "too steep to walk" in targets[0]["why"] and "6 m away" in targets[0]["why"]
+    assert "too steep to walk" in targets[0]["why"] and "6 m away" in targets[0]["why"]  # 3 cells of 2 m, straight east
 
 
 def test_unreachable_or_outside_stops_are_dropped_with_a_reason():
@@ -75,3 +75,17 @@ def test_curated_file_is_complete():
     for t in curated:
         assert t["why"] and t["instrumentsNeeded"] and t["sources"] and isinstance(t["sol"], int)
         assert all(u.startswith("https://") for u in t["sources"])
+
+
+def test_traverse_keeps_only_the_waypoints_inside_the_site(tmp_path):
+    from pipeline.sources.msl_targets import convert_traverse
+
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({"site": {"bounds": BOUNDS}}))
+    feats = [wp(1, 50, 50, dist=0), wp(2, 10, 10, dist=40), {"sol": 3, "lat": LAT + 1, "lon": LON, "site": 1, "drive": 0, "dist_total_m": 90}]
+    cache = tmp_path / "w.json"
+    cache.write_text(json.dumps({"features": [{"properties": f} for f in feats]}))
+    out = convert_traverse(tmp_path / "t.json", cfg, cache)
+    t = json.loads((tmp_path / "t.json").read_text())
+    assert out["points"] == 2 and [p["sol"] for p in t["points"]] == [1, 2]
+    assert t["status"] == "OBSERVED" and "sols 1-2" in t["source"]

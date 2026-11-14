@@ -65,6 +65,17 @@ Template:
 - Processing applied: `python -m pipeline msl-weather` (pipeline/sources/msl_weather.py). 25 samples, one per Mars hour, from local mean midnight at the habitat (Mars24 time scale; sol numbered from Curiosity's landing, 2012-08-06T05:17:57Z): 2025-11-13T06:43:30Z to 2025-11-14T07:23:06Z. Temperature: reported minimum at the reported sunrise, maximum at 13:30 local, half-cosine between (shape MODELED). Pressure: the reported value all sol (no diurnal cycle). Dust opacity 0.6 assumed for "Sunny" (MODELED). Radiation alert false (no public alert data; MODELED). Sun elevation in the file is approximate; the app recomputes it with its Mars24 clock (DERIVED). Checks: the app's Mars24 sunrise 05:23:00 and sunset 17:20:26 local mean time match the report's 05:22 / 17:20; Curiosity's sol-4718 Front Hazcam frame (20:17:38Z) falls inside the window.
 - Used as: `processed/gale/conditions.json` (Conditions[]), status MODELED (each sample mixes measured and assumed values; its `source` says which)
 
+## NASA DONKI space weather around sol 4718
+- Mission / instrument: NASA Community Coordinated Modeling Center (CCMC) DONKI database: WSA-Enlil CME simulations (model) and solar energetic particle events (spacecraft near Earth, STEREO-A)
+- Product ID: DONKI `WSAEnlilSimulations` 2025-11-06 to 2025-11-14 and `SEP` 2025-11-10 to 2025-11-15; the Mars impact: simulation WSA-ENLIL/42563 (run 2025-11-10T02:34Z) for CME 2025-11-09T21:12:00-CME-001 (975 km/s), arrival at Mars 2025-11-13T04:00Z, direct, minor impact
+- URL: https://api.nasa.gov/DONKI/ (key: NASA_API_KEY or the public DEMO_KEY); event pages https://ccmc.gsfc.nasa.gov/DONKI/
+- Resolution: event catalogue; forecast arrival times (typical error about half a day)
+- Coverage of site: Mars-wide (arrival at Mars); SEP events are near Earth / STEREO-A, not at Mars (listed as context only)
+- License / credit: NASA CCMC / DONKI
+- Date retrieved: 2026-11-14 (flare endpoint returned 404 that day; flares not used)
+- Processing applied: `python -m pipeline donki`. Mars impacts from WSA-Enlil runs, one per arrival time (earliest run). Rule (MODELED): direct non-minor arrival = radiation ALERT (written into the conditions as radiationAlert by `msl-weather`, NO-GO); minor or glancing = ADVISORY (caution), each for arrival ± 12 h. Result for sol 4718: one ADVISORY, 2025-11-12T16:00Z to 2025-11-13T16:00Z; no alerts.
+- Used as: `processed/gale/space_weather.json` (SpaceWeather), status MODELED; radiationAlert in `processed/gale/conditions.json`
+
 ## Curiosity boxwork campaign: traverse and science stops
 - Mission / instrument: Mars Science Laboratory, Curiosity rover (NASA/JPL-Caltech). Positions from the rover's localized drive end-points; science from the mission blog and JPL news.
 - Product ID: MMGIS layer "Waypoints" (`MSL_waypoints.json`, 1389 points, sol 3-5073 at retrieval)
@@ -75,6 +86,7 @@ Template:
 - Date retrieved: 2026-11-14
 - Processing applied: `python -m pipeline msl-targets`. 7 curated stops (first ridge close-up, Altadena drill, nodules, panorama viewpoint, Valle de la Luna hollow drill, Nevado Sajama ridge drill, final-phase workspace), each placed at the last waypoint on or before its sol. Earth dates converted to sols from the blog's own pairs (sol 4560 = 2025-06-04, sol 4718 = 2025-11-13). A stop the habitat cannot reach on foot moves to the nearest reachable cell within 20 m and says so (nodules: 3 m off a 36° ridge wall); none dropped. `why` texts paraphrase the reports; crew kit is our MODELED choice.
 - Used as: `processed/gale/science_targets.json` (ScienceTarget[]), status DERIVED
+- Used as: `processed/gale/curiosity_traverse.json` (RoverTraverse: the 143 waypoints inside the site, sols 4462-4983, 3.8 km; `python -m pipeline msl-traverse`), status OBSERVED: drawn on the map and compared with the plan's stops
 
 ## Curiosity raw images at the science stops (Navcam, Front Hazcam)
 - Mission / instrument: Mars Science Laboratory, Curiosity rover: left Navcam (NAV_LEFT_B) and left Front Hazcam (FHAZ_LEFT_B), engineering cameras (NASA/JPL-Caltech)
@@ -100,5 +112,16 @@ Template:
 
 ## Mineralogy: not available at the site
 Checked 2026-11-14: Mars Trek's CRISM MTRDR browse mosaics (e.g. `frt_07_brhydj_mtr3_ll`) are built from 42 targeted observations for human-exploration sites, none over this site (ArcGIS layer `mars_mro_crism_mtrdr_c0a_humex_frt_sites`, envelope query: 0 features). The nearest OMEGA/CRISM hydrous-mineral detection in Trek is 15.7 km away (`Hydrous_Mineral_Detections_OMEGA_CRISM_clon0`). TES mineral and thermal-inertia maps (~3 km pixels) are coarser than the whole site. So the app has no mineral layer; the mock one was removed. Mineral findings at the stops (clay in the ridge sample, carbonate in the hollow sample) come from Curiosity's own analyses, cited in the stop texts.
+
+## 360° views at the stations (rendered, not photos)
+- Mission / instrument: none of their own; computed from the USGS Gale DEM (elevation) and the USGS Gale 25 cm orthophoto (ground brightness), both listed above
+- Product ID: `processed/gale/pov/pano_<station>.jpg`, one at the habitat and one at each science stop (8)
+- URL: generated by `python -m pipeline gale-panoramas` (pipeline/sources/gale_panoramas.py + pipeline/panorama.py)
+- Resolution: 1024 x 256 px equirectangular, 90° vertical field, column 0 = north; terrain at 2 m cells
+- Coverage of site: the 2 km site only; terrain beyond it is not modelled and shows as haze
+- License / credit: derived from USGS Astrogeology / NASA products (credits above)
+- Date retrieved: 2026-11-14 (rendered)
+- Processing applied: ray-marched from 1.7 m eye height at each station up to 3 km; ground painted with the orthophoto brightness per 2 m cell (1st-99th percentile stretch) times a light warm tint (display choice); butterscotch sky gradient and distance haze from pipeline/panorama.py. Checked: at the panorama stop the rendered butte and mesa sit in the NE/E, where Curiosity's NE-facing Navcam frame shows them.
+- Used as: `processed/gale/pov_images.json` entries with isPanorama true, status DERIVED
 
 Nothing in the app is MOCK any more. Assumptions (walking model, O₂ budget, safety limits, habitat placement, terrain-class rules, dust opacity) are labelled MODELED.

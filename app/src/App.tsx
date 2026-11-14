@@ -17,15 +17,15 @@ import { bestOrder, nearestHaven, tourTime } from './route/optimize'
 import { cellAt, cellCenter, type RouteResult } from './route/route'
 import { findPath } from './route/search'
 import { sphericalDistanceM } from './stats/stats'
-import { buildTimeline, crewAtStop, initialBearingDeg, povsNear, withSimulatedStorm } from './stats/eva'
+import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, povsNear, roverSolsAt, withSimulatedStorm } from './stats/eva'
 import { defaultStartOption, describeTime, startOptions, withMarsSun } from './stats/sun'
 import { decodePlan, encodePlan, type DecodedPlan } from './share'
 import { loadSavedPlans, planLink, storeSavedPlans, withPlanSaved, type SavedPlan } from './saved'
 import { SavedPlans } from './panels/SavedPlans'
 import { PrintCard } from './panels/PrintCard'
-import { FASTER_ALTERNATIVE_MIN_SAVING_MIN } from './config'
+import { FASTER_ALTERNATIVE_MIN_SAVING_MIN, HABITAT_ANTENNA_HEIGHT_M, ROVER_ANTENNA_HEIGHT_M, SUIT_ANTENNA_HEIGHT_M } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
-import type { Conditions, DataConfig, PovImage, ScienceTarget, Waypoint } from './types'
+import type { Conditions, DataConfig, PovImage, RoverTraverse, ScienceTarget, SpaceWeather, Waypoint } from './types'
 import { Copilot } from './copilot/Copilot'
 import { dwellWithExtras, useCopilotPlan, type DwellExtras } from './copilot/plan'
 
@@ -36,6 +36,8 @@ interface Loaded {
   targets: ScienceTarget[]
   conditions: Conditions[]
   povs: PovImage[]
+  traverse: RoverTraverse | null
+  spaceWeather: SpaceWeather | null
 }
 
 async function loadAll(): Promise<Loaded> {
@@ -49,7 +51,9 @@ async function loadAll(): Promise<Loaded> {
   ])
   const base = waypoints.find((w) => w.kind === 'base')
   if (!base) throw new Error(`${config.waypoints.path} has no waypoint of kind "base"`)
-  return { config, grid, base, targets, conditions, povs }
+  const traverse = config.roverTraverse ? await loadJson<RoverTraverse>(config.roverTraverse.path) : null
+  const spaceWeather = config.spaceWeather ? await loadJson<SpaceWeather>(config.spaceWeather.path) : null
+  return { config, grid, base, targets, conditions, povs, traverse, spaceWeather }
 }
 
 export default function App() {
@@ -83,7 +87,7 @@ function linkNotice(plan: DecodedPlan | null): Message | null {
   return { kind: 'error', text: `Part of the plan link could not be restored. ${plan.skipped.join(' ')}` }
 }
 
-function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditions, povs }: Loaded) {
+function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditions, povs, traverse, spaceWeather }: Loaded) {
   const routeParams = DEFAULT_ROUTE_PARAMS
   const evaParams = DEFAULT_EVA_PARAMS
   const prepared = useMemo(() => prepareGrid(grid, routeParams), [grid, routeParams])
@@ -105,6 +109,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     Object.fromEntries(config.layers.map((l) => [l.id, { visible: config.initialLayers.includes(l.id), opacity: l.opacity }])),
   )
   const [overlay, setOverlay] = useState<GridOverlayMode>('none')
+  const [showTraverse, setShowTraverse] = useState(true)
   const [stops, setStops] = useState<Waypoint[]>(() => linked?.stops ?? [])
   const [routes, setRoutes] = useState<Record<RouteProfile, RouteResult> | null>(null)
   /** the user's pick when a real trade-off is offered; the safest route otherwise */
@@ -127,6 +132,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [card, setCard] = useState(false)
   const [dwellExtras, setDwellExtras] = useState<DwellExtras>({}) // extra stop dwell applied from the copilot
   const client = useRef<{ client: RouteClient; ready: Promise<void> } | null>(null)
+  /** bumps whenever the worker client is (re)created, so requests sent to a terminated client are made again */
+  const [clientEpoch, setClientEpoch] = useState(0)
   const viaCount = useRef(linked?.stops.filter((s) => s.kind === 'via').length ?? 0)
   const baseCell = cellAt(grid, base.lat, base.lon)
 
@@ -158,6 +165,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     const c = createRouteClient()
     const ready = c.init(meta, buffer.slice(0), routeParams)
     client.current = { client: c, ready }
+    setClientEpoch((n) => n + 1) // effects that talk to the worker re-run against the new client
     let alive = true
     ready.then(() => c.walkHome(baseCell)).then((f) => alive && setWalkHome(f))
     return () => {
@@ -207,16 +215,32 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     return () => {
       alive = false
     }
-  }, [roverCell, havenFields])
+  }, [roverCell, havenFields, clientEpoch])
   const roverField = roverCell !== null ? (havenFields[roverCell] ?? null) : null
+  // Radio line of sight from every cell to the habitat mast, or to the rover where it is staged (worker, ~0.1 s).
+  const [lineOfSight, setLineOfSight] = useState<Uint8Array | null>(null)
+  useEffect(() => {
+    let alive = true
+    const c = client.current!
+    const antennas = [{ cell: baseCell, heightM: HABITAT_ANTENNA_HEIGHT_M }]
+    if (roverCell !== null) antennas.push({ cell: roverCell, heightM: ROVER_ANTENNA_HEIGHT_M })
+    c.ready
+      .then(() => c.client.viewshed(antennas, SUIT_ANTENNA_HEIGHT_M))
+      .then((v) => alive && setLineOfSight(v))
+      // Say so instead of silently dropping the radio check (e.g. a page still running an older worker: reload it).
+      .catch((e: unknown) => alive && setNotice(`Radio line of sight could not be computed (${e instanceof Error ? e.message : String(e)}). Reload the page.`))
+    return () => {
+      alive = false
+    }
+  }, [baseCell, roverCell, clientEpoch])
   const safeHaven = useMemo(() => (walkHome && roverField ? nearestHaven([walkHome, roverField]) : walkHome), [walkHome, roverField])
 
   // Both alternatives are judged on the same walking model; safety first, so the safest route is the default and
   // the fastest is offered only when it saves enough time to be worth the extra hazard.
   const judge = (r: RouteResult | null) =>
-    r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams, dwellS: dwellWithExtras(stops, dwellExtras) }) : null
-  const fastVerdict = useMemo(() => judge(routes?.fastest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras])
-  const safeVerdict = useMemo(() => judge(routes?.safest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras])
+    r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams, dwellS: dwellWithExtras(stops, dwellExtras), lineOfSight: lineOfSight ?? undefined, spaceWeather: spaceWeather?.windows }) : null
+  const fastVerdict = useMemo(() => judge(routes?.fastest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather])
+  const safeVerdict = useMemo(() => judge(routes?.safest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather])
   const savingS = fastVerdict?.stats && safeVerdict?.stats ? safeVerdict.stats.totalS - fastVerdict.stats.totalS : 0
   const tradeOff = savingS >= FASTER_ALTERNATIVE_MIN_SAVING_MIN * 60
   const active: RouteProfile = tradeOff ? profile : 'safest'
@@ -231,6 +255,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const timeline = useMemo(() => (stats ? buildTimeline(stats, stops, targets) : []), [stats, stops, targets])
   const stations = [base, ...stops, base]
 
+  const photoPovs = useMemo(() => povs.filter((p) => !p.isPanorama), [povs])
+  const panoramaPovs = useMemo(() => povs.filter((p) => p.isPanorama), [povs])
   // Details for the selected stop: target, nearest panorama, arrival, and the heading toward the next stop.
   const detail = (() => {
     if (selected === null || selected > stops.length) return null
@@ -241,12 +267,16 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     return {
       station,
       target: targets.find((t) => t.id === station.id) ?? null,
-      povs: povsNear(povs, station.lat, station.lon),
+      // Photos come from where Curiosity stood; rendered 360° views from the station itself, so match them separately.
+      photos: povsNear(photoPovs, station.lat, station.lon),
+      panorama: nearestPov(panoramaPovs, station.lat, station.lon),
       arriveS,
       headingDeg: selected === stops.length && selected > 0 ? initialBearingDeg(station, base) : initialBearingDeg(station, next),
     }
   })()
   const hoverPoint = stats && hoverIndex !== null ? stats.track[hoverIndex] : null
+  // How long the rover spent at the same stops, for comparison with one Marswalk.
+  const roverSols = useMemo(() => (traverse && stops.length ? roverSolsAt(traverse.points, stops) : null), [traverse, stops])
 
   function addStop(w: Waypoint) {
     const why = stopProblem(w)
@@ -345,6 +375,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           hoverPoint={hoverPoint}
           walkHome={safeHaven}
           rover={roverStop ? { lat: roverStop.lat, lon: roverStop.lon, name: roverStop.name } : null}
+          traverse={showTraverse ? traverse : null}
+          lineOfSight={lineOfSight}
         />
         <MapControls
           config={config}
@@ -354,6 +386,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           onLayerChange={(id, s) => setLayerState((all) => ({ ...all, [id]: s }))}
           overlay={overlay}
           onOverlayChange={setOverlay}
+          traverse={traverse}
+          showTraverse={showTraverse}
+          onShowTraverse={setShowTraverse}
           panel={panel}
           onPanel={setPanel}
           stormActive={storm}
@@ -384,6 +419,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
               lonEast={base.lon}
               endTime={verdict?.endTime ?? null}
               storm={storm}
+              spaceWeather={spaceWeather}
               onStormChange={setStorm}
               onClose={() => setPanel(null)}
             />
@@ -397,7 +433,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           station={detail.station}
           number={selected!}
           target={detail.target}
-          povs={detail.povs}
+          photos={detail.photos}
+          panorama={detail.panorama}
           arriveS={detail.arriveS}
           headingDeg={detail.headingDeg}
           crew={selected ? crewAtStop(detail.station, targets, roverStop?.name ?? null) : null}
@@ -479,6 +516,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
         startTime={startTime}
         startLabel={describeTime(startTime, base.lon)}
         o2DurationS={evaParams.o2DurationS}
+        roverSols={traverse && roverSols ? { rover: traverse.rover, ...roverSols } : null}
         onRemove={(id) => {
           setStops((all) => all.filter((x) => x.id !== id))
           setSelected(null)
