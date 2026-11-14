@@ -106,6 +106,11 @@ def test_reachable_from_stops_at_walls():
     assert reachable_from(passable, (0, 0))[:, 3:].all()
 
 
+def test_reachable_from_no_corner_squeeze():
+    passable = np.array([[True, False], [False, True]])
+    assert not reachable_from(passable, (0, 0))[1, 1]
+
+
 def test_same_seed_same_terrain():
     a = generate_terrain(200.0, C.MOCK_CELL_SIZE_M, 7)["elevation"]
     b = generate_terrain(200.0, C.MOCK_CELL_SIZE_M, 7)["elevation"]

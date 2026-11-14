@@ -133,7 +133,8 @@ def voronoi_edge_distance(x: np.ndarray, y: np.ndarray, spacing: float, rng: np.
 
 
 def reachable_from(passable: np.ndarray, start: tuple[int, int]) -> np.ndarray:
-    """Cells reachable from start over passable cells, 8-connected (vectorized breadth-first flood fill)."""
+    """Cells reachable from start over passable cells, 8-connected (vectorized breadth-first flood fill).
+    Same moves as the app's route engine: a diagonal step may not squeeze between two blocked cells."""
     height, width = passable.shape
     flat = passable.ravel()
     reached = np.zeros(flat.size, bool)
@@ -144,9 +145,12 @@ def reachable_from(passable: np.ndarray, start: tuple[int, int]) -> np.ndarray:
     dc = np.array([-1, 0, 1, -1, 1, -1, 0, 1])
     while frontier.size:
         r, c = np.divmod(frontier, width)
-        nr = (r[:, None] + dr).ravel()
-        nc = (c[:, None] + dc).ravel()
+        r, c = np.repeat(r, 8), np.repeat(c, 8)
+        nr, nc = r + np.tile(dr, frontier.size), c + np.tile(dc, frontier.size)
         ok = (nr >= 0) & (nr < height) & (nc >= 0) & (nc < width)
+        r, c, nr, nc = r[ok], c[ok], nr[ok], nc[ok]
+        diagonal = (nr != r) & (nc != c)
+        ok = ~diagonal | (flat[nr * width + c] & flat[r * width + nc])
         n = nr[ok] * width + nc[ok]
         n = np.unique(n[flat[n] & ~reached[n]])
         reached[n] = True
