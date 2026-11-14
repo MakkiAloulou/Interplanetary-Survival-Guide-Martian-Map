@@ -8,6 +8,11 @@ import type { CostGrid, DataStatus, ScienceTarget, Waypoint } from '../types'
 import { AlertIcon, CloseIcon, GripIcon, LineMark } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 
+export interface Message {
+  kind: 'error' | 'info'
+  text: string
+}
+
 interface Props {
   siteName: string
   dataStatus: DataStatus
@@ -18,12 +23,17 @@ interface Props {
   verdict: EvaVerdict | null
   routing: boolean
   failedLeg: number | null
-  notice: string | null
+  notice: Message | null
   startTime: string
   o2DurationS: number
   targets: ScienceTarget[]
   onAddTarget: (target: ScienceTarget) => void
   onRemove: (id: string) => void
+  /** 'habitat' or the id of the stop where the rover is staged as a safe haven */
+  roverAt: string
+  onRoverAt: (at: string) => void
+  onOptimise: () => void
+  optimising: boolean
   /** move the stop at index `from` to index `to` */
   onMove: (from: number, to: number) => void
   onClear: () => void
@@ -49,6 +59,7 @@ const HAZARD_CHIPS: Hazard[] = ['steep', 'sand', 'boulders']
 export function Directions(props: Props) {
   const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startTime, o2DurationS } = props
   const { targets, onAddTarget, onRemove, onMove, onClear, selected, onSelect, hoverIndex, onHover } = props
+  const { roverAt, onRoverAt, onOptimise, optimising } = props
   const [showReasons, setShowReasons] = useState(false)
   const [dragFrom, setDragFrom] = useState<number | null>(null)
   /** insertion position among the stops (0 … stops.length) while a stop is dragged */
@@ -111,6 +122,7 @@ export function Directions(props: Props) {
                     <strong>{formatDuration(stats.totalS)}</strong>
                     <span>
                       {formatDistance(stats.distanceM)} · {formatDuration(o2DurationS - stats.totalS)} O₂ left at return
+                      {verdict.doseMSv !== null && ` · ${verdict.doseMSv.toFixed(2)} mSv`}
                     </span>
                   </div>
                 )}
@@ -145,10 +157,29 @@ export function Directions(props: Props) {
       )}
 
       {notice && (
-        <p className="notice" role="alert">
-          <AlertIcon size={16} />
-          {notice}
+        <p className={`notice notice-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
+          {notice.kind === 'error' && <AlertIcon size={16} />}
+          {notice.text}
         </p>
+      )}
+
+      {stops.length > 0 && (
+        <div className="plan-tools">
+          <label className="rover-select">
+            <span>Rover safe haven</span>
+            <select value={roverAt} onChange={(e) => onRoverAt(e.target.value)}>
+              <option value="habitat">At the habitat</option>
+              {stops.map((s, i) => (
+                <option key={s.id} value={s.id}>
+                  Staged at {i + 1}. {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" className="btn-chip" disabled={optimising || stops.length < 2} onClick={onOptimise}>
+            {optimising ? 'Optimising…' : 'Optimise order'}
+          </button>
+        </div>
       )}
 
       {stops.length > 0 && (

@@ -76,14 +76,19 @@ export interface CrewTasks {
  * Who does what at one stop (MODELED: our crew rule, not a NASA procedure). The target's instruments alternate
  * between the pair (EV1 takes the 1st, 3rd, …; EV2 the 2nd, 4th, …); the rover parks as tool carrier and safe haven.
  */
-export function crewAtStop(stop: Waypoint, targets: ScienceTarget[]): CrewTasks {
+export function crewAtStop(stop: Waypoint, targets: ScienceTarget[], roverStagedAt: string | null = stop.name): CrewTasks {
   const kit = targets.find((t) => t.id === stop.id)?.instrumentsNeeded ?? []
   const ev1 = kit.filter((_, k) => k % 2 === 0)
   const ev2 = kit.filter((_, k) => k % 2 === 1)
   return {
     ev1: ev1.length ? sentence(ev1.join(', ')) : 'Survey and photograph',
     ev2: ev2.length ? sentence(ev2.join(', ')) : 'Survey and photograph',
-    rover: `Parked at ${stop.name}: tools and safe haven`,
+    rover:
+      roverStagedAt === stop.name
+        ? `Staged here: tools and safe haven`
+        : roverStagedAt
+          ? `Standing by at ${roverStagedAt} as safe haven`
+          : `Standing by at the habitat`,
   }
 }
 

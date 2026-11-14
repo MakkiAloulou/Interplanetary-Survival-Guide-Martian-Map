@@ -10,6 +10,8 @@ export interface RouteClient {
   init(meta: CostGridMeta, buffer: ArrayBuffer, params?: RouteParams): Promise<void>
   route(stops: number[]): Promise<RouteResult>
   walkHome(base: number): Promise<Float32Array>
+  /** Walking time between every ordered pair of cells, seconds (Infinity where there is no path). */
+  matrix(cells: number[]): Promise<number[][]>
   terminate(): void
 }
 
@@ -47,6 +49,11 @@ export function createRouteClient(): RouteClient {
       const r = await send({ type: 'walkHome', base })
       if (r.type !== 'walkHome') throw new Error(`unexpected response ${r.type}`)
       return r.field
+    },
+    matrix: async (cells) => {
+      const r = await send({ type: 'matrix', cells })
+      if (r.type !== 'matrix') throw new Error(`unexpected response ${r.type}`)
+      return r.times
     },
     terminate: () => worker.terminate(),
   }

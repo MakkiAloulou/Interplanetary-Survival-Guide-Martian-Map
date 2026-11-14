@@ -10,7 +10,12 @@ import { StopDetail } from './panels/StopDetail'
 import { Timeline } from './panels/Timeline'
 import { createRouteClient, type RouteClient } from './route/client'
 import { DEFAULT_ROUTE_PARAMS, isPassable, prepareGrid } from './route/cost'
-import { cellAt, type RouteResult } from './route/route'
+import type { Message } from './panels/Directions'
+import type { AbortPlan } from './panels/Hud'
+import { bestOrder, nearestHaven, tourTime } from './route/optimize'
+import { cellAt, cellCenter, type RouteResult } from './route/route'
+import { findPath } from './route/search'
+import { sphericalDistanceM } from './stats/stats'
 import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, withSimulatedStorm } from './stats/eva'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
 import type { Conditions, DataConfig, PovImage, ScienceTarget, Waypoint } from './types'
@@ -81,7 +86,12 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [route, setRoute] = useState<RouteResult | null>(null)
   const [walkHome, setWalkHome] = useState<Float32Array | null>(null)
   const [routing, setRouting] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNoticeState] = useState<Message | null>(null)
+  const setNotice = (text: string | null, kind: Message['kind'] = 'error') => setNoticeState(text ? { kind, text } : null)
+  /** where the rover is staged as a safe haven: 'habitat' or a stop id */
+  const [roverAt, setRoverAt] = useState('habitat')
+  const [havenFields, setHavenFields] = useState<Record<number, Float32Array>>({})
+  const [optimising, setOptimising] = useState(false)
   const [panel, setPanel] = useState<'layers' | 'conditions' | null>(null)
   const [storm, setStorm] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
@@ -130,10 +140,29 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     return withSimulatedStorm(conditions, start, start + evaParams.o2DurationS * 1000)
   }, [storm, conditions, startTime, evaParams])
 
+  const roverStop = stops.find((s) => s.id === roverAt) ?? null
+  const roverCell = roverStop ? cellAt(grid, roverStop.lat, roverStop.lon) : null
+  useEffect(() => {
+    if (roverAt !== 'habitat' && !roverStop) setRoverAt('habitat') // its stop was removed
+  }, [roverAt, roverStop])
+  useEffect(() => {
+    if (roverCell === null || havenFields[roverCell]) return
+    let alive = true
+    const c = client.current!
+    c.ready.then(() => c.client.walkHome(roverCell)).then((f) => alive && setHavenFields((all) => ({ ...all, [roverCell]: f })))
+    return () => {
+      alive = false
+    }
+  }, [roverCell, havenFields])
+  const roverField = roverCell !== null ? (havenFields[roverCell] ?? null) : null
+  const safeHaven = useMemo(() => (walkHome && roverField ? nearestHaven([walkHome, roverField]) : walkHome), [walkHome, roverField])
+
   const verdict = useMemo(
     () =>
-      route && walkHome ? evaluateEva({ prepared, route, walkHome, startTime, conditions: effectiveConditions, params: evaParams }) : null,
-    [route, walkHome, prepared, startTime, effectiveConditions, evaParams],
+      route && safeHaven
+        ? evaluateEva({ prepared, route, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams })
+        : null,
+    [route, safeHaven, prepared, startTime, effectiveConditions, evaParams],
   )
   // Stats only while the route matches the current stops (the render right after an edit still holds the old route).
   const routeMatches = route?.ok === true && route.legs.length === stops.length + 1
@@ -167,6 +196,45 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     setStops((s) => (s.some((x) => x.id === w.id) ? s : [...s, w]))
   }
 
+  /** Reorder the stops for the shortest walk, timing every ordered pair in the worker. */
+  async function optimiseOrder() {
+    if (stops.length < 2) return
+    setOptimising(true)
+    try {
+      const c = client.current!
+      await c.ready
+      const matrix = await c.client.matrix([base, ...stops].map((w) => cellAt(grid, w.lat, w.lon)))
+      const order = bestOrder(matrix)
+      if (!order) return setNotice('No order reaches every stop: one of them is cut off.')
+      const current = stops.map((_, i) => i + 1)
+      const saved = tourTime(matrix, current) - tourTime(matrix, order)
+      if (saved < 30) return setNotice('This order is already the quickest.', 'info')
+      setStops(order.map((k) => stops[k - 1]))
+      setSelected(null)
+      setNotice(`Reordered for the quickest walk: ${Math.round(saved / 60)} min less walking.`, 'info')
+    } catch (e) {
+      setNotice(`Could not optimise: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setOptimising(false)
+    }
+  }
+
+  /** Fastest way from a cell to the nearer safe haven (habitat, or the staged rover). */
+  function planAbort(cell: number): AbortPlan | null {
+    const havens = [{ cell: baseCell, name: base.name }]
+    if (roverCell !== null && roverStop) havens.push({ cell: roverCell, name: `the rover at ${roverStop.name}` })
+    let best: AbortPlan | null = null
+    for (const h of havens) {
+      const path = findPath(prepared, cell, h.cell)
+      if (!path || (best && path.timeS >= best.timeS)) continue
+      const pts = path.cells.map((c) => cellCenter(grid, c))
+      let distanceM = 0
+      for (let i = 1; i < pts.length; i++) distanceM += sphericalDistanceM(pts[i - 1], pts[i])
+      best = { haven: h.name, timeS: path.timeS, distanceM, points: pts }
+    }
+    return best
+  }
+
   function addTarget(t: ScienceTarget) {
     if (!stops.some((s) => s.id === t.id)) addStop({ id: t.id, lat: t.lat, lon: t.lon, kind: 'science', name: t.name })
   }
@@ -192,6 +260,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           selected={selected}
           onSelectStation={setSelected}
           hoverPoint={hoverPoint}
+          walkHome={safeHaven}
+          rover={roverStop ? { lat: roverStop.lat, lon: roverStop.lon, name: roverStop.name } : null}
         />
         <MapControls
           config={config}
@@ -204,7 +274,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           panel={panel}
           onPanel={setPanel}
           stormActive={storm}
-          hudEnabled={stats !== null && walkHome !== null}
+          hudEnabled={stats !== null && safeHaven !== null}
           onHud={() => setHud(true)}
           conditionsPanel={
             <ConditionsPanel
@@ -228,17 +298,18 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           pov={detail.pov}
           arriveS={detail.arriveS}
           headingDeg={detail.headingDeg}
-          crew={selected ? crewAtStop(detail.station, targets) : null}
+          crew={selected ? crewAtStop(detail.station, targets, roverStop?.name ?? null) : null}
           onClose={() => setSelected(null)}
         />
       )}
 
-      {hud && stats && walkHome && verdict && (
+      {hud && stats && safeHaven && verdict && (
         <Hud
           stats={stats}
           stations={stations}
-          walkHome={walkHome}
+          walkHome={safeHaven!}
           params={evaParams}
+          planAbort={planAbort}
           alerts={verdict.reasons.filter((r) => r.severity !== 'info')}
           onExit={() => setHud(false)}
         />
@@ -263,6 +334,10 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           setStops((all) => all.filter((x) => x.id !== id))
           setSelected(null)
         }}
+        roverAt={roverAt}
+        onRoverAt={setRoverAt}
+        onOptimise={optimiseOrder}
+        optimising={optimising}
         onMove={(from, to) => {
           setStops((all) => {
             const next = [...all]

@@ -1,6 +1,6 @@
 // GO / NO-GO for one planned EVA, always with reasons (CLAUDE.md §2 Safety).
 
-import { O2_RESERVE_MIN, SUIT_O2_DURATION_MIN, SUNSET_MARGIN_MIN, WALK_HOME_CONTINGENCY_FACTOR } from '../config'
+import { O2_RESERVE_MIN, RAD_BASELINE_DOSE_MSV_PER_DAY, SUIT_O2_DURATION_MIN, SUNSET_MARGIN_MIN, WALK_HOME_CONTINGENCY_FACTOR } from '../config'
 import { isPassable, type PreparedGrid } from '../route/cost'
 import type { RouteResult } from '../route/route'
 import { TERRAIN, type Conditions, type DataStatus } from '../types'
@@ -20,6 +20,7 @@ export type ReasonCode =
   | 'SUNSET'
   | 'RADIATION'
   | 'NO_CONDITIONS'
+  | 'DOSE'
   | 'STEEP_SECTIONS'
   | 'SAND'
   | 'BOULDERS'
@@ -61,6 +62,8 @@ export interface EvaVerdict {
   reasons: Reason[]
   stats: RouteStats | null
   endTime: string | null
+  /** surface background radiation dose over the EVA, mSv (rate OBSERVED by Curiosity RAD, duration MODELED) */
+  doseMSv: number | null
   /** weakest data status behind the verdict; never better than MODELED (suit and O2 are assumptions) */
   status: DataStatus
 }
@@ -76,6 +79,7 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
     reasons: [...reasons].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]),
     stats,
     endTime,
+    doseMSv: stats ? evaDoseMSv(stats.totalS) : null,
     status,
   })
 
@@ -129,7 +133,7 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
       Number.isFinite(home)
         ? `Point of no return passed ${at(passedIndex)}: an emergency walk home from there takes ` +
             `${formatDuration(params.walkHomeContingency * home)} but only ${formatDuration(usableO2 - t.departS)} of O₂ is left above reserve.`
-        : `No way back to base from ${at(passedIndex)}.`,
+        : `No way back to the habitat or the rover from ${at(passedIndex)}.`,
     )
   } else {
     add(
@@ -169,6 +173,14 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   } else if (covered) {
     add('RADIATION', 'info', 'No radiation alert during the EVA window.')
   }
+  // Background dose of the walk itself (suit shielding not counted, so this is an upper bound for the background).
+  const dose = evaDoseMSv(stats.totalS)
+  add(
+    'DOSE',
+    'info',
+    `Radiation dose for this EVA about ${dose.toFixed(2)} mSv at the Gale surface background (Curiosity RAD, ` +
+      `${RAD_BASELINE_DOSE_MSV_PER_DAY} mSv/day; suit shielding not counted)${alerts.length ? '; a solar storm adds more' : ''}.`,
+  )
   if (!covered) {
     add('NO_CONDITIONS', 'caution', 'Conditions data does not cover the whole EVA window: daylight and radiation are not fully checked.')
   }
@@ -190,6 +202,11 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   }
 
   return done(stats, Number.isFinite(endMs) ? new Date(endMs).toISOString() : null)
+}
+
+/** Surface background dose over an EVA of totalS seconds, mSv (Hassler et al. 2014 rate x MODELED duration). */
+export function evaDoseMSv(totalS: number): number {
+  return (RAD_BASELINE_DOSE_MSV_PER_DAY * totalS) / 86400
 }
 
 const SEVERITY_ORDER: Record<Severity, number> = { 'no-go': 0, caution: 1, info: 2 }

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { METERS_PER_DEG_LAT } from '../config'
 import { DEFAULT_ROUTE_PARAMS } from '../route/cost'
 import { gridFrom } from '../testing/grids'
-import { cellHazard, gridOverlayPixels, hazardRuns, legHazardSeconds } from './overlays'
+import { cellHazard, gridOverlayPixels, hazardRuns, legHazardSeconds, walkHomePixels } from './overlays'
 import { metresPerPixel, tileAt, tileDegrees } from './tiles'
 
 describe('Mars Trek tile matrix (from curiosity_hirise_mosaic WMTSCapabilities.xml)', () => {
@@ -73,5 +73,17 @@ describe('route hazards', () => {
       { hazard: 'sand', cells: [2, 3, 4] },
       { hazard: 'clear', cells: [4, 5] },
     ])
+  })
+})
+
+describe('walk-home heatmap', () => {
+  test('bands by minutes; unreachable cells are dark', () => {
+    const px = walkHomePixels(new Float32Array([0, 15 * 60, 50 * 60, 2 * 3600, Infinity]))
+    const rgb = (i: number) => [px[4 * i], px[4 * i + 1], px[4 * i + 2]]
+    expect(rgb(0)).toEqual([0x18, 0x80, 0x38])
+    expect(rgb(1)).toEqual([0x7c, 0xb3, 0x42])
+    expect(rgb(2)).toEqual([0xd9, 0x30, 0x25])
+    expect(rgb(3)).toEqual([0x8c, 0x1d, 0x18])
+    expect(rgb(4)).toEqual([0x20, 0x21, 0x24])
   })
 })

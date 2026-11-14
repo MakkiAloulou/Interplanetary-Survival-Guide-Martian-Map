@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { LayerState } from '../map/MapView'
-import { HAZARD_COLORS, HAZARD_LABELS, type GridOverlayMode, type Hazard } from '../map/overlays'
+import { HAZARD_COLORS, HAZARD_LABELS, WALK_HOME_BANDS, WALK_HOME_UNREACHABLE, type GridOverlayMode, type Hazard } from '../map/overlays'
 import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import type { DataConfig, DataStatus } from '../types'
 import { CloseIcon, LayersIcon, VisorIcon } from '../ui/icons'
@@ -26,6 +26,7 @@ const OVERLAYS: { mode: GridOverlayMode; label: string }[] = [
   { mode: 'none', label: 'Off' },
   { mode: 'slope', label: 'Slope' },
   { mode: 'terrain', label: 'Terrain' },
+  { mode: 'walkhome', label: 'Walk home' },
 ]
 
 function MarsClock({ lon, open, alert, onClick }: { lon: number; open: boolean; alert: boolean; onClick: () => void }) {
@@ -120,14 +121,28 @@ export function MapControls(props: Props) {
               </button>
             ))}
           </div>
-          <ul className="legend" aria-label="Route and terrain colours">
-            {(Object.keys(HAZARD_COLORS) as Hazard[]).map((h) => (
-              <li key={h}>
-                <span className="swatch" style={{ background: HAZARD_COLORS[h] }} />
-                {h === 'clear' ? 'Clear walking' : HAZARD_LABELS[h]}
-              </li>
-            ))}
-          </ul>
+          {overlay === 'walkhome' ? (
+            <>
+              <p className="note">Minutes to the nearest safe haven (habitat, or the rover where it is staged), at planned pace.</p>
+              <ul className="legend" aria-label="Walk-home time colours">
+                {[...WALK_HOME_BANDS, WALK_HOME_UNREACHABLE].map((b) => (
+                  <li key={b.label}>
+                    <span className="swatch" style={{ background: b.color }} />
+                    {b.label}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <ul className="legend" aria-label="Route and terrain colours">
+              {(Object.keys(HAZARD_COLORS) as Hazard[]).map((h) => (
+                <li key={h}>
+                  <span className="swatch" style={{ background: HAZARD_COLORS[h] }} />
+                  {h === 'clear' ? 'Clear walking' : HAZARD_LABELS[h]}
+                </li>
+              ))}
+            </ul>
+          )}
           {gridStatus === 'MOCK' && (
             <p className="note">Terrain, targets and conditions are a synthetic site placed on the real HiRISE imagery. They do not match the ground you see.</p>
           )}

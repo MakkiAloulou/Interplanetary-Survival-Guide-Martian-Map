@@ -6,7 +6,7 @@ import type { RouteParams } from '../route/cost'
 import { cellCenter, type RouteResult } from '../route/route'
 import type { Bounds, CostGrid, DataConfig, Layer, ScienceTarget, Waypoint } from '../types'
 import { MARS_CRS } from './crs'
-import { gridOverlayPixels, HAZARD_COLORS, hazardRuns, type GridOverlayMode } from './overlays'
+import { gridOverlayPixels, HAZARD_COLORS, hazardRuns, walkHomePixels, type GridOverlayMode } from './overlays'
 
 export interface LayerState {
   visible: boolean
@@ -30,6 +30,10 @@ interface Props {
   onSelectStation: (station: number) => void
   /** a point on the route to mark (hover on the elevation profile) */
   hoverPoint: { lat: number; lon: number } | null
+  /** seconds to the nearest safe haven from every cell, for the walk-home heatmap */
+  walkHome: Float32Array | null
+  /** where the rover is staged as a safe haven, when not at the habitat */
+  rover: { lat: number; lon: number; name: string } | null
 }
 
 const toLatLngBounds = (b: Bounds) => L.latLngBounds([b.latMin, b.lonMin], [b.latMax, b.lonMax])
@@ -42,16 +46,17 @@ function createLayer(layer: Layer, zIndex: number, maxZoom: number): L.Layer {
   return L.imageOverlay(dataUrl(layer.imageOverlay!), bounds, { ...common, className: 'pixelated' })
 }
 
-function gridOverlayImage(grid: CostGrid, mode: Exclude<GridOverlayMode, 'none'>, p: RouteParams): string {
+function gridOverlayImage(grid: CostGrid, mode: Exclude<GridOverlayMode, 'none'>, p: RouteParams, walkHome: Float32Array | null): string {
   const canvas = document.createElement('canvas')
   canvas.width = grid.width
   canvas.height = grid.height
-  canvas.getContext('2d')!.putImageData(new ImageData(gridOverlayPixels(grid, mode, p), grid.width, grid.height), 0, 0)
+  const pixels = mode === 'walkhome' ? walkHomePixels(walkHome!) : gridOverlayPixels(grid, mode, p)
+  canvas.getContext('2d')!.putImageData(new ImageData(pixels, grid.width, grid.height), 0, 0)
   return canvas.toDataURL()
 }
 
 export function MapView(props: Props) {
-  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, selected, hoverPoint } = props
+  const { config, grid, routeParams, layerState, overlay, base, targets, stops, route, selected, hoverPoint, walkHome, rover } = props
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layers = useRef<Map<string, L.Layer>>(new Map())
@@ -109,10 +114,10 @@ export function MapView(props: Props) {
     }
   }, [config, layerState])
 
-  // Slope / terrain overlay drawn from the CostGrid.
+  // Slope / terrain / walk-home overlay drawn from the CostGrid.
   useEffect(() => {
-    if (overlay === 'none') return
-    const image = L.imageOverlay(gridOverlayImage(grid, overlay, routeParams), toLatLngBounds(grid.bounds), {
+    if (overlay === 'none' || (overlay === 'walkhome' && !walkHome)) return
+    const image = L.imageOverlay(gridOverlayImage(grid, overlay, routeParams, walkHome), toLatLngBounds(grid.bounds), {
       pane: 'grid',
       className: 'pixelated',
       interactive: false,
@@ -120,7 +125,28 @@ export function MapView(props: Props) {
     return () => {
       image.remove()
     }
-  }, [config, grid, overlay, routeParams])
+  }, [config, grid, overlay, routeParams, walkHome])
+
+  // The rover, staged as a safe haven.
+  useEffect(() => {
+    if (!rover) return
+    const icon = L.divIcon({
+      className: 'map-mark mark-rover',
+      html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18v-4l-3-4H8L5 11H3z"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/></svg>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 34],
+    })
+    const m = L.marker([rover.lat, rover.lon], { pane: 'pins', icon, keyboard: false })
+      .bindTooltip(`<strong>Rover staged here</strong><span>Safe haven and tool carrier at ${rover.name.replace(/[&<>"']/g, '')}</span>`, {
+        direction: 'top',
+        offset: [0, -34],
+        className: 'map-tip',
+      })
+      .addTo(mapRef.current!)
+    return () => {
+      m.remove()
+    }
+  }, [rover])
 
   // Habitat, science targets and stops. Names show on hover; the numbers match the directions list.
   useEffect(() => {

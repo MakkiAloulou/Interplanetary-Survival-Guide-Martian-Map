@@ -699,6 +699,102 @@ button.tl-stop.is-selected {
   accent-color: #4caf50;
 }
 
+/* ---------- Plan tools: rover staging and optimise ---------- */
+
+.plan-tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px 20px 4px;
+}
+
+.rover-select {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.rover-select select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.btn-chip {
+  flex: none;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--blue);
+}
+
+.btn-chip:hover:not(:disabled) {
+  background: var(--blue-bg);
+}
+
+.btn-chip:disabled {
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+.notice.notice-info {
+  background: var(--blue-bg);
+  color: #174ea6;
+}
+
+.map.leaflet-container .mark-rover {
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- HUD abort ---------- */
+
+.hud-gauges small {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.hud-controls .hud-abort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: #ff8a80;
+  color: #ff8a80;
+}
+
+.hud-controls .hud-abort:hover {
+  background: rgba(217, 48, 37, 0.25);
+}
+
+.hud.is-abort {
+  background: radial-gradient(ellipse at 50% 40%, #2a0d0b 0%, #000 70%);
+}
+
+.hud.is-abort .hud-arrow {
+  fill: #ff8a80;
+}
+
+.hud-clock {
+  margin-left: auto;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* ---------- Narrow screens ---------- */
 
 @media (max-width: 960px) {

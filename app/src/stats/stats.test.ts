@@ -261,3 +261,17 @@ describe.skipIf(!hasData)('mock site in data/', () => {
 function latLon(p: { lat: number; lon: number }): [number, number] {
   return [p.lat, p.lon]
 }
+
+describe('radiation dose', () => {
+  test('background dose scales with EVA length at the RAD rate', async () => {
+    const { evaDoseMSv } = await import('./goNoGo')
+    expect(evaDoseMSv(86400)).toBeCloseTo(0.64, 9)
+    expect(evaDoseMSv(4 * 3600)).toBeCloseTo(0.64 / 6, 9)
+  })
+
+  test('every verdict reports the dose as a passed check', () => {
+    const v = evaluateEva(evaInput(['..........'], [[0, 0], [0, 9], [0, 0]]))
+    expect(v.reasons.find((r) => r.code === 'DOSE')?.severity).toBe('info')
+    expect(v.doseMSv).toBeGreaterThan(0)
+  })
+})

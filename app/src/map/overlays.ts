@@ -3,7 +3,7 @@
 import { TERRAIN, type CostGrid } from '../types'
 import type { RouteParams } from '../route/cost'
 
-export type GridOverlayMode = 'none' | 'slope' | 'terrain'
+export type GridOverlayMode = 'none' | 'slope' | 'terrain' | 'walkhome'
 
 export type Hazard = 'clear' | 'steep' | 'sand' | 'boulders' | 'blocked'
 
@@ -52,7 +52,7 @@ function slopeRgba(slopeDeg: number, p: Pick<RouteParams, 'slopePenaltyStartDeg'
 /** RGBA pixels (row 0 = north) for a grid overlay; one pixel per cell. */
 export function gridOverlayPixels(
   grid: CostGrid,
-  mode: Exclude<GridOverlayMode, 'none'>,
+  mode: 'slope' | 'terrain',
   p: Pick<RouteParams, 'slopePenaltyStartDeg' | 'slopeImpassableDeg'>,
 ): Uint8ClampedArray<ArrayBuffer> {
   const n = grid.width * grid.height
@@ -70,6 +70,29 @@ export function cellHazard(grid: CostGrid, cell: number, p: Pick<RouteParams, 's
   if (t === TERRAIN.SAND) return 'sand'
   if (grid.slopeDeg[cell] > p.slopePenaltyStartDeg) return 'steep'
   return 'clear'
+}
+
+/** Walk-home heatmap bands: minutes to the nearest safe haven (habitat or rover), planned pace. */
+export const WALK_HOME_BANDS: { upToMin: number; color: string; label: string }[] = [
+  { upToMin: 10, color: '#188038', label: 'under 10 min' },
+  { upToMin: 20, color: '#7cb342', label: '10-20 min' },
+  { upToMin: 30, color: '#f9ab00', label: '20-30 min' },
+  { upToMin: 45, color: '#e8710a', label: '30-45 min' },
+  { upToMin: 60, color: '#d93025', label: '45-60 min' },
+  { upToMin: Infinity, color: '#8c1d18', label: 'over 1 h' },
+]
+export const WALK_HOME_UNREACHABLE = { color: '#202124', label: 'No way back' }
+
+/** RGBA pixels (row 0 = north) colouring every cell by its walk-home time in seconds. */
+export function walkHomePixels(field: Float32Array): Uint8ClampedArray<ArrayBuffer> {
+  const px = new Uint8ClampedArray(4 * field.length)
+  const bands = WALK_HOME_BANDS.map((b) => ({ upToS: b.upToMin * 60, rgba: rgba(b.color, 120) }))
+  const none = rgba(WALK_HOME_UNREACHABLE.color, 190)
+  for (let i = 0; i < field.length; i++) {
+    const t = field[i]
+    px.set(Number.isFinite(t) ? (bands.find((b) => t < b.upToS) ?? bands[bands.length - 1]).rgba : none, 4 * i)
+  }
+  return px
 }
 
 /** Walking seconds spent in each hazard on one leg (each step counted in the cell it enters). */

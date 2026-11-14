@@ -87,3 +87,11 @@ describe('nearestPov / withSimulatedStorm', () => {
     expect(c.every((x) => !x.radiationAlert)).toBe(true)
   })
 })
+
+test('crewAtStop: the rover is staged at one stop and stands by elsewhere', async () => {
+  const { crewAtStop } = await import('./eva')
+  const stop: Waypoint = { id: 's', lat: 0, lon: 0, kind: 'science', name: 'Ridge' }
+  expect(crewAtStop(stop, [], 'Ridge').rover).toContain('Staged here')
+  expect(crewAtStop(stop, [], 'Scarp').rover).toBe('Standing by at Scarp as safe haven')
+  expect(crewAtStop(stop, [], null).rover).toBe('Standing by at the habitat')
+})
