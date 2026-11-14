@@ -17,7 +17,7 @@ import { bestOrder, nearestHaven, tourTime } from './route/optimize'
 import { cellAt, cellCenter, type RouteResult } from './route/route'
 import { findPath } from './route/search'
 import { sphericalDistanceM } from './stats/stats'
-import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, withSimulatedStorm } from './stats/eva'
+import { buildTimeline, crewAtStop, initialBearingDeg, povsNear, withSimulatedStorm } from './stats/eva'
 import { defaultStartOption, describeTime, startOptions, withMarsSun } from './stats/sun'
 import { decodePlan, encodePlan, type DecodedPlan } from './share'
 import { loadSavedPlans, planLink, storeSavedPlans, withPlanSaved, type SavedPlan } from './saved'
@@ -237,7 +237,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     return {
       station,
       target: targets.find((t) => t.id === station.id) ?? null,
-      pov: nearestPov(povs, station.lat, station.lon),
+      povs: povsNear(povs, station.lat, station.lon),
       arriveS,
       headingDeg: selected === stops.length && selected > 0 ? initialBearingDeg(station, base) : initialBearingDeg(station, next),
     }
@@ -393,7 +393,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           station={detail.station}
           number={selected!}
           target={detail.target}
-          pov={detail.pov}
+          povs={detail.povs}
           arriveS={detail.arriveS}
           headingDeg={detail.headingDeg}
           crew={selected ? crewAtStop(detail.station, targets, roverStop?.name ?? null) : null}

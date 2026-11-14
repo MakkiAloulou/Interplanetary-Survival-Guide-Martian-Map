@@ -121,6 +121,16 @@ export function buildTimeline(stats: RouteStats, stops: Waypoint[], targets: Sci
 }
 
 /** The panorama nearest to a point, if one lies within maxM metres. */
+/**
+ * The images taken from the camera position nearest (lat, lon), within maxM, in file order. Only that one spot:
+ * neighbouring stops a few metres away have their own images, which must not mix in.
+ */
+export function povsNear(povs: PovImage[], lat: number, lon: number, maxM = 30): PovImage[] {
+  const nearest = nearestPov(povs, lat, lon, maxM)
+  if (!nearest) return []
+  return povs.filter((p) => sphericalDistanceM(p, nearest) < 0.5)
+}
+
 export function nearestPov(povs: PovImage[], lat: number, lon: number, maxM = 30): PovImage | null {
   let best: PovImage | null = null
   let bestD = maxM

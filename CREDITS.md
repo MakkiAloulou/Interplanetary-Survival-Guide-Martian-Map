@@ -14,7 +14,7 @@ We used **Claude Code** (Anthropic's AI coding assistant, model Claude Opus) thr
 - **Design:** the AI drafted the interface layout and the app's icons. We chose the design direction, and rejected an earlier dark design.
 - **Decisions:** the site, the crew model, the safety rules and their thresholds, and the final site bounds were our decisions. The AI proposed options and we approved or changed them.
 
-**No AI-generated images or videos** are used. The 360° panoramas at the mock stops are rendered by our own code from a synthetic terrain model. They are not produced by an image-generation model, and the app labels them `MOCK`. If the demo video uses any AI-generated imagery, voice or footage, it will be watermarked as AI-generated.
+**No AI-generated images or videos** are used. The stop photos are real Curiosity raw images (NASA/JPL-Caltech). Earlier mock 360° panoramas were rendered by our own code from a synthetic terrain model, never by an image-generation model; the app no longer uses them. If the demo video uses any AI-generated imagery, voice or footage, it will be watermarked as AI-generated.
 
 ## Data
 
@@ -24,13 +24,14 @@ We used **Claude Code** (Anthropic's AI coding assistant, model Claude Opus) thr
 | MSL Gale Merged DEM 1m v3 | USGS Astrogeology Science Center; T. Parker and F. J. Calef III (2016). Built from MRO HiRISE (NASA/JPL-Caltech/University of Arizona), MRO CTX (NASA/JPL-Caltech/MSSS), Mars Express HRSC (ESA/DLR/FU Berlin) and MGS MOLA (NASA/GSFC) | https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m (Mars Trek layer `Gale_DEM_SMG_1m`) | Elevation, slope, hillshade and walking costs at 2 m |
 | Curiosity traverse (rover waypoints) | NASA/JPL-Caltech, MMGIS | https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json | Locating the 2025–26 boxwork campaign; choosing the site and the science centre; placing the science stops where Curiosity stood |
 | Boxwork science stops: what Curiosity studied and why | NASA/JPL-Caltech: Curiosity mission blog (science.nasa.gov/blog), posts for sols 4561–4562, 4689–4694, 4709–4715, 4716–4722 and 4804–4811; JPL news 2025-06-23 and 2026-02-23 | URLs per stop in `pipeline/sources/msl_boxwork_targets.json` | Stop names, dates and the "why" texts (paraphrased) |
+| Curiosity raw images at the stops (Navcam, Front Hazcam) | NASA/JPL-Caltech | https://mars.nasa.gov/msl/multimedia/raw-images/ (each image links to its own page) | Stop photos: what the ground looks like on arrival, and the drill workspaces. Resized copies; no other change. |
 | Mars surface radiation dose rate | Hassler, D. M. et al. (2014), *Science* 343, 1244797 (Curiosity RAD) | Published paper | Radiation dose of a Marswalk (0.64 mSv/day) |
 | Mars radius, gravity | NASA Goddard Space Flight Center, Mars Fact Sheet | https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html | Distances, map projection |
 | Boxwork science context | NASA/JPL news releases on Curiosity's boxwork campaign (2025) | https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/ and https://www.jpl.nasa.gov/news/nasas-curiosity-rover-sees-martian-spiderwebs-up-close/ | Choosing the site and the science goals |
 
 Full processing details for each dataset are in `data/SOURCES.md`.
 
-**Synthetic (MOCK) content, made by our own code:** stop panoramas, weather conditions, and the thermal-inertia and mineralogy layers. The app labels every one of them `MOCK`. They are replaced as real data is integrated.
+**Synthetic (MOCK) content, made by our own code:** weather conditions, and the thermal-inertia and mineralogy layers. The app labels every one of them `MOCK`. They are replaced as real data is integrated.
 
 ### Official challenge resources
 
@@ -40,7 +41,7 @@ Full processing details for each dataset are in `data/SOURCES.md`.
 | USGS Astrogeology interactive maps | Yes: the same Gale elevation model is published there |
 | Curiosity's proposed path up Mount Sharp (2019 animation) | Context for the demo story only |
 | NASA Worldview | Design reference only (layered maps, data-source labels). No data used. |
-| Mars 2020 raw images | Not used: our site is Gale, not Jezero. We use the Curiosity raw-image archive instead (https://mars.nasa.gov/msl/multimedia/raw-images/) |
+| Mars 2020 raw images | Its Curiosity equivalent is used: the stop photos come from the Curiosity raw-image archive (https://mars.nasa.gov/msl/multimedia/raw-images/), because our site is Gale, not Jezero |
 
 ## Methods and algorithms
 

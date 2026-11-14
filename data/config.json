@@ -85,8 +85,8 @@
     "status": "DERIVED"
   },
   "povImages": {
-    "path": "processed/mock/pov_images.json",
-    "status": "MOCK"
+    "path": "processed/gale/pov_images.json",
+    "status": "OBSERVED"
   },
   "conditions": {
     "path": "processed/mock/conditions.json",

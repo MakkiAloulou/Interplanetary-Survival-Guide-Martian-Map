@@ -3,7 +3,7 @@ import { prepareGrid } from '../route/cost'
 import { planLoop } from '../route/route'
 import { gridFrom } from '../testing/grids'
 import type { Conditions, PovImage, ScienceTarget, Waypoint } from '../types'
-import { buildTimeline, compassPoint, initialBearingDeg, nearestPov, positionAt, withSimulatedStorm } from './eva'
+import { buildTimeline, compassPoint, initialBearingDeg, nearestPov, povsNear, positionAt, withSimulatedStorm } from './eva'
 import { routeStats } from './stats'
 
 function loop() {
@@ -78,6 +78,15 @@ describe('nearestPov / withSimulatedStorm', () => {
     const povs = [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.001 }] as PovImage[]
     expect(nearestPov(povs, 0, 0.0009)).toBe(povs[1])
     expect(nearestPov(povs, 1, 1)).toBeNull()
+  })
+
+  test('only the images from the nearest camera spot, in file order', () => {
+    // a: a neighbouring stop ~6 m away; b and c: taken from the same spot as each other, at the stop
+    const a = { lat: 0, lon: 0.0001, url: 'a' }, b = { lat: 0, lon: 0, url: 'b' }, c = { lat: 0, lon: 0, url: 'c' }
+    const far = { lat: 0, lon: 0.01, url: 'far' }
+    expect(povsNear([a, b, far, c] as PovImage[], 0, 0).map((p) => p.url)).toEqual(['b', 'c'])
+    expect(povsNear([a, b, c] as PovImage[], 0, 0.0001).map((p) => p.url)).toEqual(['a'])
+    expect(povsNear([far] as PovImage[], 0, 0)).toEqual([])
   })
 
   test('storm raises the alert across the EVA window only', () => {

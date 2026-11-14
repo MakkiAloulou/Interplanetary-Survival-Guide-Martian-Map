@@ -54,4 +54,15 @@ Template:
 - Processing applied: `python -m pipeline msl-targets`. 7 curated stops (first ridge close-up, Altadena drill, nodules, panorama viewpoint, Valle de la Luna hollow drill, Nevado Sajama ridge drill, final-phase workspace), each placed at the last waypoint on or before its sol. Earth dates converted to sols from the blog's own pairs (sol 4560 = 2025-06-04, sol 4718 = 2025-11-13). A stop the habitat cannot reach on foot moves to the nearest reachable cell within 20 m and says so (nodules: 3 m off a 36° ridge wall); none dropped. `why` texts paraphrase the reports; crew kit is our MODELED choice.
 - Used as: `processed/gale/science_targets.json` (ScienceTarget[]), status DERIVED
 
-Everything else (sand and boulder classes, thermal and mineralogy layers, POV images, conditions) is still synthetic (`MOCK`) or MODELED, labelled as such, until it is replaced through CLAUDE.md §8.
+## Curiosity raw images at the science stops (Navcam, Front Hazcam)
+- Mission / instrument: Mars Science Laboratory, Curiosity rover: left Navcam (NAV_LEFT_B) and left Front Hazcam (FHAZ_LEFT_B), engineering cameras (NASA/JPL-Caltech)
+- Product ID: raw image ids listed per image in `processed/gale/pov_images.json` (e.g. NLB_813579644EDR_F1191722NCAM00259M); 21 Navcam + 3 Front Hazcam frames
+- URL: https://mars.nasa.gov/msl/multimedia/raw-images/ (JSON API https://mars.nasa.gov/api/v1/raw_image_items/); each image links to its page https://mars.nasa.gov/raw_images/<id>
+- Resolution: originals 1024 x 1024 px grayscale JPEG; app copies 768 px (thumbnails 240 px)
+- Coverage of site: yes; every image was taken at a stop's own rover position (site/drive in the image id = the MMGIS waypoint)
+- License / credit: NASA/JPL-Caltech (credit line as given by the raw-image API)
+- Date retrieved: 2026-11-14
+- Processing applied: `python -m pipeline msl-images`. Per stop: left-Navcam full frames from the arrival sol with mast elevation -25° to -5° (looking out over the terrain), views within 35° of straight back over the rover deck skipped, up to 3 spread around the compass; plus the latest Front Hazcam full frame of the drill workspace on `workspaceSol` (Altadena 4568, Valle de la Luna 4693, Nevado Sajama 4718). Resized with averaging, JPEG quality 85; no other change. Viewing direction = waypoint yaw + mast azimuth (approximate; checked once against the DEM horizon at sol 4671).
+- Used as: `processed/gale/pov_images.json` (PovImage[], isPanorama false), status OBSERVED
+
+Everything else (sand and boulder classes, thermal and mineralogy layers, conditions) is still synthetic (`MOCK`) or MODELED, labelled as such, until it is replaced through CLAUDE.md §8.
