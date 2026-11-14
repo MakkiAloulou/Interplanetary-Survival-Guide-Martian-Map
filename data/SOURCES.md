@@ -65,4 +65,18 @@ Template:
 - Processing applied: `python -m pipeline msl-images`. Per stop: left-Navcam full frames from the arrival sol with mast elevation -25° to -5° (looking out over the terrain), views within 35° of straight back over the rover deck skipped, up to 3 spread around the compass; plus the latest Front Hazcam full frame of the drill workspace on `workspaceSol` (Altadena 4568, Valle de la Luna 4693, Nevado Sajama 4718). Resized with averaging, JPEG quality 85; no other change. Viewing direction = waypoint yaw + mast azimuth (approximate; checked once against the DEM horizon at sol 4671).
 - Used as: `processed/gale/pov_images.json` (PovImage[], isPanorama false), status OBSERVED
 
-Everything else (sand and boulder classes, thermal and mineralogy layers, conditions) is still synthetic (`MOCK`) or MODELED, labelled as such, until it is replaced through CLAUDE.md §8.
+## THEMIS night-time infrared, controlled global mosaic 100 m (via NASA Mars Trek)
+- Mission / instrument: 2001 Mars Odyssey / Thermal Emission Imaging System (THEMIS), night-time infrared; controlled mosaic (Arizona State University / USGS)
+- Product ID: Mars Trek layer `THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018`
+- URL: https://trek.nasa.gov/tiles/Mars/EQ/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018/1.0.0/WMTSCapabilities.xml (tiles `.../1.0.0//default/default028mm/{z}/{row}/{col}.png`)
+- Resolution: 100 m mosaic; deepest TileMatrix 9 (~81 m per tile pixel); 24.6 tile pixels across the 2 km site
+- Coverage of site: yes (mosaic covers latitudes -65° to 65°)
+- License / credit: NASA/JPL-Caltech/Arizona State University; served by NASA Mars Trek (JPL)
+- Date retrieved: 2026-11-14
+- Processing applied: `python -m pipeline themis-night-ir` (pipeline/sources/trek_overlay.py). Level-9 tile pixels sampled nearest (no smoothing) onto a 500 x 500 px image exactly covering the site; grey values (Trek's display stretch, 142-215 inside the site) stretched between their 2nd and 98th percentile and coloured cool (dark blue) to warm (yellow). Relative only: warm at night = material that keeps its heat (rock, high thermal inertia), cool = sand or dust. Too coarse for 2 m hollows; regional context.
+- Used as: layer `themis-night-ir`, status OBSERVED
+
+## Mineralogy: not available at the site
+Checked 2026-11-14: Mars Trek's CRISM MTRDR browse mosaics (e.g. `frt_07_brhydj_mtr3_ll`) are built from 42 targeted observations for human-exploration sites, none over this site (ArcGIS layer `mars_mro_crism_mtrdr_c0a_humex_frt_sites`, envelope query: 0 features). The nearest OMEGA/CRISM hydrous-mineral detection in Trek is 15.7 km away (`Hydrous_Mineral_Detections_OMEGA_CRISM_clon0`). TES mineral and thermal-inertia maps (~3 km pixels) are coarser than the whole site. So the app has no mineral layer; the mock one was removed. Mineral findings at the stops (clay in the ridge sample, carbonate in the hollow sample) come from Curiosity's own analyses, cited in the stop texts.
+
+Everything else (sand and boulder classes, conditions) is still synthetic (`MOCK`) or MODELED, labelled as such, until it is replaced through CLAUDE.md §8.

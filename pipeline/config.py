@@ -135,3 +135,10 @@ POV_NAVCAM_PER_STOP = 3
 POV_SKIP_REAR_HALF_ANGLE_DEG = 35.0
 POV_IMAGE_PX = 768
 POV_THUMB_PX = 240
+
+# THEMIS night-time infrared, controlled global mosaic, 100 m (Mars Odyssey; ASU / USGS), served by NASA Mars Trek.
+# Deepest TileMatrix in its WMTSCapabilities is 9 (~81 m per tile pixel at the equator).
+THEMIS_NIGHT_IR_LAYER = "THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018"
+THEMIS_NIGHT_IR_ZOOM = 9
+# Side of site image overlays sampled from tiles, px (each source pixel shows as a ~10 px block; no smoothing).
+OVERLAY_PX = 500

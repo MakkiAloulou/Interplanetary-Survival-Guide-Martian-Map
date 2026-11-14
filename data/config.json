@@ -46,10 +46,10 @@
       "status": "DERIVED"
     },
     {
-      "id": "thermal-inertia",
-      "name": "Thermal inertia (sand vs bedrock)",
+      "id": "themis-night-ir",
+      "name": "Night warmth (THEMIS): warm = rock, cool = sand or dust",
       "dataType": "thermal",
-      "imageOverlay": "processed/mock/thermal_inertia.png",
+      "imageOverlay": "processed/gale/themis_night_ir.png",
       "bounds": {
         "latMin": -4.8219706,
         "latMax": -4.7882294,
@@ -57,23 +57,8 @@
         "lonMax": 137.3983301
       },
       "opacity": 0.6,
-      "attribution": "MOCK: synthetic placeholder drawn for the mock terrain, not this ground; stands in for THEMIS thermal inertia",
-      "status": "MOCK"
-    },
-    {
-      "id": "mineralogy",
-      "name": "Mineralogy",
-      "dataType": "spectral",
-      "imageOverlay": "processed/mock/mineralogy.png",
-      "bounds": {
-        "latMin": -4.8219706,
-        "latMax": -4.7882294,
-        "lonMin": 137.3644699,
-        "lonMax": 137.3983301
-      },
-      "opacity": 0.6,
-      "attribution": "MOCK: synthetic placeholder drawn for the mock terrain, not this ground; stands in for CRISM mineral map",
-      "status": "MOCK"
+      "attribution": "Mars Odyssey THEMIS night-time infrared, controlled mosaic 100 m (NASA/JPL-Caltech/Arizona State University), via NASA Mars Trek. Relative brightness within the site.",
+      "status": "OBSERVED"
     }
   ],
   "initialLayers": [
