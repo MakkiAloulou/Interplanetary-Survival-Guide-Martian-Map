@@ -18,6 +18,7 @@ import { cellAt, cellCenter, type RouteResult } from './route/route'
 import { findPath } from './route/search'
 import { sphericalDistanceM } from './stats/stats'
 import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, withSimulatedStorm } from './stats/eva'
+import { defaultStartOption, describeTime, startOptions, withMarsSun } from './stats/sun'
 import { FASTER_ALTERNATIVE_MIN_SAVING_MIN } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
 import type { Conditions, DataConfig, PovImage, ScienceTarget, Waypoint } from './types'
@@ -70,16 +71,14 @@ export default function App() {
   return <Planner {...loaded} />
 }
 
-/** Planned EVA start: the first conditions sample with the sun at least 20° up (mock conditions until Phase 7). */
-function defaultStart(conditions: Conditions[]): string {
-  return (conditions.find((c) => c.sunElevationDeg >= 20) ?? conditions[0]).time
-}
-
 function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditions, povs }: Loaded) {
   const routeParams = DEFAULT_ROUTE_PARAMS
   const evaParams = DEFAULT_EVA_PARAMS
   const prepared = useMemo(() => prepareGrid(grid, routeParams), [grid, routeParams])
-  const startTime = useMemo(() => defaultStart(conditions), [conditions])
+  // The sun comes from the Mars24 clock for the site (DERIVED); the conditions file gives weather and radiation.
+  const sunConditions = useMemo(() => withMarsSun(conditions, base.lat, base.lon), [conditions, base])
+  const startChoices = useMemo(() => startOptions(sunConditions, base.lat, base.lon), [sunConditions, base])
+  const [startTime, setStartTime] = useState(() => defaultStartOption(startChoices)?.time ?? conditions[0].time)
   const [layerState, setLayerState] = useState<Record<string, LayerState>>(() =>
     Object.fromEntries(config.layers.map((l) => [l.id, { visible: config.initialLayers.includes(l.id), opacity: l.opacity }])),
   )
@@ -141,10 +140,10 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
 
   // The solar-storm drill raises a radiation alert across the whole O₂ span from the planned start.
   const effectiveConditions = useMemo(() => {
-    if (!storm) return conditions
+    if (!storm) return sunConditions
     const start = Date.parse(startTime)
-    return withSimulatedStorm(conditions, start, start + evaParams.o2DurationS * 1000)
-  }, [storm, conditions, startTime, evaParams])
+    return withSimulatedStorm(sunConditions, start, start + evaParams.o2DurationS * 1000)
+  }, [storm, sunConditions, startTime, evaParams])
 
   const roverStop = stops.find((s) => s.id === roverAt) ?? null
   const roverCell = roverStop ? cellAt(grid, roverStop.lat, roverStop.lon) : null
@@ -295,6 +294,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
             <ConditionsPanel
               conditions={effectiveConditions}
               startTime={startTime}
+              startChoices={startChoices}
+              onStartTime={setStartTime}
+              lonEast={base.lon}
               endTime={verdict?.endTime ?? null}
               storm={storm}
               onStormChange={setStorm}
@@ -363,6 +365,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
         savingS={savingS}
         notice={notice}
         startTime={startTime}
+        startLabel={describeTime(startTime, base.lon)}
         o2DurationS={evaParams.o2DurationS}
         onRemove={(id) => {
           setStops((all) => all.filter((x) => x.id !== id))

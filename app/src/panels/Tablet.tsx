@@ -126,7 +126,7 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
       <aside className="tablet-side">
         <header className="tablet-head">
           <div>
-            <span className="tablet-kick">EVA clock</span>
+            <span className="tablet-kick">Marswalk clock</span>
             <strong>{elapsed(abort ? abort.atT : t)}</strong>
           </div>
           <button type="button" className="tablet-btn" onClick={onExit}>
@@ -220,7 +220,7 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
           <button type="button" className="tablet-btn is-primary" onClick={clock.toggle} disabled={!!abort}>
             {clock.playing ? 'Pause' : done ? 'Replay' : 'Play walk'}
           </button>
-          <input type="range" min={0} max={stats.totalS} step={10} value={t} aria-label="EVA time" disabled={!!abort} onChange={(e) => clock.seek(Number(e.target.value))} />
+          <input type="range" min={0} max={stats.totalS} step={10} value={t} aria-label="Marswalk time" disabled={!!abort} onChange={(e) => clock.seek(Number(e.target.value))} />
           <select value={clock.speed} aria-label="Playback speed" onChange={(e) => clock.setSpeed(Number(e.target.value))}>
             {PLAYBACK_SPEEDS.map((s) => (
               <option key={s} value={s}>

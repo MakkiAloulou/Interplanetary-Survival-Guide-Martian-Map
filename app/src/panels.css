@@ -427,6 +427,32 @@ button.tl-stop.is-selected {
   transform: none;
 }
 
+/* ---------- Planned start ---------- */
+
+.start-select {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.start-select select {
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.readouts dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ---------- Crew plan in the stop card ---------- */
 
 .detail-body h3 {

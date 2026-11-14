@@ -185,6 +185,36 @@ function nextCrossingMs(fromMs: number, lat: number, lon: number, horizon: numbe
   return null
 }
 
+/**
+ * First UTC instant at or after fromMs when local true solar time at lonEastDeg reads `hour` (0–24), to ~1 s.
+ * LTST advances one Mars hour per ~3699 s, so a 10-minute scan finds the wrap-safe crossing within one sol.
+ */
+export function nextLtstMs(fromMs: number, lonEastDeg: number, hour: number): number {
+  // Hours still to go from `ltst` until the clock reads `hour`, in [0, 24).
+  const ahead = (ms: number) => (((hour - ltstHours(marsTime(ms), lonEastDeg)) % 24) + 24) % 24
+  if (ahead(fromMs) < 1e-6) return fromMs
+  const step = 10 * 60_000
+  let t0 = fromMs
+  let a0 = ahead(t0)
+  for (let t1 = fromMs + step; t1 <= fromMs + 2 * 88_775_244; t1 += step) {
+    const a1 = ahead(t1)
+    if (a1 > a0) {
+      // `ahead` wrapped from near 0 back to near 24 between t0 and t1: the crossing is inside.
+      let lo = t0
+      let hi = t1
+      while (hi - lo > 1000) {
+        const mid = (lo + hi) / 2
+        if (ahead(mid) <= ahead(lo)) lo = mid
+        else hi = mid
+      }
+      return Math.round(hi)
+    }
+    t0 = t1
+    a0 = a1
+  }
+  return fromMs
+}
+
 /** "13:09:55" from hours. */
 export function formatMarsClock(hours: number): string {
   const s = Math.floor(mod(hours, 24) * 3600 + 1e-6)

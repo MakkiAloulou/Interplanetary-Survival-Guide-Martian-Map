@@ -1,4 +1,6 @@
+import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import { findSunset, sunElevationAt } from '../stats/conditions'
+import type { StartOption } from '../stats/sun'
 import type { Conditions } from '../types'
 import { CloseIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
@@ -6,6 +8,10 @@ import { StatusBadge } from '../ui/StatusBadge'
 interface Props {
   conditions: Conditions[]
   startTime: string
+  /** daylight start times in Mars local time */
+  startChoices: StartOption[]
+  onStartTime: (iso: string) => void
+  lonEast: number
   endTime: string | null
   storm: boolean
   onStormChange: (on: boolean) => void
@@ -15,7 +21,8 @@ interface Props {
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16)
 
 /** Weather, daylight and space weather for the EVA window, plus the solar-storm drill. */
-export function ConditionsPanel({ conditions, startTime, endTime, storm, onStormChange, onClose }: Props) {
+export function ConditionsPanel({ conditions, startTime, startChoices, onStartTime, lonEast, endTime, storm, onStormChange, onClose }: Props) {
+  const local = (ms: number) => formatMarsClock(ltstHours(marsTime(ms), lonEast)).slice(0, 5)
   const startMs = Date.parse(startTime)
   const endMs = endTime ? Date.parse(endTime) : null
   const at = conditions.reduce((best, c) => (Math.abs(Date.parse(c.time) - startMs) < Math.abs(Date.parse(best.time) - startMs) ? c : best), conditions[0])
@@ -40,8 +47,19 @@ export function ConditionsPanel({ conditions, startTime, endTime, storm, onStorm
           <CloseIcon size={16} />
         </button>
       </header>
+      <label className="start-select">
+        <span>Planned start, Mars local time</span>
+        <select value={startTime} onChange={(e) => onStartTime(e.target.value)}>
+          {!startChoices.some((o) => o.time === startTime) && <option value={startTime}>{local(startMs)}</option>}
+          {startChoices.map((o) => (
+            <option key={o.time} value={o.time}>
+              {o.ltst} · sun {Math.round(o.sunDeg)}° · {o.time.slice(11, 16)} UTC
+            </option>
+          ))}
+        </select>
+      </label>
       <p className="panel-sub">
-        At the planned start, {hhmm(startMs)} UTC <StatusBadge status={status} />
+        Weather at the start, {hhmm(startMs)} UTC <StatusBadge status={status} />
       </p>
 
       <dl className="readouts">
@@ -58,12 +76,16 @@ export function ConditionsPanel({ conditions, startTime, endTime, storm, onStorm
           <dd>{at.dustTau.toFixed(2)}</dd>
         </div>
         <div>
-          <dt>Sun elevation</dt>
+          <dt>
+            Sun elevation <StatusBadge status="DERIVED" />
+          </dt>
           <dd>{sunNow !== null ? `${sunNow.toFixed(0)}°` : '—'}</dd>
         </div>
         <div>
-          <dt>Sunset</dt>
-          <dd>{sunset !== null ? `${hhmm(sunset)} UTC` : '—'}</dd>
+          <dt>
+            Sunset <StatusBadge status="DERIVED" />
+          </dt>
+          <dd>{sunset !== null ? `${local(sunset)} local` : '—'}</dd>
         </div>
         <div>
           <dt>Radiation</dt>
@@ -72,7 +94,7 @@ export function ConditionsPanel({ conditions, startTime, endTime, storm, onStorm
       </dl>
 
       <figure className="sunchart">
-        <figcaption>Sun over the sol, EVA window shaded</figcaption>
+        <figcaption>Sun over the sol from the Mars24 clock, Marswalk shaded</figcaption>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Sun elevation through the sol">
           {endMs && <rect x={x(startMs)} y={0} width={Math.max(2, x(endMs) - x(startMs))} height={H} className="sun-window" />}
           <line x1={0} x2={W} y1={H / 2} y2={H / 2} className="sun-horizon" />
@@ -84,7 +106,7 @@ export function ConditionsPanel({ conditions, startTime, endTime, storm, onStorm
         <input type="checkbox" role="switch" checked={storm} onChange={(e) => onStormChange(e.target.checked)} />
         <span>
           <strong>Simulate solar storm</strong>
-          <small>Raises a radiation alert over the EVA window to rehearse the shelter call. SIMULATED, not a forecast.</small>
+          <small>Raises a radiation alert over the Marswalk to rehearse the shelter call. SIMULATED, not a forecast.</small>
         </span>
       </label>
     </section>

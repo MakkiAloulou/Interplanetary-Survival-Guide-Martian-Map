@@ -149,7 +149,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
           <strong>{margin < 0 ? 'Past the limit' : formatDuration(margin)}</strong>
         </div>
         <div>
-          <span className="hud-label">EVA clock</span>
+          <span className="hud-label">Marswalk clock</span>
           <strong>{elapsed(t)}</strong>
         </div>
       </div>
@@ -172,7 +172,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
           max={stats.totalS}
           step={10}
           value={t}
-          aria-label="EVA time"
+          aria-label="Marswalk time"
           onChange={(e) => clock.seek(Number(e.target.value))}
         />
         <select value={speed} aria-label="Playback speed" onChange={(e) => clock.setSpeed(Number(e.target.value))}>

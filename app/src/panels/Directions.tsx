@@ -25,6 +25,8 @@ interface Props {
   failedLeg: number | null
   notice: Message | null
   startTime: string
+  /** "10:30 Mars local (13:12 UTC)" */
+  startLabel: string
   o2DurationS: number
   targets: ScienceTarget[]
   onAddTarget: (target: ScienceTarget) => void
@@ -111,7 +113,7 @@ function RouteOptions(props: {
 }
 
 export function Directions(props: Props) {
-  const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startTime, o2DurationS } = props
+  const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startLabel, o2DurationS } = props
   const { targets, onAddTarget, onRemove, onMove, onClear, selected, onSelect, hoverIndex, onHover } = props
   const { roverAt, onRoverAt, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
   const [showReasons, setShowReasons] = useState(false)
@@ -120,8 +122,6 @@ export function Directions(props: Props) {
   const [dropAt, setDropAt] = useState<number | null>(null)
   const stats = verdict?.stats ?? null
   const arrive = arrivals(verdict)
-  const start = new Date(startTime)
-  const startLabel = `${start.toISOString().slice(11, 16)} UTC, ${start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
   const cautions = verdict?.reasons.filter((r) => r.severity !== 'info') ?? []
   const infos = verdict?.reasons.filter((r) => r.severity === 'info') ?? []
 

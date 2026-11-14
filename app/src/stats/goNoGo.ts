@@ -105,7 +105,7 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
     add(
       'O2_BUDGET',
       'no-go',
-      `EVA takes ${formatDuration(stats.totalS)} but O₂ allows ${formatDuration(usableO2)} before the ` +
+      `The Marswalk takes ${formatDuration(stats.totalS)} but O₂ allows ${formatDuration(usableO2)} before the ` +
         `${formatDuration(params.o2ReserveS)} reserve (short by ${formatDuration(stats.totalS - usableO2)}).`,
     )
   } else {
@@ -169,20 +169,20 @@ export function evaluateEva(input: EvaInput): EvaVerdict {
   const alerts = radiationAlertsIn(conditions, startMs, endMs)
   if (alerts.length > 0) {
     const from = new Date(Math.max(Date.parse(alerts[0].time), startMs)).toISOString().slice(11, 16)
-    add('RADIATION', 'no-go', `Radiation alert during the EVA window (from ${from} UTC): stay in the habitat or a shelter.`)
+    add('RADIATION', 'no-go', `Radiation alert during the Marswalk (from ${from} UTC): stay in the habitat or a shelter.`)
   } else if (covered) {
-    add('RADIATION', 'info', 'No radiation alert during the EVA window.')
+    add('RADIATION', 'info', 'No radiation alert during the Marswalk.')
   }
   // Background dose of the walk itself (suit shielding not counted, so this is an upper bound for the background).
   const dose = evaDoseMSv(stats.totalS)
   add(
     'DOSE',
     'info',
-    `Radiation dose for this EVA about ${dose.toFixed(2)} mSv at the Gale surface background (Curiosity RAD, ` +
+    `Radiation dose for this Marswalk about ${dose.toFixed(2)} mSv at the Gale surface background (Curiosity RAD, ` +
       `${RAD_BASELINE_DOSE_MSV_PER_DAY} mSv/day; suit shielding not counted)${alerts.length ? '; a solar storm adds more' : ''}.`,
   )
   if (!covered) {
-    add('NO_CONDITIONS', 'caution', 'Conditions data does not cover the whole EVA window: daylight and radiation are not fully checked.')
+    add('NO_CONDITIONS', 'caution', 'Conditions data does not cover the whole Marswalk: daylight and radiation are not fully checked.')
   }
 
   // Hazards along the route.

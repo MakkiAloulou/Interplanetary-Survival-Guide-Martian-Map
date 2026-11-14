@@ -19,9 +19,9 @@ export function Timeline({ segments, totalS, selected, onSelect }: Props) {
   let stop = 0
 
   return (
-    <section className="card timeline" aria-label="EVA timeline">
+    <section className="card timeline" aria-label="Marswalk timeline">
       <header className="timeline-head">
-        <h2>EVA timeline</h2>
+        <h2>Marswalk timeline</h2>
         <span className="timeline-sub">
           {formatDuration(totalS)} from habitat to habitat · click a stop for who does what <StatusBadge status="MODELED" />
         </span>
