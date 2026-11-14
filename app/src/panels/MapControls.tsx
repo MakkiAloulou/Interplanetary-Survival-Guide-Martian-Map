@@ -3,7 +3,7 @@ import type { LayerState } from '../map/MapView'
 import { HAZARD_COLORS, HAZARD_LABELS, WALK_HOME_BANDS, WALK_HOME_UNREACHABLE, type GridOverlayMode, type Hazard } from '../map/overlays'
 import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import type { DataConfig, DataStatus } from '../types'
-import { CloseIcon, LayersIcon, TabletIcon, VisorIcon } from '../ui/icons'
+import { BookmarkIcon, CloseIcon, LayersIcon, TabletIcon, VisorIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 
 interface Props {
@@ -14,14 +14,18 @@ interface Props {
   onLayerChange: (id: string, state: LayerState) => void
   overlay: GridOverlayMode
   onOverlayChange: (mode: GridOverlayMode) => void
-  panel: 'layers' | 'conditions' | null
-  onPanel: (panel: 'layers' | 'conditions' | null) => void
+  panel: Panel | null
+  onPanel: (panel: Panel | null) => void
   conditionsPanel: ReactNode
+  savedPanel: ReactNode
+  savedCount: number
   stormActive: boolean
   hudEnabled: boolean
   onHud: () => void
   onTablet: () => void
 }
+
+type Panel = 'layers' | 'conditions' | 'saved'
 
 const OVERLAYS: { mode: GridOverlayMode; label: string }[] = [
   { mode: 'none', label: 'Off' },
@@ -55,8 +59,8 @@ function MarsClock({ lon, open, alert, onClick }: { lon: number; open: boolean; 
 
 export function MapControls(props: Props) {
   const { config, baseLon, gridStatus, layerState, onLayerChange, overlay, onOverlayChange } = props
-  const { panel, onPanel, conditionsPanel, stormActive, hudEnabled, onHud, onTablet } = props
-  const toggle = (p: 'layers' | 'conditions') => onPanel(panel === p ? null : p)
+  const { panel, onPanel, conditionsPanel, savedPanel, savedCount, stormActive, hudEnabled, onHud, onTablet } = props
+  const toggle = (p: Panel) => onPanel(panel === p ? null : p)
   return (
     <div className="map-controls">
       <div className="map-controls-row">
@@ -64,6 +68,11 @@ export function MapControls(props: Props) {
         <button type="button" className="chip-float layers-btn" aria-expanded={panel === 'layers'} aria-controls="layers-panel" onClick={() => toggle('layers')}>
           <LayersIcon size={18} />
           Layers
+        </button>
+        <button type="button" className="chip-float layers-btn" aria-expanded={panel === 'saved'} onClick={() => toggle('saved')}>
+          <BookmarkIcon size={18} />
+          Saved
+          {savedCount > 0 && <span className="chip-count">{savedCount}</span>}
         </button>
         <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Tablet carried on the walk' : 'Plan a route first'} onClick={onTablet}>
           <TabletIcon size={18} />
@@ -76,6 +85,8 @@ export function MapControls(props: Props) {
       </div>
 
       {panel === 'conditions' && conditionsPanel}
+
+      {panel === 'saved' && savedPanel}
 
       {panel === 'layers' && (
         <section id="layers-panel" className="card layers-panel" aria-label="Map layers">

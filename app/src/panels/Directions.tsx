@@ -45,6 +45,8 @@ interface Props {
   /** move the stop at index `from` to index `to` */
   onMove: (from: number, to: number) => void
   onClear: () => void
+  /** open the saved plans panel to save this plan */
+  onSavePlan: () => void
   /** 0 = habitat, n = stop n */
   selected: number | null
   onSelect: (station: number) => void
@@ -114,7 +116,7 @@ function RouteOptions(props: {
 
 export function Directions(props: Props) {
   const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startLabel, o2DurationS } = props
-  const { targets, onAddTarget, onRemove, onMove, onClear, selected, onSelect, hoverIndex, onHover } = props
+  const { targets, onAddTarget, onRemove, onMove, onClear, onSavePlan, selected, onSelect, hoverIndex, onHover } = props
   const { roverAt, onRoverAt, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
   const [showReasons, setShowReasons] = useState(false)
   const [dragFrom, setDragFrom] = useState<number | null>(null)
@@ -371,6 +373,9 @@ export function Directions(props: Props) {
 
       {stops.length > 0 && (
         <footer className="card-foot">
+          <button type="button" className="btn-secondary" onClick={onSavePlan}>
+            Save plan
+          </button>
           <button type="button" className="btn-secondary" onClick={onClear}>
             Clear route
           </button>

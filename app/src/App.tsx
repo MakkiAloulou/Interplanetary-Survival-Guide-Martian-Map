@@ -19,6 +19,9 @@ import { findPath } from './route/search'
 import { sphericalDistanceM } from './stats/stats'
 import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, withSimulatedStorm } from './stats/eva'
 import { defaultStartOption, describeTime, startOptions, withMarsSun } from './stats/sun'
+import { decodePlan, encodePlan, type DecodedPlan } from './share'
+import { loadSavedPlans, planLink, storeSavedPlans, withPlanSaved, type SavedPlan } from './saved'
+import { SavedPlans } from './panels/SavedPlans'
 import { FASTER_ALTERNATIVE_MIN_SAVING_MIN } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
 import type { Conditions, DataConfig, PovImage, ScienceTarget, Waypoint } from './types'
@@ -71,6 +74,12 @@ export default function App() {
   return <Planner {...loaded} />
 }
 
+/** The notice for a plan opened from a link: what could not be restored, if anything. */
+function linkNotice(plan: DecodedPlan | null): Message | null {
+  if (!plan || plan.skipped.length === 0) return null
+  return { kind: 'error', text: `Part of the plan link could not be restored. ${plan.skipped.join(' ')}` }
+}
+
 function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditions, povs }: Loaded) {
   const routeParams = DEFAULT_ROUTE_PARAMS
   const evaParams = DEFAULT_EVA_PARAMS
@@ -78,32 +87,67 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   // The sun comes from the Mars24 clock for the site (DERIVED); the conditions file gives weather and radiation.
   const sunConditions = useMemo(() => withMarsSun(conditions, base.lat, base.lon), [conditions, base])
   const startChoices = useMemo(() => startOptions(sunConditions, base.lat, base.lon), [sunConditions, base])
-  const [startTime, setStartTime] = useState(() => defaultStartOption(startChoices)?.time ?? conditions[0].time)
+  const defaultStart = defaultStartOption(startChoices)?.time ?? conditions[0].time
+  /** Why a point cannot be a stop, or null: the same check for clicked stops and stops from a plan link. */
+  const stopProblem = (w: Waypoint) => {
+    const cell = cellAt(grid, w.lat, w.lon)
+    if (cell < 0) return 'outside the mapped site.'
+    if (!isPassable(prepared, cell)) return 'impassable on foot: no-go terrain or a slope of 25° or more.'
+    return null
+  }
+  // A plan link (the URL hash) opens the same plan; from then on the hash follows every change to the plan.
+  const [linked] = useState(() => decodePlan(window.location.hash, targets, stopProblem))
+  const [startTime, setStartTime] = useState(() => linked?.startTime ?? defaultStart)
   const [layerState, setLayerState] = useState<Record<string, LayerState>>(() =>
     Object.fromEntries(config.layers.map((l) => [l.id, { visible: config.initialLayers.includes(l.id), opacity: l.opacity }])),
   )
   const [overlay, setOverlay] = useState<GridOverlayMode>('none')
-  const [stops, setStops] = useState<Waypoint[]>([])
+  const [stops, setStops] = useState<Waypoint[]>(() => linked?.stops ?? [])
   const [routes, setRoutes] = useState<Record<RouteProfile, RouteResult> | null>(null)
   /** the user's pick when a real trade-off is offered; the safest route otherwise */
-  const [profile, setProfile] = useState<RouteProfile>('safest')
+  const [profile, setProfile] = useState<RouteProfile>(() => linked?.profile ?? 'safest')
   const [walkHome, setWalkHome] = useState<Float32Array | null>(null)
   const [routing, setRouting] = useState(false)
-  const [notice, setNoticeState] = useState<Message | null>(null)
+  const [notice, setNoticeState] = useState<Message | null>(() => linkNotice(linked))
   const setNotice = (text: string | null, kind: Message['kind'] = 'error') => setNoticeState(text ? { kind, text } : null)
   /** where the rover is staged as a safe haven: 'habitat' or a stop id */
-  const [roverAt, setRoverAt] = useState('habitat')
+  const [roverAt, setRoverAt] = useState(() => linked?.roverAt ?? 'habitat')
   const [havenFields, setHavenFields] = useState<Record<number, Float32Array>>({})
   const [optimising, setOptimising] = useState(false)
-  const [panel, setPanel] = useState<'layers' | 'conditions' | null>(null)
-  const [storm, setStorm] = useState(false)
+  const [panel, setPanel] = useState<'layers' | 'conditions' | 'saved' | null>(null)
+  const [saved, setSaved] = useState<SavedPlan[]>(() => loadSavedPlans())
+  const [storm, setStorm] = useState(() => linked?.storm ?? false)
   const [selected, setSelected] = useState<number | null>(null)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [hud, setHud] = useState(false)
   const [tablet, setTablet] = useState(false)
   const client = useRef<{ client: RouteClient; ready: Promise<void> } | null>(null)
-  const viaCount = useRef(0)
+  const viaCount = useRef(linked?.stops.filter((s) => s.kind === 'via').length ?? 0)
   const baseCell = cellAt(grid, base.lat, base.lon)
+
+  // Keep the address bar a working link to the current plan (replaceState: no history entry per edit).
+  const planHash = encodePlan({ stops, startTime: startTime === defaultStart ? null : startTime, roverAt, profile, storm })
+  useEffect(() => {
+    if (planHash !== window.location.hash) window.history.replaceState(null, '', planHash || window.location.pathname + window.location.search)
+  }, [planHash])
+
+  // A plan link pasted into this tab replaces the plan.
+  useEffect(() => {
+    const onHash = () => {
+      const plan = decodePlan(window.location.hash, targets, stopProblem)
+      if (!plan) return
+      setStops(plan.stops)
+      setStartTime(plan.startTime ?? defaultStart)
+      setRoverAt(plan.roverAt)
+      setProfile(plan.profile)
+      setStorm(plan.storm)
+      viaCount.current = plan.stops.filter((s) => s.kind === 'via').length
+      setSelected(null)
+      setNoticeState(linkNotice(plan))
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  })
 
   useEffect(() => {
     const c = createRouteClient()
@@ -199,9 +243,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const hoverPoint = stats && hoverIndex !== null ? stats.track[hoverIndex] : null
 
   function addStop(w: Waypoint) {
-    const cell = cellAt(grid, w.lat, w.lon)
-    if (cell < 0) return setNotice('That point is outside the mapped site.')
-    if (!isPassable(prepared, cell)) return setNotice('That spot is impassable on foot: no-go terrain or a slope of 25° or more.')
+    const why = stopProblem(w)
+    if (why) return setNotice(`That spot is ${why}`)
     setNotice(null)
     // Dedupe against the latest list, not this render's copy: two quick clicks must not add a stop twice.
     setStops((s) => (s.some((x) => x.id === w.id) ? s : [...s, w]))
@@ -244,6 +287,27 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
       best = { haven: h.name, timeS: path.timeS, distanceM, points: pts }
     }
     return best
+  }
+
+  function updateSaved(list: SavedPlan[]) {
+    setSaved(list)
+    if (!storeSavedPlans(list)) setNotice('This browser refused to store saved plans (storage blocked or full). Copy the plan link instead.')
+  }
+
+  function savePlan(name: string) {
+    const summary = { stops: stops.length, start: describeTime(startTime, base.lon), totalS: stats?.totalS ?? null, verdict: verdict?.verdict ?? null }
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+    updateSaved(withPlanSaved(saved, { name, savedAt: new Date().toISOString(), hash: planHash, summary }, id))
+  }
+
+  async function copySavedLink(p: SavedPlan) {
+    try {
+      await navigator.clipboard.writeText(planLink(p.hash, window.location))
+      return true
+    } catch {
+      setNotice('Could not copy automatically. Open the plan, then copy the address bar.', 'info')
+      return false
+    }
   }
 
   function addTarget(t: ScienceTarget) {
@@ -290,6 +354,21 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           hudEnabled={stats !== null && safeHaven !== null}
           onHud={() => setHud(true)}
           onTablet={() => setTablet(true)}
+          savedPanel={
+            <SavedPlans
+              plans={saved}
+              current={{ hash: planHash, defaultName: `Marswalk ${saved.length + 1}`, canSave: stats !== null }}
+              onSave={savePlan}
+              onOpen={(p) => {
+                window.location.hash = p.hash // the hashchange listener restores the plan
+              }}
+              onCopy={copySavedLink}
+              onDelete={(p) => updateSaved(saved.filter((x) => x.id !== p.id))}
+              onRestore={(p) => updateSaved([p, ...saved.filter((x) => x.hash !== p.hash)])}
+              onClose={() => setPanel(null)}
+            />
+          }
+          savedCount={saved.length}
           conditionsPanel={
             <ConditionsPanel
               conditions={effectiveConditions}
@@ -384,6 +463,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           })
           setSelected(null)
         }}
+        onSavePlan={() => setPanel('saved')}
         onClear={() => {
           setStops([])
           setNotice(null)

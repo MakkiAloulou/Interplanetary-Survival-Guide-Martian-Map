@@ -55,6 +55,14 @@ export function LayersIcon(props: IconProps) {
   )
 }
 
+export function BookmarkIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6.5 3.5h11v17l-5.5-4-5.5 4z" />
+    </Svg>
+  )
+}
+
 export function TabletIcon(props: IconProps) {
   return (
     <Svg {...props}>
