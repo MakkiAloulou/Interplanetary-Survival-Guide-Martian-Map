@@ -47,6 +47,8 @@ interface Props {
   onClear: () => void
   /** open the saved plans panel to save this plan */
   onSavePlan: () => void
+  /** open the printable Marswalk card; null while the route is not ready */
+  onPrint: (() => void) | null
   /** 0 = habitat, n = stop n */
   selected: number | null
   onSelect: (station: number) => void
@@ -116,7 +118,7 @@ function RouteOptions(props: {
 
 export function Directions(props: Props) {
   const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startLabel, o2DurationS } = props
-  const { targets, onAddTarget, onRemove, onMove, onClear, onSavePlan, selected, onSelect, hoverIndex, onHover } = props
+  const { targets, onAddTarget, onRemove, onMove, onClear, onSavePlan, onPrint, selected, onSelect, hoverIndex, onHover } = props
   const { roverAt, onRoverAt, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
   const [showReasons, setShowReasons] = useState(false)
   const [dragFrom, setDragFrom] = useState<number | null>(null)
@@ -376,8 +378,11 @@ export function Directions(props: Props) {
           <button type="button" className="btn-secondary" onClick={onSavePlan}>
             Save plan
           </button>
+          <button type="button" className="btn-secondary" disabled={!onPrint} onClick={() => onPrint?.()}>
+            Print card
+          </button>
           <button type="button" className="btn-secondary" onClick={onClear}>
-            Clear route
+            Clear
           </button>
         </footer>
       )}

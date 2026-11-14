@@ -22,6 +22,7 @@ import { defaultStartOption, describeTime, startOptions, withMarsSun } from './s
 import { decodePlan, encodePlan, type DecodedPlan } from './share'
 import { loadSavedPlans, planLink, storeSavedPlans, withPlanSaved, type SavedPlan } from './saved'
 import { SavedPlans } from './panels/SavedPlans'
+import { PrintCard } from './panels/PrintCard'
 import { FASTER_ALTERNATIVE_MIN_SAVING_MIN } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
 import type { Conditions, DataConfig, PovImage, ScienceTarget, Waypoint } from './types'
@@ -121,6 +122,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [hud, setHud] = useState(false)
   const [tablet, setTablet] = useState(false)
+  const [card, setCard] = useState(false)
   const client = useRef<{ client: RouteClient; ready: Promise<void> } | null>(null)
   const viaCount = useRef(linked?.stops.filter((s) => s.kind === 'via').length ?? 0)
   const baseCell = cellAt(grid, base.lat, base.lon)
@@ -414,6 +416,27 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
         />
       )}
 
+      {card && stats && safeHaven && verdict && (
+        <PrintCard
+          siteName={config.site.name}
+          planName={saved.find((p) => p.hash === planHash)?.name ?? null}
+          planLink={planLink(planHash, window.location)}
+          startTime={startTime}
+          lonEast={base.lon}
+          verdict={verdict}
+          stats={stats}
+          stations={stations}
+          targets={targets}
+          grid={grid}
+          routeParams={routeParams}
+          walkHome={safeHaven}
+          roverAt={roverStop?.name ?? null}
+          params={evaParams}
+          conditions={effectiveConditions}
+          onClose={() => setCard(false)}
+        />
+      )}
+
       {hud && stats && safeHaven && verdict && (
         <Hud
           stats={stats}
@@ -464,6 +487,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           setSelected(null)
         }}
         onSavePlan={() => setPanel('saved')}
+        onPrint={stats && safeHaven ? () => setCard(true) : null}
         onClear={() => {
           setStops([])
           setNotice(null)

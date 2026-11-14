@@ -597,8 +597,13 @@ button {
   transition: background 120ms ease-out;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background: var(--blue-bg);
+}
+
+.btn-secondary:disabled {
+  color: var(--text-3);
+  cursor: not-allowed;
 }
 
 /* ---------- Floating map controls ---------- */
