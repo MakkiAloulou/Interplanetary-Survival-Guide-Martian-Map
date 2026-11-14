@@ -73,6 +73,42 @@ export function findPath(p: PreparedGrid, start: number, goal: number): Path | n
   return null
 }
 
+/**
+ * Fastest walking path from `start` to whichever of `goals` is quickest to reach (Dijkstra, stops at the first goal
+ * settled), or null when none is reachable. Used to walk back onto a planned route from off it.
+ */
+export function findPathToAny(p: PreparedGrid, start: number, goals: Iterable<number>): (Path & { goal: number }) | null {
+  if (!isPassable(p, start)) return null
+  const goalSet = new Set<number>()
+  for (const g of goals) if (isPassable(p, g)) goalSet.add(g)
+  if (goalSet.size === 0) return null
+  if (goalSet.has(start)) return { cells: [start], timeS: 0, goal: start }
+
+  const { g, came, closed } = p.scratch
+  g.fill(Infinity)
+  came.fill(-1)
+  closed.fill(0)
+  const heap = createHeap()
+  g[start] = 0
+  heap.push(0, start)
+  while (heap.size() > 0) {
+    const cell = heap.pop()
+    if (closed[cell]) continue
+    if (goalSet.has(cell)) return { cells: reconstruct(came, cell), timeS: g[cell], goal: cell }
+    closed[cell] = 1
+    forEachNeighbour(p, cell, (n, distM) => {
+      if (closed[n]) return
+      const t = g[cell] + stepTime(p, cell, n, distM)
+      if (t < g[n]) {
+        g[n] = t
+        came[n] = cell
+        heap.push(t, n)
+      }
+    })
+  }
+  return null
+}
+
 function reconstruct(came: Int32Array, goal: number): number[] {
   const cells = [goal]
   for (let c = came[goal]; c !== -1; c = came[c]) cells.push(c)

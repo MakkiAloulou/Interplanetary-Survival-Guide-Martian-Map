@@ -81,12 +81,13 @@ describe('one palette', () => {
   test('the CSS tokens and the map inks are the same colours', () => {
     const css = readFileSync(new URL('../index.css', import.meta.url), 'utf8')
     const token = (name: string) => css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`))?.[1].toLowerCase()
-    expect({ blue: token('blue'), amber: token('amber'), red: token('red'), green: token('green'), traverse: token('traverse'), text: token('text'), onAccent: token('on-accent') }).toEqual({
+    expect({ blue: token('blue'), amber: token('amber'), red: token('red'), green: token('green'), traverse: token('traverse'), rejoin: token('rejoin'), text: token('text'), onAccent: token('on-accent') }).toEqual({
       blue: INK.blue,
       amber: INK.amber,
       red: INK.red,
       green: INK.green,
       traverse: INK.traverse,
+      rejoin: INK.rejoin,
       text: INK.black,
       onAccent: INK.white,
     })

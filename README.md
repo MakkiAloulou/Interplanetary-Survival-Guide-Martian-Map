@@ -5,6 +5,43 @@
 **Live app:** https://interplanetary-survival-guide-marti-red.vercel.app
 **Example plan** (four real Curiosity stops, rover staged as a radio relay): [open it](https://interplanetary-survival-guide-marti-red.vercel.app/#stops=t:msl-panorama,t:msl-valle-de-la-luna,t:msl-nevado-sajama,t:msl-nodules&rover=2)
 
+## Quick start
+
+You need **Node.js 22.12 or newer** ([download](https://nodejs.org), the LTS version is fine) and an **internet connection** (the HiRISE base map loads live from NASA Mars Trek). Check your version with `node --version`.
+
+From the project folder, run:
+
+```bash
+cd app
+npm install
+npm run dev
+```
+
+Open the address it prints (normally **http://localhost:5173**). All site data is already in the project; nothing else needs to be downloaded or built. Stop the server with `Ctrl+C`.
+
+To open the example plan on your own machine, use:
+http://localhost:5173/#stops=t:msl-panorama,t:msl-valle-de-la-luna,t:msl-nevado-sajama,t:msl-nodules&rover=2
+
+### Try it in 1 minute
+
+1. Click the round white science targets on the map, or add them from the list on the left (or open the example plan above). The route, the safety checks and the **GO / NO-GO** verdict appear on the left.
+2. Click **Tablet** (top right) to open the crew's walking view, then **Play walk**.
+3. Press **Get real position**: the crew jumps to a simulated position fix off the route, and a **pink path** leads back onto the planned (blue) route. Press **Play walk** again to follow it.
+4. Also try **HUD** (helmet visor view), the **Mars clock** chip (start time, conditions, solar-storm drill) and **Print card**.
+
+### Other commands (optional)
+
+Run these inside `app/`:
+
+```bash
+npm test           # unit tests
+npm run typecheck  # TypeScript check
+npm run build      # production build into app/dist
+npm run preview    # serve that build at http://localhost:4173
+```
+
+If `npm install` fails or the page stays blank, check `node --version` first: older Node versions do not work with this project.
+
 ## Why
 
 Mars Trek and the USGS geologic maps work at global and regional scale. A crew on foot needs the scale of one walk: a 2 × 2 km site at 2 m resolution. Martian Map plans that walk on real terrain, keeps it on the ridges and off the sand, takes it to the science, and judges it **GO or NO-GO, always with the reasons**.
@@ -24,13 +61,13 @@ Mars Trek and the USGS geologic maps work at global and regional scale. A crew o
 - **Compares with the rover:** Curiosity's real path is drawn on the map. A line under the verdict states how many sols Curiosity spent on the plan's stops, against one Marswalk.
 - **Three views of the same plan:**
   - the **habitat planner** (this page);
-  - a **tablet view** carried on the walk: map following the crew, next stop, live warnings, abort;
+  - a **tablet view** carried on the walk: map following the crew, next stop, live warnings, abort, and **Get real position**: a position fix that shows where the crew really is and a pink path back onto the planned route (the fix itself is simulated for the demo, labelled `MOCK`; see below);
   - a **helmet HUD:** bearing, distance, O₂, walk-home margin, short alerts.
 - **Shares and prints:** every plan is a link; plans can be saved in the browser; a two-sided A4 card prints the route, the checks and each stop.
 
 ## Real data, labelled honestly
 
-Every value is labelled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`, and nothing in the app is `MOCK`.
+Every value is labelled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`. Every dataset is real; the one `MOCK` item is the demo position fix on the tablet.
 
 | Layer or input | Source | Label |
 |---|---|---|
@@ -44,6 +81,11 @@ Every value is labelled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`, and nothing 
 | Weather on the planned sol | Curiosity REMS daily report, sol 4718 (2025-11-13) | MODELED (measured min/max, assumed curve) |
 | Space weather | NASA DONKI: WSA-Enlil CME forecasts for Mars | MODELED |
 | Walking speed, O₂, limits, habitat position, antenna heights | Our stated assumptions, each documented in the config | MODELED |
+| Position fix ("Get real position" on the tablet) | Simulated: the planned position moved by a random 15–40 m sideways drift (`app/src/localize/getRealPosition.ts`). The way back to the route is planned on the real terrain. | MOCK |
+
+### Position fix (demo)
+
+There is no rover camera in this project, so `getRealPosition()` fakes the answer a real localization system would give (for example a rover matching a 360° stereo view to the HiRISE map, as NASA's Mars Global Localization does for Perseverance). On the tablet, **Get real position** pauses the walk and moves the crew to the simulated fix. The app then plans the quickest walkable way back onto the route ahead (never behind the crew, never past the next stop) and draws it in **pink**, with a dashed line for the correction. Playing on walks the pink path, then continues along the plan from where it rejoins; arrival times shift by the detour. Replacing the body of `getRealPosition()` with a real localization call is the only change needed to use real fixes.
 
 No mineral layer: the official resources have no CRISM data over this site (checked; see [data/SOURCES.md](data/SOURCES.md)).
 
@@ -53,27 +95,15 @@ Full provenance for every dataset (product IDs, URLs, processing and checks) is 
 
 Built with the help of an AI coding assistant (Claude Code). **[CREDITS.md](CREDITS.md)** explains where AI was used and lists every data, code, font and method source. No NASA logos or branding are used, and no AI-generated images or video.
 
-## Run it locally
-
-The site data the app needs is already in the repo, so after cloning:
-
-```bash
-cd app
-npm install
-npm run dev        # open the address it prints
-npm test           # unit tests
-npm run build      # static build in app/dist
-```
-
-You need Node.js 22.12 or newer, and an internet connection: the HiRISE base map loads live from Mars Trek. Python is only needed to rebuild the data.
-
 ## Rebuild the data (optional)
 
-Python 3.11+, from the repo root. Downloads are cached in `data/raw/` (git-ignored).
+Not needed to run the app: see **Quick start** above. Python is only needed to re-download and rebuild the site data.
+
+Python 3.11+, from the project folder (not `app/`). Use `python3` instead of `python` on macOS/Linux if `python` is not found. Downloads are cached in `data/raw/` (git-ignored).
 
 ```bash
 pip install -r pipeline/requirements.txt
-python -m pytest                       # pipeline tests
+python -m pytest pipeline              # pipeline tests
 
 python -m pipeline gale-surface        # USGS DEM + 25 cm orthophoto → terrain grid with sand and rocky ground, habitat placed
 python -m pipeline msl-targets         # Curiosity's boxwork stops placed on the grid

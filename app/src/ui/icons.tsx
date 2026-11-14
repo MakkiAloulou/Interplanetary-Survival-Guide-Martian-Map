@@ -91,6 +91,17 @@ export function GripIcon(props: IconProps) {
   )
 }
 
+/** Position fix: a crosshair. */
+export function LocateIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="6.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22" />
+    </Svg>
+  )
+}
+
 export function AlertIcon(props: IconProps) {
   return (
     <Svg {...props}>

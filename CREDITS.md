@@ -35,7 +35,7 @@ We used **Claude Code** (Anthropic's AI coding assistant, model Claude Opus) thr
 
 Full processing details for each dataset are in `data/SOURCES.md`.
 
-**Synthetic (MOCK) content:** none left; every dataset is real. Assumptions are labelled `MODELED` (see below).
+**Synthetic (MOCK) content:** no datasets; every dataset is real. The only MOCK feature is the tablet's simulated position fix ("Get real position"), labelled MOCK in the UI. Assumptions are labelled `MODELED` (see below).
 
 ### Official challenge resources
 

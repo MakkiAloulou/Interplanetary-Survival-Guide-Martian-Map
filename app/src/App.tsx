@@ -445,6 +445,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
       {tablet && stats && safeHaven && verdict && (
         <Tablet
           config={config}
+          prepared={prepared}
           stats={stats}
           stations={stations}
           walkHome={safeHaven}

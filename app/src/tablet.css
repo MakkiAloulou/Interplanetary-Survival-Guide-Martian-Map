@@ -263,6 +263,84 @@
   color: var(--red);
 }
 
+/* Position fix (simulated): the button, the result card and its map key share the rejoin pink. */
+.tablet-btn.is-locate {
+  border-color: var(--rejoin);
+  color: var(--rejoin);
+}
+
+.tablet-fix {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 2px solid var(--rejoin);
+  border-radius: 14px;
+  background: var(--rejoin-bg);
+}
+
+.tablet-fix-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tablet-fix h2 {
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.tablet-fix p {
+  font-size: 16px;
+}
+
+.tablet-fix .tablet-btn {
+  justify-self: start;
+  min-height: 44px;
+}
+
+.tablet-fix-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.tablet-fix-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tablet-fix-key i {
+  display: inline-block;
+  width: 22px;
+  height: 5px;
+  border-radius: 3px;
+}
+
+.tablet-fix-key .key-rejoin {
+  background: var(--rejoin);
+}
+
+.tablet-fix-key .key-plan {
+  background: var(--blue);
+}
+
+.tablet-fix-key .key-correction {
+  height: 0;
+  border-top: 2px dashed var(--text-2);
+  border-radius: 0;
+}
+
+.tablet-fix.is-error {
+  border-color: var(--red);
+  background: var(--red-bg);
+  color: var(--red-text);
+}
+
 .tablet-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;

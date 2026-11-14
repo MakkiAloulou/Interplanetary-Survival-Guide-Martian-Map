@@ -26,6 +26,10 @@ export const INK = {
   traverse: '#a142f4',
   /** ground with no radio line of sight to the habitat or the rover */
   radioShadow: '#3c1e8c',
+  /** the way back onto the planned route after a position fix, and the fix itself (tablet) */
+  rejoin: '#e52592',
+  /** the jump from where the plan had the crew to where the fix puts them */
+  correction: '#5f6368',
 } as const
 
 export const HAZARD_COLORS: Record<Hazard, string> = {
