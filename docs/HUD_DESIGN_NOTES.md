@@ -119,6 +119,80 @@ The visual layer is borrowed. It is the planner's Google Maps palette in dark mo
 
 Skipped: the brief says to fix the findings worst first without waiting.
 
-## Changes and after-scores
+## After
 
-See the "After" section added at the end of this redesign.
+After screenshots of the same 13 states are in `docs/hud-after/`.
+
+### What changed, by finding
+
+1. **Alerts (P0).**
+   - A new shared alert slot (`ui/AlertSlot.tsx` and `ui/alerts.ts`, unit-tested) is used by the HUD and the tablet, and drone or storm feeds can reuse it.
+   - It is fed by the live warnings, then plan no-go, then cautions. Plan reasons that a live alert already covers are dropped.
+   - Only the first alert shows; the rest are counted as "+N more".
+   - A live warning takes over: a solid red band with an octagon icon, the word WARNING, a short title and an imperative ("Take shelter now", "Turn back now").
+   - Cautions use a triangle and the word CAUTION. Gauges in caution or warning carry the word as well as the colour.
+   - The copilot answer hides during a takeover.
+   - The HUD now gets the live conditions (2 added props in `App.tsx`).
+2. **SIMULATED drill (P1).**
+   - A new SIMULATED badge with a double border, a treatment no measured value uses.
+   - It shows on the storm alert, as a "Storm drill" tag in the clock slot and on the tablet, and on copilot answers limited by the drill.
+3. **Copilot states (P1).**
+   - The copilot has its own colour, a light blue that is never used for warning or caution.
+   - The push-to-talk button carries a glyph, a word and a shape per state:
+     - HOLD TO TALK: outline;
+     - LISTENING: filled, with a record glyph;
+     - WORKING: dashed outline;
+     - SPEAKING: double outline;
+     - VOICE OFF / NO ANSWER: grey.
+   - The red halo and its loop are gone, and errors are no longer in warning red.
+   - Rules mode and typed-only mode are stated in words with an icon.
+4. **Dock and answer card (P1).**
+   - The copilot owns the bottom-right slot and no longer overlaps the gauges.
+   - The answer card reads: verdict word with its icon (✓ YES, ◐ PARTLY, ✕ NO; "Time left" and "Way home" for informational questions), then the big number, then "Limit: …" in plain words, then "Head back by 16:35 Mars local · in 15 min", then Apply / "or say confirm". The question is small at the bottom, stamped "at T+1:54", with its badge.
+   - The 6 px side stripe the design hook flagged is removed.
+   - The typed box is behind a "Type" button. The model name, checkboxes and timing are off the visor (timing is in the card's tooltip and the console).
+5. **Tablet gloves (P1).**
+   - Every target is at least 64 px, with 16 px gaps:
+     - Exit, Play, speed, Abort;
+     - "Follow crew", now a toggle button instead of a checkbox;
+     - the slider row, now 64 px tall;
+     - the Ask button and the input.
+   - Push-to-talk is 96 px tall. Abort is filled red. Clarify options are buttons.
+   - The answer column is narrow enough to leave the crew dot at the centre of the map visible.
+6. **Legibility over terrain (P1).**
+   - The HUD is composited over the real Curiosity Navcam frame nearest the next stop, facing the route where possible. It is credited and badged OBSERVED as a stand-in for the view.
+   - Every slot sits on a dark backing plate. Text is solid with no alpha whites, and the radial gradients are gone.
+7. **Clear centre and the route (P2).**
+   - The 320 px compass is gone. The route slot (top left) has a small bearing dial that follows the route 15 cells ahead (as abort already did) and the distance along the route.
+   - At a stop it shows "3 min until you leave this stop". At the end of the walk it shows the O₂ left on return.
+8. **Names and time bases (P2).**
+   - "Point of no return in …" everywhere, on the HUD, the tablet and the copilot.
+   - Clock times say "Mars local". T+ is used for the EVA clock only.
+9. **Theming (P2).**
+   - New `--visor-*` tokens, with one caution colour and one warning colour on the visor.
+10. **Small things (P3).**
+    - No italic question. Informational answers have no GO chip. "Plan notes" are separate from "Right now". Push-to-talk also works with Enter.
+
+### Measured after
+
+- **CLI detector:** 0 findings on Hud, Tablet, Copilot, CopilotCard, PushToTalk and AlertSlot (exit 0).
+- **Design hook:** no findings on the changed files.
+- **Rendered (headless Edge):**
+  - HUD: 0 of 11 controls under 44 px (before: 10 of 13), smallest text 12 px (before: 10.5 px), 0 text runs below WCAG AA.
+  - Tablet: 0 of 13 controls under 64 px (before: 15 of 15), smallest text 12 px, 0 text runs below AA.
+- **Audit re-score: 16/20, Good** (before 10/20).
+  - Accessibility 3: words and icons on every severity; assertive warnings; badges readable.
+  - Performance 3.
+  - Theming 3: visor tokens; the planner still on its own palette.
+  - Responsive 3: every target size met; very narrow visors stack.
+  - Implementation integrity 4: detector clean; live alerts; SIMULATED labelled.
+- **Critique:** not re-scored with a new dual assessment in this pass (it needs a fresh A/B run). Re-run `/impeccable critique app/src/panels/Hud.tsx` to compare against 24/40.
+
+### Remaining issues
+
+- **No partner (EV2) position:** the engine has no partner telemetry (the crew walks together), so none is shown rather than inventing it.
+- **No heading-up view:** the bearing dial is north-up; there is no device heading to make it heading-up.
+- **"+N more" is a count only:** the full list is on the tablet.
+- **Backdrop coverage:** it exists only near stops that have Navcam frames (all 7 science stops do). Between far stops, or near via points, it falls back to the flat dark visor.
+- **Planner untouched:** the planner (habitat view) is out of scope and keeps its Google-Maps palette, which is intended for that view.
+- **Abort mode only restyled:** the mid-abort Esc still exits the whole HUD.

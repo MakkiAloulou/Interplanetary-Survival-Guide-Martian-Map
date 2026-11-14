@@ -57,6 +57,19 @@
   --hud-amber: #fdd663;
   --hud-alert: #ff8a80;
 
+  /* Visor symbology (HUD and the copilot on it). Every element sits on a dark backing plate, so the text stays
+     readable over bright regolith behind a transparent visor. Text is solid, never alpha white. */
+  --visor-plate: rgba(8, 11, 14, 0.8);
+  --visor-plate-strong: rgba(8, 11, 14, 0.92);
+  --visor-text: #f4f5f6;
+  --visor-text-2: #c4c8cc; /* secondary text: ≥ 7:1 on the plate even over bright terrain */
+  --visor-line: #6b7178;
+  --visor-caution: #fdd663; /* caution = watch: amber, with the word CAUTION and the triangle */
+  --visor-warning: #ff8a80; /* warning = act now: red text on the plate */
+  --visor-warning-band: #b3261e; /* the one takeover band: white text on it is 6.8:1 */
+  --visor-ok: #81c995;
+  --visor-copilot: #8ecbf5; /* the copilot's own symbology colour: never a warning or caution colour */
+
   --shadow-card: 0 1px 2px rgba(60, 64, 67, 0.3), 0 2px 8px 2px rgba(60, 64, 67, 0.15);
   --shadow-chip: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 4px 1px rgba(60, 64, 67, 0.15);
   --radius-card: 12px;
@@ -179,6 +192,12 @@ button {
 
 .badge-mock {
   background: repeating-linear-gradient(-45deg, rgba(95, 99, 104, 0.18) 0 2px, transparent 2px 5px);
+}
+
+/* A drill or simulation: a double border no measured value ever carries. */
+.badge-simulated {
+  border: 3px double currentColor;
+  padding: 2px 4px 1px;
 }
 
 /* ---------- Directions card ---------- */

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
-import type { Health } from './api'
+import { KeyboardIcon, OfflineIcon, SpeakerIcon, SpeakerOffIcon } from '../ui/icons'
 import './copilot.css'
 import { CopilotCard } from './CopilotCard'
 import { PushToTalk } from './PushToTalk'
 import { useServerHealth, useServerStages } from './stages'
-import { useCopilot, type CopilotLive, type CopilotPlan, type Phase } from './useCopilot'
+import { useCopilot, type CopilotLive, type CopilotPlan } from './useCopilot'
 import { speechSupported, whisperPrompt } from './voice'
 
 interface Props {
@@ -14,43 +14,48 @@ interface Props {
   variant: 'hud' | 'tablet'
 }
 
-const PHASE_LABEL: Record<Phase, string> = {
-  idle: 'Hold to talk, or type',
-  listening: 'Listening…',
-  transcribing: 'Hearing you…',
-  thinking: 'Checking the budget…',
-  speaking: 'Answering…',
-  error: 'Try again',
-}
-
-/** Which understanding path is live, said plainly (judges and crew both see it). */
-function serverLine(h: Health | null): string {
-  if (!h) return 'offline mode: typed questions, rules and templates (copilot server not running)'
-  if (!h.ollama || !h.model_available) return `rules mode: ${h.model} not available in Ollama`
-  if (!h.llm_ready) return `rules mode while ${h.model} loads`
-  return `${h.model} on this laptop · numbers from the planner's engine`
-}
-
 /**
- * The what-if copilot docked in the HUD or the tablet: ask by voice (push-to-talk) or by typing, get one short answer
- * computed by the planner's own engine. It never changes the plan without an explicit Apply.
+ * The what-if copilot in its slot (bottom right of the visor, bottom left of the tablet map): hold to talk, or type.
+ * One short answer computed by the planner's own engine; it never changes the plan without Apply or "confirm".
+ * When the language model is off, it says so (rules mode) and still answers.
  */
 export function Copilot({ plan, live, variant }: Props) {
   const health = useServerHealth()
   const [speakAnswers, setSpeakAnswers] = useState(speechSupported())
   // Off by default: the deterministic template is the answer; LLM wording is optional polish.
   const [llmWording, setLlmWording] = useState(false)
+  const [typing, setTyping] = useState(false)
   const stages = useServerStages(health, speakAnswers, llmWording)
   const copilot = useCopilot(plan, live, stages)
   const [text, setText] = useState('')
   const prompt = useMemo(() => whisperPrompt(plan.ctx), [plan.ctx])
   const { phase, answer, timing, error } = copilot
+  const busy = phase === 'thinking' || phase === 'transcribing'
+  // Fallback states, said in words: no server → typed only; server without the model → rules.
+  const fallback = !health ? 'Typed only: copilot server off' : !health.llm_ready ? 'Rules mode: language model off' : null
+  const showInput = typing || !health
+
   return (
     <div className={`copilot is-${variant}`} role="region" aria-label="What-if copilot">
-      {answer && <CopilotCard answer={answer} timing={timing} canApply={copilot.canApply} onApply={copilot.apply} onDismiss={copilot.dismiss} />}
-      {error && <p className="copilot-error">{error}</p>}
-      <div className="copilot-bar">
-        {health && <PushToTalk copilot={copilot} prompt={prompt} ready={health.whisper_loaded} />}
+      {answer && (
+        <CopilotCard
+          answer={answer}
+          timing={timing}
+          variant={variant}
+          canApply={copilot.canApply}
+          drill={live.drill}
+          onApply={copilot.apply}
+          onDismiss={copilot.dismiss}
+          onPick={(name) => void copilot.ask(name)}
+        />
+      )}
+      {error && (
+        <p className="copilot-error" role="status">
+          <OfflineIcon size={20} /> {error}
+        </p>
+      )}
+
+      {showInput && (
         <form
           className="copilot-form"
           onSubmit={(e) => {
@@ -62,29 +67,55 @@ export function Copilot({ plan, live, variant }: Props) {
           <input
             className="copilot-input"
             value={text}
-            placeholder={'Type: "Can we stay 20 more minutes?"'}
+            placeholder="Can we stay 20 more minutes?"
             aria-label="Ask the copilot"
+            autoFocus={typing}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
           />
-          <button type="submit" className="copilot-ask" disabled={!text.trim() || phase === 'thinking' || phase === 'transcribing'}>
+          <button type="submit" className="copilot-btn is-primary" disabled={!text.trim() || busy}>
             Ask
           </button>
         </form>
-      </div>
-      <p className={`copilot-phase phase-${phase}`} aria-live="polite">
-        {PHASE_LABEL[phase]}
-        <span className="copilot-mode"> · {serverLine(health)}</span>
+      )}
+
+      <div className="copilot-bar">
+        {health && <PushToTalk copilot={copilot} prompt={prompt} ready={health.whisper_loaded} />}
+        {health && (
+          <button type="button" className="copilot-btn is-toggle" aria-pressed={typing} aria-label="Type a question" onClick={() => setTyping((v) => !v)}>
+            <KeyboardIcon size={24} />
+            <span>Type</span>
+          </button>
+        )}
         {speechSupported() && (
-          <label className="copilot-speak">
-            <input type="checkbox" checked={speakAnswers} onChange={(e) => setSpeakAnswers(e.target.checked)} /> speak answers
-          </label>
+          <button
+            type="button"
+            className="copilot-btn is-toggle"
+            aria-pressed={speakAnswers}
+            aria-label="Speak answers"
+            onClick={() => {
+              if (speakAnswers) copilot.stopSpeaking()
+              setSpeakAnswers((v) => !v)
+            }}
+          >
+            {speakAnswers ? <SpeakerIcon size={24} /> : <SpeakerOffIcon size={24} />}
+            <span>{speakAnswers ? 'Voice on' : 'Voice off'}</span>
+          </button>
         )}
-        {health?.llm_ready && (
-          <label className="copilot-speak" title="The LLM rewords the answer; any changed number or verdict falls back to the template">
-            <input type="checkbox" checked={llmWording} onChange={(e) => setLlmWording(e.target.checked)} /> LLM wording
-          </label>
+        {variant === 'tablet' && typing && health?.llm_ready && (
+          <button type="button" className="copilot-btn is-toggle" aria-pressed={llmWording} onClick={() => setLlmWording((v) => !v)}>
+            <span>LLM wording {llmWording ? 'on' : 'off'}</span>
+          </button>
         )}
+      </div>
+
+      <p className="copilot-mode">
+        {fallback && (
+          <span className="copilot-fallback">
+            <OfflineIcon size={18} /> {fallback}
+          </span>
+        )}
+        <span>Numbers come from the planner’s engine{variant === 'tablet' && health?.llm_ready ? `; ${health.model} only reads the question` : ''}.</span>
       </p>
     </div>
   )

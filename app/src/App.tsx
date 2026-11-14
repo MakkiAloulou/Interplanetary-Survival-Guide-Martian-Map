@@ -416,6 +416,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           conditions={effectiveConditions}
           startTime={startTime}
           planAbort={planAbort}
+          drill={storm}
           onExit={() => setTablet(false)}
           copilot={copilotPlan ? (live) => <Copilot variant="tablet" plan={copilotPlan} live={live} /> : undefined}
         />
@@ -450,6 +451,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           params={evaParams}
           planAbort={planAbort}
           alerts={verdict.reasons.filter((r) => r.severity !== 'info')}
+          startTime={startTime}
+          conditions={effectiveConditions}
+          drill={storm}
           onExit={() => setHud(false)}
           copilot={copilotPlan ? (live) => <Copilot variant="hud" plan={copilotPlan} live={live} /> : undefined}
         />
