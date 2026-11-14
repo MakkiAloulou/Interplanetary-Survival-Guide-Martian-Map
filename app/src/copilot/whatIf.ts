@@ -533,12 +533,18 @@ export function timeLeft(ctx: PlanContext, snap: Snapshot): WhatIfResult {
   if (!Number.isFinite(home)) return notApplicable(ctx, now, 'time_left', 'NO_HAVEN', null)
   const nowMs = now.startMs + now.elapsedS * 1000
   const usable = p.o2DurationS - now.o2ExtraS - p.o2ReserveS
+  // The point of no return uses the engine's emergency walk home (fastest way, slow pace). For sunset and radiation:
+  // when the plan's next station is the habitat, the crew walks the plan's route home, so count that walk if longer
+  // (then "time left" and "can we stay longer" agree to the minute).
+  const leaveS = departAfterSegment(v, s, -1) ?? now.elapsedS
+  const planHome = s.future.length === 1 && v.stats ? v.stats.totalS - leaveS : 0
+  const walkBack = Math.max(home, planHome)
   const deadlines: { code: ReasonCode; s: number }[] = [{ code: 'POINT_OF_NO_RETURN', s: usable - (now.elapsedS + p.walkHomeContingency * home) }]
   const sunset = findSunset(ctx.conditions, now.startMs)
-  if (sunset !== null) deadlines.push({ code: 'SUNSET', s: (sunset - nowMs) / 1000 - p.sunsetMarginS - home })
+  if (sunset !== null) deadlines.push({ code: 'SUNSET', s: (sunset - nowMs) / 1000 - p.sunsetMarginS - walkBack })
   const lastMs = ctx.conditions.length ? Date.parse(ctx.conditions[ctx.conditions.length - 1].time) : nowMs
   const alert = radiationAlertsIn(ctx.conditions, nowMs, lastMs)[0]
-  if (alert) deadlines.push({ code: 'RADIATION', s: Math.max(Date.parse(alert.time) - nowMs, 0) / 1000 - home })
+  if (alert) deadlines.push({ code: 'RADIATION', s: Math.max(Date.parse(alert.time) - nowMs, 0) / 1000 - walkBack })
   const bind = deadlines.reduce((a, b) => (b.s < a.s ? b : a))
   const ok = bind.s >= 0
   return result(

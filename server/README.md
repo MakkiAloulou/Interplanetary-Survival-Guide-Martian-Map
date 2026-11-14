@@ -70,3 +70,33 @@ is still loading, questions go straight to the rules instead of queueing in Olla
 ```bash
 python -m pytest server/tests -q      # Ollama and whisper mocked; this is what CI runs
 ```
+
+## Eval
+
+`server/tests/phrasings.json` holds 34 crew questions, each with its expected intent, minutes and place:
+
+- fillers ("uh", "um") and long radio calls;
+- accents ("tventy", "skeep Nevado Sahama") and real ASR errors ("I will long until we must turn back");
+- the ambiguous "ridge".
+
+The same file scores the LLM against the real Ollama, and the app's rule parser in
+`app/src/copilot/phrasings.test.ts`, which runs in CI with a floor.
+
+```bash
+python -m server.eval_phrasings --runs 2     # needs Ollama with the model pulled
+```
+
+Measured 2026-11-14 on qwen3:8b, RTX 5050 Laptop (8 GB), 2 runs × 34:
+
+| | LLM (raw) | Rules (fallback) |
+|---|---|---|
+| fully correct | 64/68 (94%) | 32/34 (94%) |
+| intent | 68/68 (100%) | 33/34 |
+| place, when one is named | 42/42 (100%) | — |
+| minutes (extend_stay) | 18/22 (82%) | — |
+| latency | mean 687 ms · p90 758 ms · max 861 ms | < 1 ms |
+
+The LLM's four misses are all invented minutes. It answers 30 for "can we stay longer?" when no number was said.
+The app drops LLM minutes unless the words contain a number cue (`hasNumberCue`, unit-tested on exactly these
+phrasings). The LLM never asked a clarifying question on its own (0/2); the app's place matcher asks for "the
+ridge" every time. The rules miss the two accented phrasings, which is where the LLM helps.

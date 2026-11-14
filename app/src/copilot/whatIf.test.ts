@@ -236,6 +236,16 @@ describe('timeLeft and goHome', () => {
     expect(r.numbers.head_back_in_min).toBe(Math.floor(margin / 60))
   })
 
+  test('"time left" and "how long can we stay" agree when sunset binds at the last stop', () => {
+    const { ctx } = site([WIDTH - 1], { conditions: conditions(SHORT_DAY) })
+    const i = stopIndex(ctx.legs, 0)
+    const now = { elapsedS: planOf(ctx).track[i].arriveS + 10 * 60, index: i }
+    const stay = extendStay(ctx, now, null)
+    const left = timeLeft(ctx, now)
+    expect(left.binding).toBe('SUNSET')
+    expect(Math.abs(left.numbers.head_back_in_min! - stay.allowed_min!)).toBeLessThanOrEqual(1)
+  })
+
   test('the way home: spare O₂ at the slow pace, as the HUD abort shows it', () => {
     const { ctx } = site([WIDTH - 1])
     const i = stopIndex(ctx.legs, 0)

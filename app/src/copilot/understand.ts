@@ -91,7 +91,7 @@ export function parseMinutes(t: string): number | null {
 
 const SKIP = /\b(skip|drop|cancel|scrap|leave out|cut out|bypass|miss out|forget about|not go to|don'?t go to|without (going to|visiting)|pass on)\b/
 const STAY =
-  /\b(stay|remain|linger|hang (around|out|on)|spend|keep working|work (a bit |a little )?longer|extend|more time|extra time|bit more time|(a bit|a little|bit|little) longer|longer here|how (much )?longer can (we|i))\b|\b\d+\s*(more|extra|additional)\s*(minutes?|mins?)\b|\b(another|extra|additional)\s+\d+\b/
+  /\b(stay|remain|linger|hang (around|out|on)|spend|keep working|work (a bit |a little )?longer|extend|more time|extra time|bit more time|(a bit|a little|bit|little) longer|longer here|how (much )?longer can (we|i))\b|\b\d+\s*(more|extra|additional)\s*(minutes?|mins?)\b|\b(another|extra|additional)\s+(\d+|half|hour|quarter)\b/
 const TIME_LEFT = /\bhow (long|much (more )?time)\b.*\b(until|till|before|left|have|got|remaining)\b|\bturn (back|around)\b|\btime (left|remaining)\b|\bpoint of no return\b|\bpnr\b|\b(oxygen) (left|remaining)\b|\bhow much oxygen\b|\bwhen (do|must|should|have|need) (we|i)\b.*\b(leave|go back|head back|turn back|return|head home|go home)\b/
 const GO_HOME = /\b(fastest|quickest|shortest|best|safest)\b.*\b(way|route|path|walk)\b.*\b(back|home|habitat|rover|safety|shelter|base)\b|\b(way|route|path) (back|home)\b|\b(get|take|lead|bring|guide) (us|me) (back|home|to safety)\b|\babort\b|\bbail out\b|\b(go|head|return|walk) (back )?(home|to (the )?(habitat|rover|base|shelter|safety))\b|\bnearest (safe haven|haven|shelter)\b/
 const ADD = /\b(also|add|visit|stop (by|at)|swing by|go (to|by|see)|check out|detour|include|squeeze in|fit in|drop by|pop over|see)\b/
@@ -101,7 +101,8 @@ export function ruleIntent(t: string): Intent {
   if (SKIP.test(t)) return 'skip_stop'
   if (STAY.test(t)) return 'extend_stay'
   if (TIME_LEFT.test(t)) return 'time_left'
-  if (GO_HOME.test(t)) return 'go_home'
+  // "swing by X on the way back" is a detour, not a request to go home.
+  if (GO_HOME.test(t.replace(/\bon (the|our) way (back|home)\b/g, ' '))) return 'go_home'
   if (ADD.test(t)) return 'add_stop'
   return 'unknown'
 }
@@ -190,6 +191,15 @@ export function parseRules(text: string, _ctx?: UnderstandContext): Understood {
 const isIntent = (x: unknown): x is Intent => typeof x === 'string' && (INTENTS as readonly string[]).includes(x)
 
 /**
+ * Whether the words say an amount of time at all (digits, number words, "half", "hour"…, or an accented "tventy").
+ * The LLM invents minutes for "can we stay longer?" (30, in the eval); without a cue its minutes are dropped.
+ */
+export function hasNumberCue(text: string): boolean {
+  const t = text.toLowerCase().replace(/\b(safety|plenty|pretty|empty|party)\b/g, ' ')
+  return /\d|\w(teen|ty)\b|\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|hundred|half|hours?|quarter|couple|dozen)\b/.test(t)
+}
+
+/**
  * The deterministic checks on an understanding (from the LLM or the rules): intent and minutes sanity, and the place.
  * Places named in the text are resolved here first (unique → that one; tied → ask which); the LLM's target is used
  * only when the text names nothing we can match.
@@ -199,7 +209,8 @@ export function resolve(text: string, u: Understood, ctx: UnderstandContext, rul
   if (intent === 'unknown' && rules.intent !== 'unknown') intent = rules.intent
   const t = normalise(text)
   const validMin = (m: number | null) => (m !== null && Number.isFinite(m) && m > 0 && m <= 240 ? Math.round(m) : null)
-  const minutes = intent === 'extend_stay' ? (validMin(u.minutes) ?? validMin(rules.minutes)) : null
+  // The LLM's minutes only when the words name an amount; otherwise the rules' (or none: "how long can we stay?").
+  const minutes = intent === 'extend_stay' ? ((hasNumberCue(text) ? validMin(u.minutes) : null) ?? validMin(rules.minutes)) : null
   const ask = (targetId: string | null): Resolution => ({ kind: 'ask', intent, minutes, targetId })
   const clarify = (options: PlaceRef[], question?: string): Resolution => ({
     kind: 'clarify',

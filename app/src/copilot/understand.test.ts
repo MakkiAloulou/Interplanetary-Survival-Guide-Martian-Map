@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { isConfirm, matchPlaces, normalise, parseMinutes, parseRules, resolve, resolveClarify, type UnderstandContext } from './understand'
+import { hasNumberCue, isConfirm, matchPlaces, normalise, parseMinutes, parseRules, resolve, resolveClarify, type UnderstandContext } from './understand'
 
 // The Curiosity boxwork stops in data/processed/gale/science_targets.json (names copied; the app reads them live).
 const TARGETS = [
@@ -102,6 +102,25 @@ describe('places', () => {
   test('an LLM "unknown" is overridden by a confident rule; bad minutes are dropped', () => {
     const llm = { intent: 'unknown' as const, minutes: 9999, target_id: null, clarify_question: null }
     expect(resolve('Can we stay 20 more minutes?', llm, CTX)).toMatchObject({ intent: 'extend_stay', minutes: 20 })
+  })
+})
+
+describe('minutes the LLM invents are dropped (the 4 minute misses of the LLM eval)', () => {
+  const llm = (minutes: number) => ({ intent: 'extend_stay' as const, minutes, target_id: null, clarify_question: null })
+  test.each([
+    ['Can we stay longer at the nodules?', 30, null],
+    ['can we stay a bit linger at Altadena', 30, null],
+    ['Can ve stay tventy more minutes?', 20, 20], // accent: the LLM is right, and "tventy" is a cue
+    ['Can we get another half hour here?', 30, 30],
+    ['For safety, can we stay longer?', 30, null],
+  ])('%s (LLM said %i) → %s', (text, said, expected) => {
+    expect(resolve(text, llm(said), CTX)).toMatchObject({ minutes: expected })
+  })
+
+  test('number cue', () => {
+    expect(hasNumberCue('stay 20 more')).toBe(true)
+    expect(hasNumberCue('another half hour')).toBe(true)
+    expect(hasNumberCue('stay a bit longer')).toBe(false)
   })
 })
 
