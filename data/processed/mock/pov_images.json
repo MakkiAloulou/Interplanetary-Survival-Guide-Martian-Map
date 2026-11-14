@@ -1,0 +1,79 @@
+[
+  {
+    "lat": -4.7882072,
+    "lon": 137.3893284,
+    "url": "processed/mock/pov/base.png",
+    "thumbnailUrl": "processed/mock/pov/base_thumb.png",
+    "source": "MOCK: rendered from mock terrain by pipeline/panorama.py",
+    "sol": 0,
+    "camera": "MOCK render, 360 deg, eye height 1.7 m",
+    "isPanorama": true,
+    "status": "MOCK"
+  },
+  {
+    "lat": -4.7962378,
+    "lon": 137.3843849,
+    "url": "processed/mock/pov/t-ridge.png",
+    "thumbnailUrl": "processed/mock/pov/t-ridge_thumb.png",
+    "source": "MOCK: rendered from mock terrain by pipeline/panorama.py",
+    "sol": 0,
+    "camera": "MOCK render, 360 deg, eye height 1.7 m",
+    "isPanorama": true,
+    "status": "MOCK"
+  },
+  {
+    "lat": -4.7973513,
+    "lon": 137.3782562,
+    "url": "processed/mock/pov/t-contact.png",
+    "thumbnailUrl": "processed/mock/pov/t-contact_thumb.png",
+    "source": "MOCK: rendered from mock terrain by pipeline/panorama.py",
+    "sol": 0,
+    "camera": "MOCK render, 360 deg, eye height 1.7 m",
+    "isPanorama": true,
+    "status": "MOCK"
+  },
+  {
+    "lat": -4.7938758,
+    "lon": 137.3732449,
+    "url": "processed/mock/pov/t-hollow.png",
+    "thumbnailUrl": "processed/mock/pov/t-hollow_thumb.png",
+    "source": "MOCK: rendered from mock terrain by pipeline/panorama.py",
+    "sol": 0,
+    "camera": "MOCK render, 360 deg, eye height 1.7 m",
+    "isPanorama": true,
+    "status": "MOCK"
+  },
+  {
+    "lat": -4.8044033,
+    "lon": 137.3728386,
+    "url": "processed/mock/pov/t-scarp.png",
+    "thumbnailUrl": "processed/mock/pov/t-scarp_thumb.png",
+    "source": "MOCK: rendered from mock terrain by pipeline/panorama.py",
+    "sol": 0,
+    "camera": "MOCK render, 360 deg, eye height 1.7 m",
+    "isPanorama": true,
+    "status": "MOCK"
+  },
+  {
+    "lat": -4.8101732,
+    "lon": 137.3800508,
+    "url": "processed/mock/pov/t-drill.png",
+    "thumbnailUrl": "processed/mock/pov/t-drill_thumb.png",
+    "source": "MOCK: rendered from mock terrain by pipeline/panorama.py",
+    "sol": 0,
+    "camera": "MOCK render, 360 deg, eye height 1.7 m",
+    "isPanorama": true,
+    "status": "MOCK"
+  },
+  {
+    "lat": -4.8008604,
+    "lon": 137.3950846,
+    "url": "processed/mock/pov/t-boulders.png",
+    "thumbnailUrl": "processed/mock/pov/t-boulders_thumb.png",
+    "source": "MOCK: rendered from mock terrain by pipeline/panorama.py",
+    "sol": 0,
+    "camera": "MOCK render, 360 deg, eye height 1.7 m",
+    "isPanorama": true,
+    "status": "MOCK"
+  }
+]

@@ -25,6 +25,8 @@ See [CLAUDE.md](CLAUDE.md) for the full design, data contracts and phase plan.
 
 ## Run
 
+The site data the app needs is in the repo (`data/config.json`, `data/processed/`). After cloning, `npm install` and `npm run dev` are enough; no pipeline step is required.
+
 ```bash
 # App
 cd app

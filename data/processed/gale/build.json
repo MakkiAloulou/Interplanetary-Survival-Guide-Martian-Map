@@ -1,0 +1,24 @@
+{
+  "cells": "1000 x 1000 @ 2.0 m",
+  "bounds": {
+    "latMin": -4.8219706,
+    "latMax": -4.7882294,
+    "lonMin": 137.3644699,
+    "lonMax": 137.3983301
+  },
+  "elevationRangeM": [
+    -3888.3,
+    -3391.8
+  ],
+  "fraction": {
+    "noData": 0.0,
+    "sand": 0.0,
+    "boulders": 0.0,
+    "slopeImpassable": 0.18
+  },
+  "arrayStatus": {
+    "elevation": "DERIVED",
+    "slopeDeg": "DERIVED",
+    "terrainClass": "MODELED"
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "site": {
+    "name": "Gale Crater — Mount Sharp boxwork (sulfate-bearing unit)",
+    "bounds": {
+      "latMin": -4.8219706,
+      "latMax": -4.7882294,
+      "lonMin": 137.3644699,
+      "lonMax": 137.3983301
+    },
+    "boundsNote": "2 x 2 km centred on Curiosity's 2025-26 boxwork campaign (MMGIS traverse, sols ~4560-4841, centre -4.8051, 137.3814). Approved 2026-11-14 (CLAUDE.md §8 step 2); see docs/resources.md.",
+    "boundsStatus": "DERIVED",
+    "zoom": {
+      "min": 11,
+      "max": 16
+    }
+  },
+  "layers": [
+    {
+      "id": "hirise",
+      "name": "HiRISE orthomosaic (Curiosity roving site)",
+      "dataType": "optical",
+      "tileUrl": "https://trek.nasa.gov/tiles/Mars/EQ/curiosity_hirise_mosaic/1.0.0//default/default028mm/{z}/{y}/{x}.png",
+      "bounds": {
+        "latMin": -4.9254743,
+        "latMax": -4.2489588,
+        "lonMin": 137.1224669,
+        "lonMax": 137.7298129
+      },
+      "opacity": 1,
+      "attribution": "MRO HiRISE: NASA/JPL-Caltech/University of Arizona, via NASA Mars Trek",
+      "status": "OBSERVED"
+    },
+    {
+      "id": "hillshade",
+      "name": "Hillshade",
+      "dataType": "topographic",
+      "imageOverlay": "processed/gale/hillshade.png",
+      "bounds": {
+        "latMin": -4.8219706,
+        "latMax": -4.7882294,
+        "lonMin": 137.3644699,
+        "lonMax": 137.3983301
+      },
+      "opacity": 0.5,
+      "attribution": "Hillshade of the USGS MSL Gale Merged DEM 1m (HiRISE/CTX/HRSC, Parker & Calef 2016), 2 m cells",
+      "status": "DERIVED"
+    },
+    {
+      "id": "thermal-inertia",
+      "name": "Thermal inertia (sand vs bedrock)",
+      "dataType": "thermal",
+      "imageOverlay": "processed/mock/thermal_inertia.png",
+      "bounds": {
+        "latMin": -4.8219706,
+        "latMax": -4.7882294,
+        "lonMin": 137.3644699,
+        "lonMax": 137.3983301
+      },
+      "opacity": 0.6,
+      "attribution": "MOCK: synthetic placeholder drawn for the mock terrain, not this ground; stands in for THEMIS thermal inertia",
+      "status": "MOCK"
+    },
+    {
+      "id": "mineralogy",
+      "name": "Mineralogy",
+      "dataType": "spectral",
+      "imageOverlay": "processed/mock/mineralogy.png",
+      "bounds": {
+        "latMin": -4.8219706,
+        "latMax": -4.7882294,
+        "lonMin": 137.3644699,
+        "lonMax": 137.3983301
+      },
+      "opacity": 0.6,
+      "attribution": "MOCK: synthetic placeholder drawn for the mock terrain, not this ground; stands in for CRISM mineral map",
+      "status": "MOCK"
+    }
+  ],
+  "initialLayers": [
+    "hirise"
+  ],
+  "costGrid": "processed/gale/costgrid.json",
+  "scienceTargets": {
+    "path": "processed/mock/science_targets.json",
+    "status": "MOCK"
+  },
+  "povImages": {
+    "path": "processed/mock/pov_images.json",
+    "status": "MOCK"
+  },
+  "conditions": {
+    "path": "processed/mock/conditions.json",
+    "status": "MOCK"
+  },
+  "waypoints": {
+    "path": "processed/gale/waypoints.json",
+    "status": "MODELED"
+  }
+}

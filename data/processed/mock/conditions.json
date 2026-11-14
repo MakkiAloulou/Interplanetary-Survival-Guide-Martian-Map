@@ -1,0 +1,252 @@
+[
+  {
+    "time": "2026-11-15T00:00:00.000Z",
+    "tempC": -9.7,
+    "pressurePa": 812.5,
+    "dustTau": 0.6,
+    "sunElevationDeg": -85.2,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T01:01:38.968Z",
+    "tempC": -6.2,
+    "pressurePa": 816.1,
+    "dustTau": 0.613,
+    "sunElevationDeg": -74.3,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T02:03:17.937Z",
+    "tempC": -5.0,
+    "pressurePa": 820.0,
+    "dustTau": 0.625,
+    "sunElevationDeg": -59.7,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T03:04:56.905Z",
+    "tempC": -6.2,
+    "pressurePa": 823.9,
+    "dustTau": 0.635,
+    "sunElevationDeg": -44.8,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T04:06:35.874Z",
+    "tempC": -9.7,
+    "pressurePa": 827.5,
+    "dustTau": 0.643,
+    "sunElevationDeg": -29.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T05:08:14.842Z",
+    "tempC": -15.3,
+    "pressurePa": 830.6,
+    "dustTau": 0.648,
+    "sunElevationDeg": -14.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T06:09:53.811Z",
+    "tempC": -22.5,
+    "pressurePa": 833.0,
+    "dustTau": 0.65,
+    "sunElevationDeg": 0.0,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T07:11:32.779Z",
+    "tempC": -30.9,
+    "pressurePa": 834.5,
+    "dustTau": 0.648,
+    "sunElevationDeg": 14.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T08:13:11.748Z",
+    "tempC": -40.0,
+    "pressurePa": 835.0,
+    "dustTau": 0.643,
+    "sunElevationDeg": 29.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T09:14:50.716Z",
+    "tempC": -49.1,
+    "pressurePa": 834.5,
+    "dustTau": 0.635,
+    "sunElevationDeg": 44.8,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T10:16:29.685Z",
+    "tempC": -57.5,
+    "pressurePa": 833.0,
+    "dustTau": 0.625,
+    "sunElevationDeg": 59.7,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T11:18:08.653Z",
+    "tempC": -64.7,
+    "pressurePa": 830.6,
+    "dustTau": 0.613,
+    "sunElevationDeg": 74.3,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T12:19:47.622Z",
+    "tempC": -70.3,
+    "pressurePa": 827.5,
+    "dustTau": 0.6,
+    "sunElevationDeg": 85.2,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T13:21:26.590Z",
+    "tempC": -73.8,
+    "pressurePa": 823.9,
+    "dustTau": 0.587,
+    "sunElevationDeg": 74.3,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T14:23:05.559Z",
+    "tempC": -75.0,
+    "pressurePa": 820.0,
+    "dustTau": 0.575,
+    "sunElevationDeg": 59.7,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T15:24:44.527Z",
+    "tempC": -73.8,
+    "pressurePa": 816.1,
+    "dustTau": 0.565,
+    "sunElevationDeg": 44.8,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T16:26:23.496Z",
+    "tempC": -70.3,
+    "pressurePa": 812.5,
+    "dustTau": 0.557,
+    "sunElevationDeg": 29.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T17:28:02.464Z",
+    "tempC": -64.7,
+    "pressurePa": 809.4,
+    "dustTau": 0.552,
+    "sunElevationDeg": 14.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T18:29:41.433Z",
+    "tempC": -57.5,
+    "pressurePa": 807.0,
+    "dustTau": 0.55,
+    "sunElevationDeg": 0.0,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T19:31:20.401Z",
+    "tempC": -49.1,
+    "pressurePa": 805.5,
+    "dustTau": 0.552,
+    "sunElevationDeg": -14.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T20:32:59.370Z",
+    "tempC": -40.0,
+    "pressurePa": 805.0,
+    "dustTau": 0.557,
+    "sunElevationDeg": -29.9,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T21:34:38.338Z",
+    "tempC": -30.9,
+    "pressurePa": 805.5,
+    "dustTau": 0.565,
+    "sunElevationDeg": -44.8,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T22:36:17.307Z",
+    "tempC": -22.5,
+    "pressurePa": 807.0,
+    "dustTau": 0.575,
+    "sunElevationDeg": -59.7,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-15T23:37:56.275Z",
+    "tempC": -15.3,
+    "pressurePa": 809.4,
+    "dustTau": 0.587,
+    "sunElevationDeg": -74.3,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  },
+  {
+    "time": "2026-11-16T00:39:35.244Z",
+    "tempC": -9.7,
+    "pressurePa": 812.5,
+    "dustTau": 0.6,
+    "sunElevationDeg": -85.2,
+    "radiationAlert": false,
+    "source": "MOCK: synthetic diurnal cycle shaped like REMS at Gale; sun from declination 0",
+    "status": "MOCK"
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "width": 1000,
+  "height": 1000,
+  "cellSizeM": 2.0,
+  "bounds": {
+    "latMin": -4.8219706,
+    "latMax": -4.7882294,
+    "lonMin": 137.3644699,
+    "lonMax": 137.3983301
+  },
+  "binary": "costgrid.bin",
+  "status": "DERIVED",
+  "source": "USGS MSL Gale Merged DEM 1m v3 (Parker & Calef 2016; HiRISE, CTX and HRSC DEMs tied to MOLA), via planetarymaps.usgs.gov; see data/SOURCES.md",
+  "arrayStatus": {
+    "elevation": "DERIVED",
+    "slopeDeg": "DERIVED",
+    "terrainClass": "MODELED"
+  }
+}

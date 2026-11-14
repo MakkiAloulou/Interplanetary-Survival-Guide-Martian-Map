@@ -1,0 +1,16 @@
+[
+  {
+    "id": "base",
+    "lat": -4.7934087,
+    "lon": 137.3677713,
+    "kind": "base",
+    "name": "Habitat"
+  },
+  {
+    "id": "rover",
+    "lat": -4.7934087,
+    "lon": 137.3682792,
+    "kind": "rover",
+    "name": "Support rover (parked)"
+  }
+]

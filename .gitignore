@@ -1,5 +1,12 @@
-# Data and docs stay local (root folders only; app/src/data/ is code)
-/data/
+# Data needed to run the app is tracked (data/config.json, SOURCES.md, processed/).
+# Downloads stay local: `python -m pipeline gale-dem` recreates data/raw/.
+/data/raw/
+# Mock files the app no longer reads (the real Gale grid replaced them); `python -m pipeline mock` recreates them.
+/data/processed/mock/costgrid.*
+/data/processed/mock/optical.png
+/data/processed/mock/hillshade.png
+/data/processed/mock/waypoints.json
+# Working notes stay local (root folder only)
 /docs/
 
 # Node
