@@ -4,48 +4,18 @@
 // number. Any failure returns null and the rule parser answers.
 
 import type { UnderstandContext, Understood } from './understand'
+import { findRemote, validRemoteUrl } from './remote'
 import { INTENTS, MAX_EXTRA_MIN } from './whatIf'
-
-const STORE_KEY = 'martian-map.ollama-url'
 
 /** The model to ask (VITE_OLLAMA_MODEL at build time, else qwen3:8b). */
 export const OLLAMA_MODEL: string = import.meta.env.VITE_OLLAMA_MODEL || 'qwen3:8b'
 
 /** A usable Ollama base address: https, or plain http only for this machine (browsers block mixed content). */
-export function validOllamaUrl(raw: string | null | undefined): string | null {
-  if (!raw) return null
-  try {
-    const u = new URL(raw.trim())
-    const local = ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname)
-    if (u.protocol !== 'https:' && !(u.protocol === 'http:' && local)) return null
-    return u.origin + u.pathname.replace(/\/+$/, '')
-  } catch {
-    return null
-  }
-}
+export const validOllamaUrl = validRemoteUrl
 
-/**
- * Where Ollama is: `?ollama=<url>` in the page address (remembered in this browser, so a new tunnel needs no
- * redeploy; `?ollama=off` forgets it), else VITE_OLLAMA_URL from the build, else none.
- */
-export function ollamaUrl(): string | null {
-  try {
-    const q = new URLSearchParams(window.location.search).get('ollama')
-    if (q === 'off') {
-      localStorage.removeItem(STORE_KEY)
-      return null
-    }
-    const fromQuery = validOllamaUrl(q)
-    if (fromQuery) {
-      localStorage.setItem(STORE_KEY, fromQuery)
-      return fromQuery
-    }
-    const stored = validOllamaUrl(localStorage.getItem(STORE_KEY))
-    if (stored) return stored
-  } catch {
-    // storage blocked: fall through to the build setting
-  }
-  return validOllamaUrl(import.meta.env.VITE_OLLAMA_URL)
+/** Ollama reached directly, when it answers with the model: see remote.ts for where the address comes from. */
+export function findOllama(gist?: string): Promise<string | null> {
+  return findRemote('ollama', ollamaReady, gist)
 }
 
 async function call(url: string, init: RequestInit, timeoutMs: number): Promise<Response | null> {

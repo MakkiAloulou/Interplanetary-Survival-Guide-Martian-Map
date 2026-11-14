@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { explainRemote, fetchHealth, understandRemote, type Health } from './api'
 import { wordingOk } from './guard'
-import { ollamaReady, ollamaUrl, understandDirect } from './ollama'
+import { findOllama, ollamaReady, understandDirect } from './ollama'
 import { forSpeech } from './templates'
 import { resolve } from './understand'
 import { understandByRules, type Stages } from './useCopilot'
@@ -36,13 +36,18 @@ export function useServerHealth(): Health | null {
 export function useDirectOllama(serverUp: boolean): string | null {
   const [ready, setReady] = useState<string | null>(null)
   useEffect(() => {
-    const base = serverUp ? null : ollamaUrl()
-    if (!base) {
+    if (serverUp) {
       setReady(null)
       return
     }
     let alive = true
-    const check = () => ollamaReady(base).then((ok) => alive && setReady(ok ? base : null))
+    let base: string | null = null
+    // Keep the address that answered; when it stops, look again (the tunnel may have restarted with a new address).
+    const check = async () => {
+      if (base && (await ollamaReady(base))) return
+      base = await findOllama()
+      if (alive) setReady(base)
+    }
     check()
     const id = setInterval(check, HEALTH_EVERY_MS)
     return () => {

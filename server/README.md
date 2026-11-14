@@ -21,29 +21,33 @@ python -m server                             # http://127.0.0.1:8787, model warm
 
 Then run the app (`cd app && npm run dev`). Vite proxies `/api` to the server.
 
-## The deployed app (Vercel) with the laptop's model
+## The deployed app (Vercel) with the laptop's copilot
 
-The static site has no copilot server, so its browser asks Ollama directly (`app/src/copilot/ollama.ts`). It sends the
-same prompt and schema as `server/llm.py` and applies the same checks, with the rules as fallback. Voice stays
-laptop-only. Browsers need **https**, so the laptop's Ollama is reached through a Cloudflare quick tunnel:
+The static site has no server of its own. It reaches this laptop's copilot server (speech-to-text and the model)
+through a Cloudflare quick tunnel, because browsers need **https**:
 
 ```powershell
 winget install Cloudflare.cloudflared            # once
+gh auth login                                    # once, for the gist below
 powershell -ExecutionPolicy Bypass -File server\start-llm-tunnel.ps1
 ```
 
 The script:
 
-1. allows the app's origins in `OLLAMA_ORIGINS`;
-2. restarts Ollama and warms `qwen3:8b`;
-3. opens the tunnel, with the Host header rewritten to localhost, which Ollama requires;
-4. prints `https://…vercel.app/?ollama=https://<name>.trycloudflare.com`.
+1. starts Ollama and `python -m server` if they are not running;
+2. opens the tunnel to the server;
+3. writes the tunnel's address to the team's GitHub gist (`martian-map-laptop.json`).
 
-Open that link once per browser; the address is remembered there, and `?ollama=off` forgets it. A fixed address can
-also be built in with `VITE_OLLAMA_URL` (and `VITE_OLLAMA_MODEL`) in the Vercel project settings.
+The site reads that gist (`app/src/copilot/remote.ts`, `LAPTOP_GIST`), so **any browser that opens the plain site
+link** uses the laptop: hold to talk, typed questions, the model. A quick tunnel gets a new address on every run;
+the gist keeps the link the same. The script also prints a `?copilot=<tunnel>` link that works without the gist.
 
-The tunnel has no password. Browsers from other websites are refused (CORS), but anyone with the address can call
-the model directly, so run it only while you need it (Ctrl+C closes it). The address changes on every run.
+The server accepts browser calls only from the local dev server and the deployed site (`COPILOT_CORS_ORIGINS`,
+`COPILOT_CORS_ORIGIN_REGEX`). The tunnel has no password: anyone with the address can use the copilot directly, so run
+it only while you need it (Ctrl+C closes it). Without the laptop the site answers in rules mode.
+
+The browser can also call Ollama alone through its own tunnel (`?ollama=<url>`, `app/src/copilot/ollama.ts`): typed
+questions only, no voice. Ollama then needs the site in `OLLAMA_ORIGINS`.
 
 ## Endpoints (`/api/copilot/…`)
 
@@ -86,6 +90,7 @@ is still loading, questions go straight to the rules instead of queueing in Olla
 | `COPILOT_WHISPER_SLOW_S` | `3` (switch to the fallback model above this) |
 | `COPILOT_WHISPER_DEVICE` / `COPILOT_WHISPER_COMPUTE_TYPE` | `cpu` / `int8` |
 | `COPILOT_HOST` / `COPILOT_PORT` | `127.0.0.1` / `8787` |
+| `COPILOT_CORS_ORIGINS` / `COPILOT_CORS_ORIGIN_REGEX` | the local dev server and the deployed site |
 | `COPILOT_WARMUP` | `1` |
 | `COPILOT_API_URL` (read by `app/vite.config.ts`) | `http://127.0.0.1:8787` |
 
