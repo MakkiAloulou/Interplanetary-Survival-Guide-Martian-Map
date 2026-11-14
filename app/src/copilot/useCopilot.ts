@@ -26,6 +26,8 @@ export interface CopilotLive {
   cell: number
   /** the view's own abort (switches it to the abort screen) */
   onAbort?: () => void
+  /** the simulated storm drill is on (answers it limits are labelled SIMULATED) */
+  drill?: boolean
 }
 
 export type Phase = 'idle' | 'listening' | 'transcribing' | 'thinking' | 'speaking' | 'error'
@@ -50,6 +52,8 @@ export interface Answer {
   at: number
   /** who worded the answer: the deterministic template, or the LLM (passed the number guard) */
   wording?: { text: string; source: 'llm' | 'template' }
+  /** EVA clock when the question was asked, s: the answer is true as of then */
+  evaT?: number
 }
 
 const elapsedClock = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
@@ -190,7 +194,7 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
         if (resolution.kind === 'clarify') {
           pending.current = { intent: resolution.intent, minutes: resolution.minutes, options: resolution.options }
           await finish(
-            { question: text, text: resolution.question, result: null, clarify: resolution.options, applied: false, at: Date.now() },
+            { question: text, text: resolution.question, result: null, clarify: resolution.options, applied: false, at: Date.now(), evaT: snap.elapsedS },
             { understandMs, totalMs: performance.now() - t0 + (sttMs ?? 0), sttMs, source },
           )
           return
@@ -200,7 +204,7 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
         const result = resolution.intent === 'unknown' ? null : await compute(p, l, snap, resolution)
         const computeMs = performance.now() - tc
         if (!result) {
-          await finish({ question: text, text: CAPABILITIES, result: null, clarify: null, applied: false, at: Date.now() }, { understandMs, computeMs, sttMs, source, totalMs: performance.now() - t0 + (sttMs ?? 0) })
+          await finish({ question: text, text: CAPABILITIES, result: null, clarify: null, applied: false, at: Date.now(), evaT: snap.elapsedS }, { understandMs, computeMs, sttMs, source, totalMs: performance.now() - t0 + (sttMs ?? 0) })
           return
         }
 
@@ -219,7 +223,7 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
         console.info(
           `[copilot] stt ${Math.round(sttMs ?? 0)} ms · understand ${Math.round(understandMs)} ms (${source}) · compute ${Math.round(computeMs)} ms · explain ${Math.round(explainMs)} ms (${wording.source}) · total ${Math.round(t.totalMs!)} ms`,
         )
-        await finish({ question: text, text: wording.text, wording, result, clarify: null, applied: false, at: Date.now() }, t)
+        await finish({ question: text, text: wording.text, wording, result, clarify: null, applied: false, at: Date.now(), evaT: snap.elapsedS }, t)
       } catch (e) {
         computing.current = false
         setError(e instanceof Error ? e.message : String(e))
@@ -235,6 +239,12 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
     setPhase((p) => (p === 'error' ? 'idle' : p))
   }, [])
 
+  /** Stop the spoken answer (the card stays). */
+  const stopSpeaking = useCallback(() => {
+    latest.current.stages.stopSpeaking?.()
+    setPhase((p) => (p === 'speaking' ? 'idle' : p))
+  }, [])
+
   /** Whether the current answer's change can be applied in this view. */
   const canApply = (() => {
     const action = answer?.result?.apply
@@ -243,5 +253,5 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
     return !!plan.onApply && (plan.canApply?.(action) ?? true)
   })()
 
-  return { phase, setPhase, answer, timing, error, setError, ask, apply: applyAction, canApply, dismiss }
+  return { phase, setPhase, answer, timing, error, setError, ask, apply: applyAction, canApply, dismiss, stopSpeaking }
 }
