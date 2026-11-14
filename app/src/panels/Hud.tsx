@@ -3,7 +3,7 @@ import type { CopilotLive } from '../copilot/useCopilot'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
-import { sphericalDistanceM, type RouteStats } from '../stats/stats'
+import { safetyS, sphericalDistanceM, type RouteStats } from '../stats/stats'
 import type { Waypoint } from '../types'
 import { AlertIcon, CloseIcon } from '../ui/icons'
 import { PLAYBACK_SPEEDS, usePlayback } from './usePlayback'
@@ -24,7 +24,8 @@ interface Props {
   walkHome: Float32Array
   params: EvaParams
   alerts: Reason[]
-  planAbort: (cell: number) => AbortPlan | null
+  /** fastest way to the nearer safe haven from a cell; `rover` = where the rover is parked on a rover-assisted plan */
+  planAbort: (cell: number, rover?: number) => AbortPlan | null
   onExit: () => void
   /** optional what-if copilot, given the walk clock and this view's abort */
   copilot?: (live: CopilotLive) => ReactNode
@@ -123,7 +124,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
   const nextNumber = pos.nextStation >= stations.length - 1 ? null : pos.nextStation
   const bearing = initialBearingDeg(pos, next)
   const distance = sphericalDistanceM(pos, next)
-  const home = params.walkHomeContingency * walkHome[cell]
+  const home = params.walkHomeContingency * safetyS(walkHome, stats.track[pos.index])
   const margin = usable - (t + home)
 
   return (
@@ -191,13 +192,13 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
           className="hud-abort"
           onClick={() => {
             clock.pause()
-            setAbort({ atT: t, plan: planAbort(cell) })
+            setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })
           }}
         >
           <AlertIcon size={16} /> Abort
         </button>
       </div>
-      {copilot?.({ t, index: pos.index, cell, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell) })) })}
+      {copilot?.({ t, index: pos.index, cell, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })) })}
     </div>
   )
 }

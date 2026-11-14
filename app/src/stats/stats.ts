@@ -18,6 +18,22 @@ export interface TrackPoint {
   arriveS: number
   departS: number
   leg: number
+  /** reached by rover, crew riding (rover-assisted Marswalk) */
+  riding?: boolean
+  /** rover-assisted Marswalk, on foot: the cell where the rover is parked */
+  roverCell?: number
+  /** rover-assisted Marswalk: walking seconds to the parked rover (0 riding) */
+  toRoverS?: number
+  /** rover-assisted Marswalk: radio line of sight to the parked rover (true riding) */
+  roverInSight?: boolean
+}
+
+/**
+ * Walking seconds from a track point to the nearest safe haven: `walkHome` (the habitat, or the habitat and a staged
+ * rover), or the rover parked near the crew on a rover-assisted Marswalk.
+ */
+export function safetyS(walkHome: Float32Array, t: TrackPoint): number {
+  return Math.min(walkHome[t.cell], t.toRoverS ?? Infinity)
 }
 
 export interface LegStats {
@@ -25,6 +41,8 @@ export interface LegStats {
   to: number
   distanceM: number
   walkS: number
+  /** seconds riding the rover on this leg (0 on foot) */
+  rideS: number
   ascentM: number
   descentM: number
   maxSlopeDeg: number
@@ -33,8 +51,10 @@ export interface LegStats {
 export interface RouteStats {
   distanceM: number
   walkS: number
+  /** riding the rover (rover-assisted Marswalk), s */
+  rideS: number
   dwellS: number
-  /** walking + dwell = EVA duration */
+  /** walking + riding + dwell = EVA duration */
   totalS: number
   ascentM: number
   descentM: number
@@ -60,7 +80,11 @@ export function sphericalDistanceM(a: { lat: number; lon: number }, b: { lat: nu
  * Stats for consecutive legs (base → stops → base). dwellS is the time spent at the end of each
  * leg except the last: one number for every stop, or one per stop.
  */
-export function routeStats(p: PreparedGrid, legs: Leg[], dwellS: number | number[] = SCIENCE_STOP_DWELL_MIN * 60): RouteStats {
+/**
+ * Distances, times and the timed track of a route. Steps marked in leg.ride are timed with `drive` (the rover's
+ * prepared grid) and count as riding, not walking; without `drive` every step is walked.
+ */
+export function routeStats(p: PreparedGrid, legs: Leg[], dwellS: number | number[] = SCIENCE_STOP_DWELL_MIN * 60, drive?: PreparedGrid): RouteStats {
   const { grid } = p
   const timeByTerrainS: Record<TerrainClass, number> = {
     [TERRAIN.BEDROCK]: 0,
@@ -73,38 +97,52 @@ export function routeStats(p: PreparedGrid, legs: Leg[], dwellS: number | number
   let elapsed = 0
   let distance = 0
   let dwellTotal = 0
+  let rideTotal = 0
   let maxSlopeDeg = -Infinity
   let maxSlopeCell = -1
 
-  const point = (cell: number, leg: number) => {
+  const point = (cell: number, leg: number, riding: boolean, l: Leg, k: number) => {
     const { lat, lon } = cellCenter(grid, cell)
-    track.push({ cell, lat, lon, distanceM: distance, elevationM: grid.elevation[cell], arriveS: elapsed, departS: elapsed, leg })
-    if (grid.slopeDeg[cell] > maxSlopeDeg) {
+    const rover = l.rover?.[k]
+    track.push({
+      cell, lat, lon, distanceM: distance, elevationM: grid.elevation[cell], arriveS: elapsed, departS: elapsed, leg,
+      ...(riding ? { riding } : {}),
+      ...(rover !== undefined && rover >= 0 ? { roverCell: rover } : {}),
+      ...(l.toRoverS ? { toRoverS: l.toRoverS[k] } : {}),
+      ...(l.roverInSight ? { roverInSight: l.roverInSight[k] === 1 } : {}),
+    })
+    if (!riding && grid.slopeDeg[cell] > maxSlopeDeg) {
       maxSlopeDeg = grid.slopeDeg[cell]
       maxSlopeCell = cell
     }
   }
 
   legs.forEach((leg, li) => {
-    const s: LegStats = { from: leg.from, to: leg.to, distanceM: 0, walkS: 0, ascentM: 0, descentM: 0, maxSlopeDeg: grid.slopeDeg[leg.cells[0]] }
-    if (li === 0) point(leg.cells[0], 0)
+    const s: LegStats = { from: leg.from, to: leg.to, distanceM: 0, walkS: 0, rideS: 0, ascentM: 0, descentM: 0, maxSlopeDeg: grid.slopeDeg[leg.cells[0]] }
+    if (li === 0) point(leg.cells[0], 0, false, leg, 0)
     for (let k = 1; k < leg.cells.length; k++) {
       const a = leg.cells[k - 1]
       const b = leg.cells[k]
       const diagonal = a % grid.width !== b % grid.width && Math.floor(a / grid.width) !== Math.floor(b / grid.width)
-      const t = stepTime(p, a, b, diagonal ? grid.cellSizeM * Math.SQRT2 : grid.cellSizeM)
+      const riding = drive !== undefined && leg.ride?.[k] === 1
+      const t = stepTime(riding ? drive : p, a, b, diagonal ? grid.cellSizeM * Math.SQRT2 : grid.cellSizeM)
       const d = sphericalDistanceM(cellCenter(grid, a), cellCenter(grid, b))
       const dz = grid.elevation[b] - grid.elevation[a]
-      timeByTerrainS[grid.terrainClass[a] as TerrainClass] += t / 2
-      timeByTerrainS[grid.terrainClass[b] as TerrainClass] += t / 2
-      s.walkS += t
+      if (riding) {
+        s.rideS += t
+        rideTotal += t
+      } else {
+        timeByTerrainS[grid.terrainClass[a] as TerrainClass] += t / 2
+        timeByTerrainS[grid.terrainClass[b] as TerrainClass] += t / 2
+        s.walkS += t
+      }
       s.distanceM += d
       if (dz > 0) s.ascentM += dz
       else s.descentM -= dz
-      s.maxSlopeDeg = Math.max(s.maxSlopeDeg, grid.slopeDeg[b])
+      if (!riding) s.maxSlopeDeg = Math.max(s.maxSlopeDeg, grid.slopeDeg[b])
       elapsed += t
       distance += d
-      point(b, li)
+      point(b, li, riding, leg, k)
     }
     if (li < legs.length - 1) {
       const dwell = Array.isArray(dwellS) ? (dwellS[li] ?? 0) : dwellS
@@ -118,7 +156,8 @@ export function routeStats(p: PreparedGrid, legs: Leg[], dwellS: number | number
   const distanceStatus = worstStatus('DERIVED', grid.status)
   return {
     distanceM: distance,
-    walkS: elapsed - dwellTotal,
+    walkS: Math.max(0, elapsed - dwellTotal - rideTotal), // float noise can leave -1e-12 on an all-ridden plan
+    rideS: rideTotal,
     dwellS: dwellTotal,
     totalS: elapsed,
     ascentM: legStats.reduce((sum, l) => sum + l.ascentM, 0),

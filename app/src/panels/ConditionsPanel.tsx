@@ -1,6 +1,7 @@
 import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import { findSunset, sunElevationAt } from '../stats/conditions'
 import type { StartOption } from '../stats/sun'
+import type { WindowSlot } from '../stats/window'
 import type { Conditions, SpaceWeather } from '../types'
 import { CloseIcon } from '../ui/icons'
 import { SourceLine } from '../ui/SourceLine'
@@ -17,14 +18,68 @@ interface Props {
   storm: boolean
   /** NASA DONKI events and windows for the planned sol, or null */
   spaceWeather: SpaceWeather | null
+  /** every daylight start judged for the current plan (empty with no route) */
+  startWindow: WindowSlot[]
   onStormChange: (on: boolean) => void
   onClose: () => void
 }
 
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16)
 
+const LEVEL_LABEL = { go: 'GO', caution: 'caution', nogo: 'NO-GO' } as const
+
+/** Every daylight start as a coloured slot (GO / start-dependent caution / NO-GO); click one to start then. */
+function StartWindow({ slots, current, onPick }: { slots: WindowSlot[]; current: string; onPick: (iso: string) => void }) {
+  const now = slots.find((w) => w.time === current)
+  return (
+    <div className="start-window">
+      <p className="panel-sub">
+        Start window for this plan <StatusBadge status="MODELED" />
+      </p>
+      <div className="sw-strip" role="radiogroup" aria-label="Start times by verdict">
+        {slots.map((w) => (
+          <button
+            key={w.time}
+            type="button"
+            role="radio"
+            aria-checked={w.time === current}
+            className={`sw-slot is-${w.level}`}
+            title={`${w.ltst} Mars local: ${LEVEL_LABEL[w.level]} · ${w.why}`}
+            aria-label={`${w.ltst} Mars local, ${LEVEL_LABEL[w.level]}: ${w.why}`}
+            onClick={() => onPick(w.time)}
+          />
+        ))}
+      </div>
+      <div className="sw-axis" aria-hidden="true">
+        <span>{slots[0].ltst}</span>
+        <span>{slots[Math.floor(slots.length / 2)].ltst}</span>
+        <span>{slots[slots.length - 1].ltst}</span>
+      </div>
+      <ul className="sw-legend">
+        <li>
+          <span className="sw-key is-go" />
+          GO
+        </li>
+        <li>
+          <span className="sw-key is-caution" />
+          Caution that depends on the start
+        </li>
+        <li>
+          <span className="sw-key is-nogo" />
+          NO-GO
+        </li>
+      </ul>
+      {now && (
+        <p className="sw-now">
+          {now.ltst} start: {now.why}.
+        </p>
+      )}
+    </div>
+  )
+}
+
 /** Weather, daylight and space weather for the EVA window, plus the solar-storm drill. */
-export function ConditionsPanel({ conditions, startTime, startChoices, onStartTime, lonEast, endTime, storm, onStormChange, spaceWeather, onClose }: Props) {
+export function ConditionsPanel({ conditions, startTime, startChoices, onStartTime, lonEast, endTime, storm, onStormChange, spaceWeather, startWindow, onClose }: Props) {
   const local = (ms: number) => formatMarsClock(ltstHours(marsTime(ms), lonEast)).slice(0, 5)
   const startMs = Date.parse(startTime)
   const endMs = endTime ? Date.parse(endTime) : null
@@ -64,6 +119,8 @@ export function ConditionsPanel({ conditions, startTime, startChoices, onStartTi
           ))}
         </select>
       </label>
+      {startWindow.length > 0 && <StartWindow slots={startWindow} current={startTime} onPick={onStartTime} />}
+
       <p className="panel-sub">
         Weather at the start, {hhmm(startMs)} UTC <StatusBadge status={status} />
       </p>

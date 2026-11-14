@@ -1,6 +1,11 @@
 // Walking-time cost model (CLAUDE.md §5). Edge cost = seconds to walk from one cell centre to a neighbour's.
 
 import {
+  ROVER_SLOPE_IMPASSABLE_DEG,
+  ROVER_SLOPE_PENALTY_PER_DEG,
+  ROVER_SLOPE_PENALTY_START_DEG,
+  ROVER_SPEED_KMH,
+  ROVER_TERRAIN_MULTIPLIER,
   SLOPE_IMPASSABLE_DEG,
   SLOPE_PENALTY_PER_DEG,
   SLOPE_PENALTY_START_DEG,
@@ -20,6 +25,8 @@ export interface RouteParams {
   slopeImpassableDeg: number
   slopePenaltyPerDeg: number
   terrainMultiplier: Record<TerrainClass, number>
+  /** A vehicle's constant speed, m/s; when set it replaces the walking (Tobler) speed. */
+  fixedSpeedMs?: number
 }
 
 export const DEFAULT_ROUTE_PARAMS: RouteParams = {
@@ -35,6 +42,16 @@ export const SAFEST_ROUTE_PARAMS: RouteParams = {
   ...DEFAULT_ROUTE_PARAMS,
   slopePenaltyPerDeg: SAFE_ROUTE_SLOPE_PENALTY_PER_DEG,
   terrainMultiplier: SAFE_ROUTE_TERRAIN_MULTIPLIER,
+}
+
+/** The support rover driving (config.ts): constant speed, stricter slope limit, slow in sand, no rocky ground. */
+export const ROVER_ROUTE_PARAMS: RouteParams = {
+  ...DEFAULT_ROUTE_PARAMS,
+  fixedSpeedMs: ROVER_SPEED_KMH / 3.6,
+  slopePenaltyStartDeg: ROVER_SLOPE_PENALTY_START_DEG,
+  slopeImpassableDeg: ROVER_SLOPE_IMPASSABLE_DEG,
+  slopePenaltyPerDeg: ROVER_SLOPE_PENALTY_PER_DEG,
+  terrainMultiplier: ROVER_TERRAIN_MULTIPLIER,
 }
 
 export type RouteProfile = 'fastest' | 'safest'
@@ -59,6 +76,7 @@ export function walkingSpeedMs(tanTheta: number, suitSpeedFactor: number): numbe
 
 /** Fastest possible walking speed, m/s (Tobler's peak, on a 5% downhill). Used by the A* heuristic. */
 export function maxWalkingSpeedMs(params: RouteParams): number {
+  if (params.fixedSpeedMs) return params.fixedSpeedMs
   return walkingSpeedMs(-TOBLER_SLOPE_OFFSET, params.suitSpeedFactor)
 }
 
@@ -95,5 +113,6 @@ export function stepTime(p: PreparedGrid, from: number, to: number, distM: numbe
   const m = (p.mult[from] + p.mult[to]) / 2
   if (!Number.isFinite(m)) return Infinity
   const tanTheta = (p.grid.elevation[to] - p.grid.elevation[from]) / distM
-  return (distM / walkingSpeedMs(tanTheta, p.params.suitSpeedFactor)) * m
+  const speed = p.params.fixedSpeedMs ?? walkingSpeedMs(tanTheta, p.params.suitSpeedFactor)
+  return (distM / speed) * m
 }
