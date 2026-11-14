@@ -1,0 +1,29 @@
+# Data: raw downloads never committed
+data/raw/
+
+# Node
+node_modules/
+dist/
+*.local
+*.tsbuildinfo
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+
+# Claude Code plugin state
+.omc/
+
+CLAUDE.md
