@@ -13,7 +13,8 @@ export interface CommsGaps {
 
 /**
  * Walks the track: each step's time is split between its two cells, and dwell at a cell counts for that cell.
- * `visible[cell]` = 1 when the cell has line of sight to an antenna.
+ * `visible[cell]` = 1 when the cell has line of sight to an antenna. Riding points count as in contact (the rover's radio),
+ * and so do points in sight of the rover parked near the crew on a rover-assisted plan (TrackPoint.roverInSight).
  */
 export function commsGaps(track: TrackPoint[], visible: Uint8Array): CommsGaps {
   let outS = 0
@@ -34,9 +35,10 @@ export function commsGaps(track: TrackPoint[], visible: Uint8Array): CommsGaps {
   const contact = () => {
     runS = 0
   }
+  const inContact = (p: TrackPoint) => p.riding === true || p.roverInSight === true || visible[p.cell] === 1
   for (let i = 0; i < track.length; i++) {
     const p = track[i]
-    const seen = visible[p.cell] === 1
+    const seen = inContact(p)
     const dwell = p.departS - p.arriveS
     if (!seen) addOut(dwell, i)
     else if (dwell > 0) contact()
@@ -44,7 +46,7 @@ export function commsGaps(track: TrackPoint[], visible: Uint8Array): CommsGaps {
       const half = (track[i + 1].arriveS - p.departS) / 2
       if (seen) contact()
       else addOut(half, i)
-      if (visible[track[i + 1].cell] === 1) contact()
+      if (inContact(track[i + 1])) contact()
       else addOut(half, i + 1)
     }
   }

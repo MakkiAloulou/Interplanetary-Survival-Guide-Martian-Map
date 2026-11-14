@@ -102,6 +102,8 @@ export interface PlanContext {
   dwellS?: number[]
   /** site longitude, east, for Mars local clock times */
   lonEast: number
+  /** the rover's prepared grid on a rover-assisted plan, so ridden steps are timed at rover speed (as the planner does) */
+  drive?: PreparedGrid
 }
 
 /** Where the crew is now. */
@@ -159,6 +161,7 @@ function evaluate(ctx: PlanContext, legs: Leg[], dwellS: number[], o2UsedExtraS:
     conditions: ctx.conditions,
     dwellS,
     params: { ...ctx.params, o2DurationS: ctx.params.o2DurationS - o2UsedExtraS },
+    drive: ctx.drive,
   })
 }
 

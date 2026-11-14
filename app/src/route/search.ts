@@ -80,6 +80,43 @@ function reconstruct(came: Int32Array, goal: number): number[] {
 }
 
 /**
+ * Seconds to walk from each of `from` to `goal` (Infinity where there is no way): the walk-home search, stopped as
+ * soon as every cell asked about is settled, so it stays small when they are near the goal.
+ */
+export function walkTimesTo(p: PreparedGrid, goal: number, from: number[]): number[] {
+  const out = from.map(() => Infinity)
+  if (from.length === 0 || !isPassable(p, goal)) return out
+  const wanted = new Map<number, number[]>()
+  from.forEach((c, i) => wanted.set(c, [...(wanted.get(c) ?? []), i]))
+  let left = wanted.size
+  const { g, closed } = p.scratch
+  g.fill(Infinity)
+  closed.fill(0)
+  const heap = createHeap()
+  g[goal] = 0
+  heap.push(0, goal)
+  while (heap.size() > 0 && left > 0) {
+    const v = heap.pop()
+    if (closed[v]) continue
+    closed[v] = 1
+    const hit = wanted.get(v)
+    if (hit) {
+      for (const i of hit) out[i] = g[v]
+      left--
+    }
+    forEachNeighbour(p, v, (u, distM) => {
+      if (closed[u]) return
+      const t = g[v] + stepTime(p, u, v, distM)
+      if (t < g[u]) {
+        g[u] = t
+        heap.push(t, u)
+      }
+    })
+  }
+  return out
+}
+
+/**
  * Seconds to walk from every cell back to `base` (Infinity where unreachable).
  * One Dijkstra pass from the base over reversed edges: the value at u uses stepTime(u → v), the
  * direction the astronaut actually walks, so uphill/downhill asymmetry is respected.
@@ -110,4 +147,34 @@ export function walkHomeField(p: PreparedGrid, base: number): Float32Array {
     })
   }
   return time
+}
+
+/**
+ * The path from `from` down a time-to-goal field made by walkHomeField on the same grid (goal = where the field is 0):
+ * at each cell, the neighbour whose step plus remaining time matches the field. Same result as an A* search to the
+ * goal, without the search. Null when the field has no way from `from`.
+ */
+export function pathDown(p: PreparedGrid, field: Float32Array, from: number): Path | null {
+  if (!Number.isFinite(field[from])) return null
+  const cells = [from]
+  let cur = from
+  let timeS = 0
+  while (field[cur] > 0) {
+    let best = -1
+    let bestT = Infinity
+    let bestStep = 0
+    forEachNeighbour(p, cur, (u, distM) => {
+      const step = stepTime(p, cur, u, distM)
+      if (step + field[u] < bestT) {
+        bestT = step + field[u]
+        best = u
+        bestStep = step
+      }
+    })
+    if (best < 0 || field[best] >= field[cur]) return null // float noise or a broken field: never loop
+    cells.push(best)
+    timeS += bestStep
+    cur = best
+  }
+  return { cells, timeS }
 }

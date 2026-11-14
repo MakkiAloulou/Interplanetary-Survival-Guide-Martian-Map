@@ -5,7 +5,7 @@ import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration } from '../stats/format'
 import { evaDoseMSv, type EvaParams, type Reason } from '../stats/goNoGo'
 import { liveWarnings, type LiveWarning } from '../stats/live'
-import { sphericalDistanceM, type RouteStats, type TrackPoint } from '../stats/stats'
+import { safetyS, sphericalDistanceM, type RouteStats, type TrackPoint } from '../stats/stats'
 import type { Conditions, Waypoint } from '../types'
 import { AlertSlot } from '../ui/AlertSlot'
 import { takesOver, walkAlerts } from '../ui/alerts'
@@ -32,7 +32,8 @@ interface Props {
   params: EvaParams
   /** the plan's own cautions and no-go reasons */
   alerts: Reason[]
-  planAbort: (cell: number) => AbortPlan | null
+  /** fastest way to the nearer safe haven from a cell; `rover` = where the rover is parked on a rover-assisted plan */
+  planAbort: (cell: number, rover?: number) => AbortPlan | null
   onExit: () => void
   /** EVA start (ISO UTC) and the conditions series, for the live warnings and Mars local time */
   startTime?: string
@@ -115,7 +116,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
   const cell = stats.track[pos.index].cell
   const o2Left = params.o2DurationS - t
   const usable = params.o2DurationS - params.o2ReserveS
-  const home = params.walkHomeContingency * walkHome[cell]
+  const home = params.walkHomeContingency * safetyS(walkHome, stats.track[pos.index])
   const margin = usable - (t + home)
   const startMs = startTime ? Date.parse(startTime) : null
   const lonEast = stations[0]?.lon ?? 0
@@ -261,7 +262,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
           className="visor-btn visor-abort"
           onClick={() => {
             clock.pause()
-            setAbort({ atT: t, plan: planAbort(cell) })
+            setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })
           }}
         >
           <WarningIcon size={20} /> Abort · return to safety
@@ -284,7 +285,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
         {credit}
       </div>
 
-      {copilot?.({ t, index: pos.index, cell, drill, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell) })) })}
+      {copilot?.({ t, index: pos.index, cell, drill, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })) })}
     </div>
   )
 }

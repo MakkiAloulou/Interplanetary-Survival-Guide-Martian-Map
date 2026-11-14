@@ -26,6 +26,8 @@ export const INK = {
   traverse: '#a142f4',
   /** ground with no radio line of sight to the habitat or the rover */
   radioShadow: '#3c1e8c',
+  /** stretches the crew rides the rover */
+  rover: '#3c4043',
 } as const
 
 export const HAZARD_COLORS: Record<Hazard, string> = {

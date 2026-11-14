@@ -329,6 +329,135 @@ button.stop-text:hover {
   border-left-color: var(--amber);
 }
 
+.ride-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-basis: 100%;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.ride-toggle input {
+  margin-top: 3px;
+}
+
+.ride-toggle small {
+  display: block;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.ride-compare {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--blue-bg);
+  color: var(--blue-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.swatch-dashed {
+  background: none !important;
+  height: 0 !important;
+  border-top: 3px dashed;
+}
+
+.start-window {
+  margin: 10px 0 14px;
+}
+
+.sw-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.sw-slot {
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.sw-slot.is-go,
+.sw-key.is-go {
+  background: var(--green);
+}
+
+.sw-slot.is-caution,
+.sw-key.is-caution {
+  background: var(--amber);
+}
+
+.sw-slot.is-nogo,
+.sw-key.is-nogo {
+  background: var(--red);
+}
+
+.sw-slot[aria-checked="true"] {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.sw-slot:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.sw-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.sw-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.sw-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.sw-now {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.start-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.start-hint .btn-chip {
+  flex: none;
+}
+
 .source-link {
   color: var(--blue-text);
   text-decoration: underline;
@@ -683,6 +812,7 @@ button.tl-stop.is-selected {
 
 .plan-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
   padding: 12px 20px 4px;

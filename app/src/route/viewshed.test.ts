@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { commsGaps } from '../stats/comms'
 import type { TrackPoint } from '../stats/stats'
 import { gridFrom, idx } from '../testing/grids'
-import { combinedViewshed, viewshed } from './viewshed'
+import { combinedViewshed, inSight, viewshed } from './viewshed'
 
 const flat = (n: number) => Array.from({ length: n }, () => '.'.repeat(n))
 
@@ -60,5 +60,20 @@ describe('commsGaps', () => {
     const g = commsGaps(track, Uint8Array.from([0, 1, 1, 1, 0]))
     expect(g.outS).toBe(60)
     expect(g.longestS).toBe(30)
+  })
+})
+
+describe('inSight', () => {
+  test('agrees with the viewshed on the cells asked about', () => {
+    const g = gridFrom(Array.from({ length: 30 }, () => '.'.repeat(30)), (r, c) => (c === 12 && r > 5 ? 6 : 0) + 0.05 * r)
+    const antenna = { cell: 15 * 30 + 3, heightM: 3 }
+    const full = viewshed(g, antenna, 1.8)
+    const cells = Array.from({ length: g.width * g.height }, (_, i) => i)
+    const some = inSight(g, antenna, 1.8, cells)
+    const agree = cells.filter((c) => some[c] === full[c]).length
+    expect(agree / cells.length).toBeGreaterThan(0.97) // the sweep and single rays may differ on a few rounding cells
+    expect(some[15 * 30 + 20]).toBe(0) // behind the wall
+    expect(some[0 * 30 + 14]).toBe(1) // the ray passes north of the wall's end (row 2.7 at column 12)
+    expect(full[0 * 30 + 14]).toBe(1)
   })
 })

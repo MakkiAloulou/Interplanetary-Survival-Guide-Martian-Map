@@ -76,6 +76,9 @@ export interface CrewTasks {
  * Who does what at one stop (MODELED: our crew rule, not a NASA procedure). The target's instruments alternate
  * between the pair (EV1 takes the 1st, 3rd, …; EV2 the 2nd, 4th, …); the rover parks as tool carrier and safe haven.
  */
+/** `roverStagedAt` value for a rover-assisted Marswalk, where the rover travels with the crew. */
+export const ROVER_WITH_CREW = 'with the crew'
+
 export function crewAtStop(stop: Waypoint, targets: ScienceTarget[], roverStagedAt: string | null = stop.name): CrewTasks {
   const kit = targets.find((t) => t.id === stop.id)?.instrumentsNeeded ?? []
   const ev1 = kit.filter((_, k) => k % 2 === 0)
@@ -84,7 +87,9 @@ export function crewAtStop(stop: Waypoint, targets: ScienceTarget[], roverStaged
     ev1: ev1.length ? sentence(ev1.join(', ')) : 'Survey and photograph',
     ev2: ev2.length ? sentence(ev2.join(', ')) : 'Survey and photograph',
     rover:
-      roverStagedAt === stop.name
+      roverStagedAt === ROVER_WITH_CREW
+        ? `Travels with the crew and parks nearby: tools, safe haven and radio relay`
+        : roverStagedAt === stop.name
         ? `Staged here: tools and safe haven`
         : roverStagedAt
           ? `Standing by at ${roverStagedAt} as safe haven`
