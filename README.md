@@ -6,7 +6,11 @@ Mars Trek and the USGS geologic maps work at global and regional scale. This too
 
 Three views of the same data: **habitat** (planning), **tablet** (on the walk), **HUD** (helmet visor).
 
-Every value is labeled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`. Until the official resources are released (Nov 13), all terrain is `MOCK`.
+Every value is labeled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`. Terrain comes from the real USGS Gale elevation model (HiRISE/CTX/HRSC). Science targets, stop panoramas, weather, thermal and mineralogy are still `MOCK` until they are replaced with real data.
+
+## Credits and AI use
+
+Built with the help of an AI coding assistant (Claude Code). [CREDITS.md](CREDITS.md) explains where AI was used and lists every data, code, font and method source. No NASA logos or branding are used.
 
 ## Layout
 
