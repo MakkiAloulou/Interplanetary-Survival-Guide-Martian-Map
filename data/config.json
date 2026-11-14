@@ -1,0 +1,54 @@
+{
+  "site": {
+    "name": "Gale Crater — Mount Sharp boxwork (sulfate-bearing unit)",
+    "bounds": { "latMin": -4.8169, "latMax": -4.7831, "lonMin": 137.3631, "lonMax": 137.3969 },
+    "boundsNote": "PLACEHOLDER ~2 x 2 km box near Curiosity's 2025 boxwork area. Not verified. Replace with bounds derived from the Curiosity traverse (MMGIS) during resource integration, CLAUDE.md §8 step 2.",
+    "boundsStatus": "MOCK"
+  },
+  "layers": [
+    {
+      "id": "optical",
+      "name": "Base imagery",
+      "dataType": "optical",
+      "imageOverlay": "processed/mock/optical.png",
+      "bounds": { "latMin": -4.8169, "latMax": -4.7831, "lonMin": 137.3631, "lonMax": 137.3969 },
+      "opacity": 1,
+      "attribution": "MOCK: synthetic placeholder for HiRISE orthoimage",
+      "status": "MOCK"
+    },
+    {
+      "id": "hillshade",
+      "name": "Hillshade",
+      "dataType": "topographic",
+      "imageOverlay": "processed/mock/hillshade.png",
+      "bounds": { "latMin": -4.8169, "latMax": -4.7831, "lonMin": 137.3631, "lonMax": 137.3969 },
+      "opacity": 0.5,
+      "attribution": "MOCK: synthetic placeholder for HiRISE/CTX elevation model",
+      "status": "MOCK"
+    },
+    {
+      "id": "thermal-inertia",
+      "name": "Thermal inertia (sand vs bedrock)",
+      "dataType": "thermal",
+      "imageOverlay": "processed/mock/thermal_inertia.png",
+      "bounds": { "latMin": -4.8169, "latMax": -4.7831, "lonMin": 137.3631, "lonMax": 137.3969 },
+      "opacity": 0.6,
+      "attribution": "MOCK: synthetic placeholder for THEMIS thermal inertia",
+      "status": "MOCK"
+    },
+    {
+      "id": "mineralogy",
+      "name": "Mineralogy",
+      "dataType": "spectral",
+      "imageOverlay": "processed/mock/mineralogy.png",
+      "bounds": { "latMin": -4.8169, "latMax": -4.7831, "lonMin": 137.3631, "lonMax": 137.3969 },
+      "opacity": 0.6,
+      "attribution": "MOCK: synthetic placeholder for CRISM mineral map",
+      "status": "MOCK"
+    }
+  ],
+  "costGrid": "processed/mock/costgrid.json",
+  "scienceTargets": { "path": "processed/mock/science_targets.json", "status": "MOCK" },
+  "povImages": { "path": "processed/mock/pov_images.json", "status": "MOCK" },
+  "conditions": { "path": "processed/mock/conditions.json", "status": "MOCK" }
+}

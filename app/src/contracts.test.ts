@@ -1,0 +1,80 @@
+import { describe, expect, test } from 'vitest'
+import rawConfig from '../../data/config.json'
+import { SLOPE_IMPASSABLE_DEG, SLOPE_PENALTY_START_DEG, TERRAIN_COST_MULTIPLIER } from './config'
+import { TERRAIN, type Bounds, type DataConfig, type DataStatus, type DataType } from './types'
+
+const STATUSES: DataStatus[] = ['OBSERVED', 'DERIVED', 'MODELED', 'MOCK']
+const DATA_TYPES: DataType[] = [
+  'optical',
+  'thermal',
+  'spectral',
+  'topographic',
+  'atmospheric',
+  'radiation',
+  'chemical',
+  'derived',
+]
+
+// JSON imports widen string unions, so data/config.json is checked at runtime here.
+const config = rawConfig as DataConfig
+
+function isValidBounds(b: Bounds) {
+  return b.latMin < b.latMax && b.lonMin < b.lonMax && b.latMin >= -90 && b.latMax <= 90
+}
+
+function contains(outer: Bounds, inner: Bounds) {
+  return (
+    inner.latMin >= outer.latMin &&
+    inner.latMax <= outer.latMax &&
+    inner.lonMin >= outer.lonMin &&
+    inner.lonMax <= outer.lonMax
+  )
+}
+
+describe('data/config.json', () => {
+  test('site has valid bounds and status', () => {
+    expect(isValidBounds(config.site.bounds)).toBe(true)
+    expect(STATUSES).toContain(config.site.boundsStatus)
+  })
+
+  test('layers follow the Layer contract', () => {
+    const ids = config.layers.map((l) => l.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const layer of config.layers) {
+      expect(STATUSES).toContain(layer.status)
+      expect(DATA_TYPES).toContain(layer.dataType)
+      expect(Boolean(layer.tileUrl) !== Boolean(layer.imageOverlay)).toBe(true)
+      expect(layer.opacity).toBeGreaterThanOrEqual(0)
+      expect(layer.opacity).toBeLessThanOrEqual(1)
+      expect(isValidBounds(layer.bounds)).toBe(true)
+      expect(contains(config.site.bounds, layer.bounds)).toBe(true)
+      expect(layer.attribution.length).toBeGreaterThan(0)
+    }
+  })
+
+  test('layers cover at least three data types (challenge brief)', () => {
+    expect(new Set(config.layers.map((l) => l.dataType)).size).toBeGreaterThanOrEqual(3)
+  })
+
+  test('non-layer datasets have a path and status', () => {
+    expect(config.costGrid).toMatch(/\.json$/)
+    for (const d of [config.scienceTargets, config.povImages, config.conditions]) {
+      expect(d.path).toMatch(/\.json$/)
+      expect(STATUSES).toContain(d.status)
+    }
+  })
+})
+
+describe('config.ts', () => {
+  test('slope penalty starts below the impassable limit', () => {
+    expect(SLOPE_PENALTY_START_DEG).toBeLessThan(SLOPE_IMPASSABLE_DEG)
+  })
+
+  test('every terrain class has a cost multiplier; only NO_GO is impassable', () => {
+    for (const code of Object.values(TERRAIN)) {
+      expect(TERRAIN_COST_MULTIPLIER[code]).toBeGreaterThanOrEqual(1)
+    }
+    expect(TERRAIN_COST_MULTIPLIER[TERRAIN.NO_GO]).toBe(Infinity)
+    expect(Number.isFinite(TERRAIN_COST_MULTIPLIER[TERRAIN.SAND])).toBe(true)
+  })
+})
