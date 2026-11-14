@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import type { CopilotLive } from '../copilot/useCopilot'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
@@ -25,6 +26,8 @@ interface Props {
   alerts: Reason[]
   planAbort: (cell: number) => AbortPlan | null
   onExit: () => void
+  /** optional what-if copilot, given the walk clock and this view's abort */
+  copilot?: (live: CopilotLive) => ReactNode
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
@@ -57,7 +60,7 @@ function Compass({ bearing, big, sub }: { bearing: number; big: string; sub: str
  * Helmet-visor view: only what a suited astronaut needs at a glance. The EVA plays on the plan's clock (or is
  * scrubbed by hand), so the demo can walk the route. Abort switches to the fastest way to the nearest safe haven.
  */
-export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit }: Props) {
+export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit, copilot }: Props) {
   const clock = usePlayback(stats.totalS)
   const { t, playing, speed, done } = clock
   const [abort, setAbort] = useState<{ atT: number; plan: AbortPlan | null } | null>(null)
@@ -193,6 +196,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
           <AlertIcon size={16} /> Abort
         </button>
       </div>
+      {copilot?.({ t, index: pos.index, cell, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell) })) })}
     </div>
   )
 }
