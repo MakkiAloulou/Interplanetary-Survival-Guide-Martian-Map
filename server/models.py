@@ -62,6 +62,16 @@ class UnderstandResponse(BaseModel):
     ms: float
 
 
+class TranscribeResponse(BaseModel):
+    ok: bool
+    text: str = ""
+    #: whisper time on the server (the app logs its own round trip too)
+    ms: float = 0
+    model: str | None = None
+    audio_s: float = 0
+    error: str | None = None
+
+
 class HealthResponse(BaseModel):
     ok: bool
     ollama: bool

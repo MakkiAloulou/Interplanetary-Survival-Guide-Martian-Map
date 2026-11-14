@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { fetchHealth, understandRemote, type Health } from './api'
+import { forSpeech } from './templates'
 import { resolve } from './understand'
 import { understandByRules, type Stages } from './useCopilot'
+import { speak, stopSpeaking } from './voice'
 
 /** How often the dock re-checks the server, ms (it may be started after the app, or the model may still load). */
 const HEALTH_EVERY_MS = 15_000
@@ -24,8 +26,11 @@ export function useServerHealth(): Health | null {
   return health
 }
 
-/** Stages for the current server state: the LLM is only asked when it is loaded; otherwise rules, at once. */
-export function useServerStages(health: Health | null): Stages {
+/**
+ * Stages for the current server state: the LLM is only asked when it is loaded (otherwise rules, at once); answers are
+ * spoken by the browser's speech synthesis when `speakAnswers` is on.
+ */
+export function useServerStages(health: Health | null, speakAnswers: boolean): Stages {
   return useMemo<Stages>(
     () => ({
       understand: async (text, uctx) => {
@@ -35,7 +40,9 @@ export function useServerStages(health: Health | null): Stages {
         }
         return understandByRules(text, uctx)
       },
+      speak: speakAnswers ? (text) => speak(forSpeech(text)) : undefined,
+      stopSpeaking,
     }),
-    [health?.llm_ready],
+    [health?.llm_ready, speakAnswers],
   )
 }

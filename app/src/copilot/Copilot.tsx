@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Health } from './api'
 import './copilot.css'
 import { CopilotCard } from './CopilotCard'
+import { PushToTalk } from './PushToTalk'
 import { useServerHealth, useServerStages } from './stages'
 import { useCopilot, type CopilotLive, type CopilotPlan, type Phase } from './useCopilot'
+import { speechSupported, whisperPrompt } from './voice'
 
 interface Props {
   plan: CopilotPlan
@@ -12,21 +14,21 @@ interface Props {
   variant: 'hud' | 'tablet'
 }
 
-/** Which understanding path is live, said plainly (judges and crew both see it). */
-function serverLine(h: Health | null): string {
-  if (!h) return 'Offline mode: rules and templates (copilot server not running)'
-  if (!h.ollama || !h.model_available) return `Rules mode: ${h.model} not available in Ollama`
-  if (!h.llm_ready) return `Rules mode while ${h.model} loads`
-  return `Understanding: ${h.model} on this laptop · numbers from the planner's engine`
-}
-
 const PHASE_LABEL: Record<Phase, string> = {
-  idle: 'Ask a what-if',
+  idle: 'Hold to talk, or type',
   listening: 'Listening…',
   transcribing: 'Hearing you…',
   thinking: 'Checking the budget…',
   speaking: 'Answering…',
-  error: 'Something went wrong',
+  error: 'Try again',
+}
+
+/** Which understanding path is live, said plainly (judges and crew both see it). */
+function serverLine(h: Health | null): string {
+  if (!h) return 'offline mode: typed questions, rules and templates (copilot server not running)'
+  if (!h.ollama || !h.model_available) return `rules mode: ${h.model} not available in Ollama`
+  if (!h.llm_ready) return `rules mode while ${h.model} loads`
+  return `${h.model} on this laptop · numbers from the planner's engine`
 }
 
 /**
@@ -35,15 +37,18 @@ const PHASE_LABEL: Record<Phase, string> = {
  */
 export function Copilot({ plan, live, variant }: Props) {
   const health = useServerHealth()
-  const stages = useServerStages(health)
+  const [speakAnswers, setSpeakAnswers] = useState(speechSupported())
+  const stages = useServerStages(health, speakAnswers)
   const copilot = useCopilot(plan, live, stages)
   const [text, setText] = useState('')
+  const prompt = useMemo(() => whisperPrompt(plan.ctx), [plan.ctx])
   const { phase, answer, timing, error } = copilot
   return (
     <div className={`copilot is-${variant}`} role="region" aria-label="What-if copilot">
       {answer && <CopilotCard answer={answer} timing={timing} canApply={copilot.canApply} onApply={copilot.apply} onDismiss={copilot.dismiss} />}
       {error && <p className="copilot-error">{error}</p>}
       <div className="copilot-bar">
+        {health && <PushToTalk copilot={copilot} prompt={prompt} ready={health.whisper_loaded} />}
         <form
           className="copilot-form"
           onSubmit={(e) => {
@@ -60,7 +65,7 @@ export function Copilot({ plan, live, variant }: Props) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
           />
-          <button type="submit" className="copilot-ask" disabled={!text.trim() || (phase !== 'idle' && phase !== 'error')}>
+          <button type="submit" className="copilot-ask" disabled={!text.trim() || phase === 'thinking' || phase === 'transcribing'}>
             Ask
           </button>
         </form>
@@ -68,6 +73,11 @@ export function Copilot({ plan, live, variant }: Props) {
       <p className={`copilot-phase phase-${phase}`} aria-live="polite">
         {PHASE_LABEL[phase]}
         <span className="copilot-mode"> · {serverLine(health)}</span>
+        {speechSupported() && (
+          <label className="copilot-speak">
+            <input type="checkbox" checked={speakAnswers} onChange={(e) => setSpeakAnswers(e.target.checked)} /> speak answers
+          </label>
+        )}
       </p>
     </div>
   )

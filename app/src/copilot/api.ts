@@ -35,6 +35,22 @@ export function fetchHealth(timeoutMs = 2000): Promise<Health | null> {
   return call<Health>('/health', {}, timeoutMs)
 }
 
+export interface Transcribed {
+  text: string
+  /** whisper time on the server, ms */
+  ms: number
+  model: string | null
+}
+
+/** Speech to text on the server (faster-whisper), or null. `prompt` lists the words to expect (place names). */
+export async function transcribeRemote(audio: Blob, prompt: string, timeoutMs = 15_000): Promise<Transcribed | null> {
+  const form = new FormData()
+  form.append('audio', audio, audio.type.includes('ogg') ? 'question.ogg' : audio.type.includes('mp4') ? 'question.m4a' : 'question.webm')
+  form.append('prompt', prompt)
+  const r = await call<{ ok: boolean; text: string; ms: number; model: string | null }>('/transcribe', { method: 'POST', body: form }, timeoutMs)
+  return r?.ok ? { text: r.text, ms: r.ms, model: r.model } : null
+}
+
 /** The LLM's understanding, or null (server down, LLM down / slow / invalid): then use the rule parser. */
 export async function understandRemote(transcript: string, context: UnderstandContext, timeoutMs = 9000): Promise<Understood | null> {
   const r = await call<{ ok: boolean; understood: Understood | null }>('/understand', json({ transcript, context }), timeoutMs)

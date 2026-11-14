@@ -1,0 +1,125 @@
+import { useEffect, useRef } from 'react'
+import { transcribeRemote } from './api'
+import type { useCopilot } from './useCopilot'
+import { createRecorder, stopSpeaking, voiceSupported, type Recorder } from './voice'
+
+interface Props {
+  copilot: ReturnType<typeof useCopilot>
+  /** words whisper should expect (place names of the current data) */
+  prompt: string
+  /** server up and whisper loaded */
+  ready: boolean
+}
+
+const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
+
+/**
+ * Hold to talk: the big button, or the space bar anywhere in the view (except while typing). Releasing sends the clip
+ * to the server's speech-to-text, then asks the copilot. Pressing while it speaks interrupts it.
+ */
+export function PushToTalk({ copilot, prompt, ready }: Props) {
+  const rec = useRef<Recorder | null>(null)
+  const held = useRef(false)
+  const latest = useRef({ copilot, prompt })
+  latest.current = { copilot, prompt }
+  const supported = voiceSupported()
+  const { phase } = copilot
+  const blocked = !ready || !supported || phase === 'transcribing' || phase === 'thinking'
+
+  const start = async () => {
+    const c = latest.current.copilot
+    if (held.current || c.phase === 'transcribing' || c.phase === 'thinking') return
+    held.current = true
+    stopSpeaking()
+    c.setError(null)
+    try {
+      rec.current ??= createRecorder()
+      await rec.current.start()
+      // Released before the microphone opened: nothing to send.
+      if (!held.current) return rec.current.cancel()
+      c.setPhase('listening')
+    } catch (e) {
+      held.current = false
+      c.setError(e instanceof DOMException && e.name === 'NotAllowedError' ? 'Microphone blocked: allow it in the browser, or type the question.' : 'No microphone: type the question.')
+      c.setPhase('error')
+    }
+  }
+
+  const finish = async () => {
+    if (!held.current) return
+    held.current = false
+    const c = latest.current.copilot
+    const clip = await rec.current?.stop()
+    if (!clip) {
+      c.setPhase('idle')
+      return
+    }
+    c.setPhase('transcribing')
+    const t0 = performance.now()
+    const heard = await transcribeRemote(clip, latest.current.prompt)
+    const sttMs = performance.now() - t0
+    console.info(`[copilot] voice ${Math.round(sttMs)} ms round trip (whisper ${Math.round(heard?.ms ?? 0)} ms, ${heard?.model ?? 'failed'}, ${Math.round(clip.size / 1024)} kB)`)
+    if (!heard) {
+      c.setError('Voice did not get through: type the question, or try again.')
+      c.setPhase('error')
+      return
+    }
+    if (!heard.text) {
+      c.setError('I did not catch that. Hold the button while you speak.')
+      c.setPhase('idle')
+      return
+    }
+    await c.ask(heard.text, sttMs)
+  }
+
+  // Space bar push-to-talk. Capture phase, so a focused HUD button is not also pressed.
+  useEffect(() => {
+    if (!ready || !supported) return
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isTyping(e.target)) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (!e.repeat) void start()
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isTyping(e.target)) return
+      e.preventDefault()
+      e.stopPropagation()
+      void finish()
+    }
+    window.addEventListener('keydown', down, true)
+    window.addEventListener('keyup', up, true)
+    return () => {
+      window.removeEventListener('keydown', down, true)
+      window.removeEventListener('keyup', up, true)
+    }
+    // start/finish read the latest props through refs, so the listeners are bound once.
+  }, [ready, supported])
+
+  useEffect(() => () => rec.current?.release(), [])
+
+  const listening = phase === 'listening'
+  const label = !supported ? 'No microphone' : !ready ? 'Voice loading…' : listening ? 'Listening… release' : 'Hold to talk'
+  return (
+    <button
+      type="button"
+      className={`copilot-ptt ${listening ? 'is-listening' : ''}`}
+      disabled={blocked && !listening}
+      aria-pressed={listening}
+      title="Hold to ask (or hold the space bar)"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        void start()
+      }}
+      onPointerUp={() => void finish()}
+      onPointerCancel={() => void finish()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <rect x="9" y="3" width="6" height="11" rx="3" />
+        <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+      </svg>
+      {label}
+    </button>
+  )
+}

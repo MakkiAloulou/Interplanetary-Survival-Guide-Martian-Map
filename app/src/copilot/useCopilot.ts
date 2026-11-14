@@ -89,6 +89,7 @@ export interface Stages {
   understand?: (text: string, uctx: UnderstandContext) => Promise<{ resolution: Resolution; source: 'llm' | 'rules' }>
   explain?: (result: WhatIfResult, template: string) => Promise<string>
   speak?: (text: string) => Promise<void>
+  stopSpeaking?: () => void
 }
 
 /** Rules-only understanding (no server). */
@@ -106,12 +107,14 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
   latest.current = { plan, live, stages }
   const pending = useRef<{ intent: Intent; minutes: number | null; options: PlaceRef[] } | null>(null)
   const last = useRef<Answer | null>(null)
-  const busy = useRef(false)
+  /** true while a question is being understood and computed (not while its answer is spoken: that can be interrupted) */
+  const computing = useRef(false)
 
   const finish = useCallback(async (a: Answer, t: Timing) => {
     last.current = a
     setAnswer(a)
     setTiming(t)
+    computing.current = false
     const { speak } = latest.current.stages
     if (speak) {
       setPhase('speaking')
@@ -120,8 +123,11 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
       } catch {
         // the card still shows the answer
       }
+      // Only if nothing else started meanwhile (push-to-talk pressed during the answer).
+      setPhase((p) => (p === 'speaking' ? 'idle' : p))
+    } else {
+      setPhase('idle')
     }
-    setPhase('idle')
   }, [])
 
   const applyAction = useCallback((): boolean => {
@@ -148,12 +154,13 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
   const ask = useCallback(
     async (question: string, sttMs?: number) => {
       const text = question.trim()
-      if (!text || busy.current) return
-      busy.current = true
+      if (!text || computing.current) return
+      computing.current = true
+      const { plan: p, live: l, stages: s } = latest.current
+      s.stopSpeaking?.()
       setError(null)
       setPhase('thinking')
       const t0 = performance.now()
-      const { plan: p, live: l, stages: s } = latest.current
       const snap: Snapshot = { elapsedS: l.t, index: l.index }
       try {
         // "Confirm" right after an answer applies it.
@@ -212,10 +219,9 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
         )
         await finish({ question: text, text: spokenText, result, clarify: null, applied: false, at: Date.now() }, t)
       } catch (e) {
+        computing.current = false
         setError(e instanceof Error ? e.message : String(e))
         setPhase('error')
-      } finally {
-        busy.current = false
       }
     },
     [applyAction, finish],

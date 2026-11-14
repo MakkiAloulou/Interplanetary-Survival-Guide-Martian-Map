@@ -23,6 +23,9 @@ class Settings:
     whisper_slow_s: float = 3.0
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
+    # Beam 5 with the place-name prompt fixed "fastest way back to the habitat" (beam 1: "first story back to the
+    # Avatar") at ~2% more time on this laptop (1.48 vs 1.46 s per clip, small.en CPU int8).
+    whisper_beam_size: int = 5
     # Load the models at start-up so the first question is not slow.
     warmup: bool = True
     host: str = "127.0.0.1"
@@ -40,6 +43,7 @@ class Settings:
             whisper_slow_s=float(_env("COPILOT_WHISPER_SLOW_S", str(cls.whisper_slow_s))),
             whisper_device=_env("COPILOT_WHISPER_DEVICE", cls.whisper_device),
             whisper_compute_type=_env("COPILOT_WHISPER_COMPUTE_TYPE", cls.whisper_compute_type),
+            whisper_beam_size=int(_env("COPILOT_WHISPER_BEAM_SIZE", str(cls.whisper_beam_size))),
             warmup=_env("COPILOT_WARMUP", "1") not in ("0", "false", "no"),
             host=_env("COPILOT_HOST", cls.host),
             port=int(_env("COPILOT_PORT", str(cls.port))),

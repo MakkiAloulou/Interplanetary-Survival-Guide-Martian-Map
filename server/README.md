@@ -26,7 +26,13 @@ Then run the app (`cd app && npm run dev`). Vite proxies `/api` to the server.
 | Method | Path | What |
 |---|---|---|
 | GET | `/health` | Ollama reachable, model pulled, `llm_ready` (false while the model loads), whisper loaded |
+| POST | `/transcribe` | multipart `audio` (the push-to-talk clip, WebM/Opus from MediaRecorder) + `prompt` (place names to expect) → `{ok, text, ms, model}` |
 | POST | `/understand` | `{transcript, context}` → `{ok, source, understood: {intent, minutes, target_id, clarify_question}}`. `ok: false` means "use the rules". |
+
+Speech-to-text is faster-whisper on the CPU, int8, beam 5, with VAD. Silence hallucinations ("you", "thank you")
+count as nothing heard. `initial_prompt` is the app's list of current place names plus the walk vocabulary. On this
+laptop, `small.en` takes 1.2–1.6 s per 3–5 s clip. If a short clip ever takes more than 3 s, the server switches to
+`base.en` and loads it in the background.
 
 Understand uses Ollama structured output. The JSON schema's `target_id` enum is built from the **context of each
 request** (the current targets and stops), so nothing is hard-coded. Settings: `think: false`, temperature 0, 8 s

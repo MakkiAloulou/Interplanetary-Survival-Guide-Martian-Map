@@ -2,6 +2,7 @@
 
 Endpoints (all under /api/copilot):
   GET  /health      what is up: Ollama, the model, whisper
+  POST /transcribe  audio (push-to-talk clip) + prompt words → text (faster-whisper, CPU)
   POST /understand  transcript + context → {intent, minutes, target_id, clarify_question}, or ok=false → app uses rules
 """
 
@@ -9,27 +10,47 @@ import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
+from typing import Protocol
 
 import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from server.config import Settings
 from server.llm import LLMError, OllamaClient
-from server.models import HealthResponse, UnderstandRequest, UnderstandResponse
+from server.models import HealthResponse, TranscribeResponse, UnderstandRequest, UnderstandResponse
+from server.stt import STTError, Transcriber, Transcript
 
 log = logging.getLogger("copilot")
 
+# A push-to-talk clip: a few seconds of opus is a few tens of kB; anything far bigger is not a question.
+MAX_AUDIO_BYTES = 5_000_000
+MAX_PROMPT_CHARS = 800
 
-def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
+
+class SpeechToText(Protocol):
+    model_name: str
+
+    @property
+    def loaded(self) -> bool: ...
+
+    def warmup(self) -> None: ...
+
+    def transcribe(self, audio: bytes, prompt: str = "") -> Transcript: ...
+
+
+def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None, stt: SpeechToText | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     llm = OllamaClient(settings, transport)
+    speech: SpeechToText = stt or Transcriber(settings)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         tasks = []
         if settings.warmup:
             tasks.append(asyncio.create_task(llm.warmup()))
+            tasks.append(asyncio.create_task(asyncio.to_thread(speech.warmup)))
         yield
         for t in tasks:
             t.cancel()
@@ -56,9 +77,23 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             model=settings.model,
             model_available=available,
             llm_ready=llm.ready and available,
-            whisper_model=None,
-            whisper_loaded=False,
+            whisper_model=speech.model_name,
+            whisper_loaded=speech.loaded,
         )
+
+    @app.post("/api/copilot/transcribe", response_model=TranscribeResponse)
+    async def transcribe(audio: UploadFile = File(...), prompt: str = Form("")) -> TranscribeResponse:
+        data = await audio.read(MAX_AUDIO_BYTES + 1)
+        if not data:
+            return TranscribeResponse(ok=False, error="empty audio")
+        if len(data) > MAX_AUDIO_BYTES:
+            return TranscribeResponse(ok=False, error="audio too long")
+        try:
+            t = await run_in_threadpool(speech.transcribe, data, prompt[:MAX_PROMPT_CHARS])
+        except STTError as e:
+            log.warning("transcribe failed: %s", e)
+            return TranscribeResponse(ok=False, error=str(e))
+        return TranscribeResponse(ok=True, text=t.text, ms=t.ms, model=t.model, audio_s=t.audio_s)
 
     @app.post("/api/copilot/understand", response_model=UnderstandResponse)
     async def understand(req: UnderstandRequest) -> UnderstandResponse:

@@ -88,6 +88,20 @@
   box-shadow: var(--shadow-chip);
 }
 
+.copilot-mode {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.copilot-speak {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .copilot-phase.phase-listening {
   color: var(--hud-red);
   font-weight: 600;
