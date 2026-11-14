@@ -43,4 +43,15 @@ Template:
 - Used as: CostGrid `processed/gale/costgrid.json` (elevation, slopeDeg DERIVED; terrainClass MODELED), status DERIVED
 - Used as: layer `hillshade`, status DERIVED
 
-Everything else (sand and boulder classes, thermal and mineralogy layers, science targets, POV images, conditions) is still synthetic (`MOCK`) or MODELED, labelled as such, until it is replaced through CLAUDE.md §8.
+## Curiosity boxwork campaign: traverse and science stops
+- Mission / instrument: Mars Science Laboratory, Curiosity rover (NASA/JPL-Caltech). Positions from the rover's localized drive end-points; science from the mission blog and JPL news.
+- Product ID: MMGIS layer "Waypoints" (`MSL_waypoints.json`, 1389 points, sol 3-5073 at retrieval)
+- URL: https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json (MMGIS map: https://mars.nasa.gov/maps/location/?mission=MSL). Reports cited per stop in `pipeline/sources/msl_boxwork_targets.json`: JPL news 2025-06-23 and 2026-02-23; Curiosity blog posts for sols 4561-4562, 4689-4694, 4709-4715, 4716-4722, 4804-4811 (science.nasa.gov/blog).
+- Resolution: one point per drive; positions to about a metre
+- Coverage of site: yes; the 2025-26 boxwork campaign (sols ~4541-4841) lies inside the site
+- License / credit: NASA/JPL-Caltech
+- Date retrieved: 2026-11-14
+- Processing applied: `python -m pipeline msl-targets`. 7 curated stops (first ridge close-up, Altadena drill, nodules, panorama viewpoint, Valle de la Luna hollow drill, Nevado Sajama ridge drill, final-phase workspace), each placed at the last waypoint on or before its sol. Earth dates converted to sols from the blog's own pairs (sol 4560 = 2025-06-04, sol 4718 = 2025-11-13). A stop the habitat cannot reach on foot moves to the nearest reachable cell within 20 m and says so (nodules: 3 m off a 36° ridge wall); none dropped. `why` texts paraphrase the reports; crew kit is our MODELED choice.
+- Used as: `processed/gale/science_targets.json` (ScienceTarget[]), status DERIVED
+
+Everything else (sand and boulder classes, thermal and mineralogy layers, POV images, conditions) is still synthetic (`MOCK`) or MODELED, labelled as such, until it is replaced through CLAUDE.md §8.

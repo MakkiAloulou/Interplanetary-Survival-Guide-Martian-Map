@@ -4,6 +4,7 @@ import type { PovImage, ScienceTarget, Waypoint } from '../types'
 import { CloseIcon } from '../ui/icons'
 import { Panorama } from '../ui/Panorama'
 import { StatusBadge } from '../ui/StatusBadge'
+import { sourceParts } from '../ui/sourceLinks'
 
 interface Props {
   station: Waypoint
@@ -71,7 +72,18 @@ export function StopDetail({ station, number, target, pov, arriveS, headingDeg, 
           <h3>Why stop here</h3>
           <p>{target.why}</p>
           <p className="detail-meta">
-            {target.source} <StatusBadge status={target.status} />
+            <span>
+              {sourceParts(target.source).map((part, i) =>
+                'href' in part ? (
+                  <a key={i} className="source-link" href={part.href} target="_blank" rel="noopener noreferrer">
+                    ({part.label})
+                  </a>
+                ) : (
+                  <span key={i}>{part.text}</span>
+                ),
+              )}
+            </span>{' '}
+            <StatusBadge status={target.status} />
           </p>
         </section>
       )}

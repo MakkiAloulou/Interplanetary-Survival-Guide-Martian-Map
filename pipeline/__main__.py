@@ -1,5 +1,5 @@
 """CLI entry point: python -m pipeline <command>. `mock` writes the synthetic site; `build` converts a real DEM;
-`gale-dem` clips and converts the USGS Gale DEM for the site."""
+`gale-dem` clips and converts the USGS Gale DEM for the site; `msl-targets` places Curiosity's boxwork stops."""
 
 import argparse
 import json
@@ -30,8 +30,14 @@ def main(argv: list[str] | None = None) -> int:
     gale.add_argument("--out", type=Path, default=config.DATA_DIR / "processed" / "gale")
     gale.add_argument("--refresh", action="store_true", help="download the clip again instead of using data/raw/")
 
+    commands.add_parser("msl-targets", help="Curiosity boxwork campaign -> science targets for the Gale site")
+
     args = parser.parse_args(argv)
-    if args.command == "gale-dem":
+    if args.command == "msl-targets":
+        from pipeline.sources.msl_targets import convert as convert_targets
+
+        print(json.dumps(convert_targets(), indent=2))
+    elif args.command == "gale-dem":
         from pipeline.sources.gale_dem import convert
 
         print(json.dumps(convert(args.out, refresh=args.refresh), indent=2))

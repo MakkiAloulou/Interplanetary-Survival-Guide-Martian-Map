@@ -21,7 +21,6 @@ data/       config.json, SOURCES.md (provenance), raw/ (git-ignored), processed/
 docs/       resources.md (official Resources tab)
 ```
 
-See [CLAUDE.md](CLAUDE.md) for the full design, data contracts and phase plan.
 
 ## Run
 

@@ -22,14 +22,15 @@ We used **Claude Code** (Anthropic's AI coding assistant, model Claude Opus) thr
 |---|---|---|---|
 | MRO HiRISE Curiosity roving-site mosaic | NASA/JPL-Caltech/University of Arizona | NASA Mars Trek, layer `curiosity_hirise_mosaic` (https://trek.nasa.gov/mars/) | Base map, shown as served |
 | MSL Gale Merged DEM 1m v3 | USGS Astrogeology Science Center; T. Parker and F. J. Calef III (2016). Built from MRO HiRISE (NASA/JPL-Caltech/University of Arizona), MRO CTX (NASA/JPL-Caltech/MSSS), Mars Express HRSC (ESA/DLR/FU Berlin) and MGS MOLA (NASA/GSFC) | https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m (Mars Trek layer `Gale_DEM_SMG_1m`) | Elevation, slope, hillshade and walking costs at 2 m |
-| Curiosity traverse (rover waypoints) | NASA/JPL-Caltech, MMGIS | https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json | Locating the 2025–26 boxwork campaign; choosing the site and the science centre |
+| Curiosity traverse (rover waypoints) | NASA/JPL-Caltech, MMGIS | https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json | Locating the 2025–26 boxwork campaign; choosing the site and the science centre; placing the science stops where Curiosity stood |
+| Boxwork science stops: what Curiosity studied and why | NASA/JPL-Caltech: Curiosity mission blog (science.nasa.gov/blog), posts for sols 4561–4562, 4689–4694, 4709–4715, 4716–4722 and 4804–4811; JPL news 2025-06-23 and 2026-02-23 | URLs per stop in `pipeline/sources/msl_boxwork_targets.json` | Stop names, dates and the "why" texts (paraphrased) |
 | Mars surface radiation dose rate | Hassler, D. M. et al. (2014), *Science* 343, 1244797 (Curiosity RAD) | Published paper | Radiation dose of a Marswalk (0.64 mSv/day) |
 | Mars radius, gravity | NASA Goddard Space Flight Center, Mars Fact Sheet | https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html | Distances, map projection |
 | Boxwork science context | NASA/JPL news releases on Curiosity's boxwork campaign (2025) | https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/ and https://www.jpl.nasa.gov/news/nasas-curiosity-rover-sees-martian-spiderwebs-up-close/ | Choosing the site and the science goals |
 
 Full processing details for each dataset are in `data/SOURCES.md`.
 
-**Synthetic (MOCK) content, made by our own code:** science targets, stop panoramas, weather conditions, and the thermal-inertia and mineralogy layers. The app labels every one of them `MOCK`. They are replaced as real data is integrated.
+**Synthetic (MOCK) content, made by our own code:** stop panoramas, weather conditions, and the thermal-inertia and mineralogy layers. The app labels every one of them `MOCK`. They are replaced as real data is integrated.
 
 ### Official challenge resources
 

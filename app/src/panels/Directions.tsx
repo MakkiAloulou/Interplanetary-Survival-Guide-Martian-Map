@@ -223,7 +223,7 @@ export function Directions(props: Props) {
                   />
                 )}
                 <p className="provenance">
-                  Walking times and O₂ <StatusBadge status="MODELED" /> on <StatusBadge status={verdict.status} /> terrain
+                  Walking times and O₂ <StatusBadge status="MODELED" /> on <StatusBadge status={dataStatus} /> terrain
                 </p>
               </>
             )}

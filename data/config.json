@@ -81,8 +81,8 @@
   ],
   "costGrid": "processed/gale/costgrid.json",
   "scienceTargets": {
-    "path": "processed/mock/science_targets.json",
-    "status": "MOCK"
+    "path": "processed/gale/science_targets.json",
+    "status": "DERIVED"
   },
   "povImages": {
     "path": "processed/mock/pov_images.json",

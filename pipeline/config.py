@@ -116,3 +116,9 @@ ROVER_OFFSET_EAST_M = 30.0
 # Science centre of the site: Curiosity's 2025-26 boxwork campaign, mean of MMGIS waypoints sols 4560-4841
 # (https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json, retrieved 2026-11-14). OBSERVED positions.
 GALE_SCIENCE_CENTER = (-4.8051, 137.3814)
+
+# Curiosity traverse, one point per drive (JPL MMGIS). Source: https://mars.nasa.gov/maps/location/?mission=MSL
+MSL_WAYPOINTS_URL = "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json"
+# A rover stop on ground a suited walker cannot reach (e.g. a steep ridge wall) moves to the nearest reachable cell
+# within this distance; farther than this, the stop is dropped. MODELED: team rule (arm's reach plus a few steps).
+TARGET_MAX_SNAP_M = 20.0

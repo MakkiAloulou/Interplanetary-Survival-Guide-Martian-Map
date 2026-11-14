@@ -1,0 +1,105 @@
+[
+  {
+    "id": "msl-first-ridge",
+    "lat": -4.7978159,
+    "lon": 137.3859258,
+    "name": "First boxwork ridge close-up",
+    "why": "Curiosity's first close look at a boxwork ridge (May 16, 2025), which JPL compared to a crumbling curb. Ridges are read as rock hardened by minerals that groundwater left along fractures; the unhardened rock around them was later hollowed out by wind. See the ridge structure here before the drill sites.",
+    "instrumentsNeeded": [
+      "hand lens imager",
+      "camera with scale bar",
+      "portable XRF spectrometer",
+      "sample bags"
+    ],
+    "source": "Curiosity (NASA/JPL-Caltech): rover position on sol 4541 (MMGIS waypoint, site 116, drive 414). Reports: https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/. Kit: our suited-crew equivalent (MODELED).",
+    "status": "DERIVED"
+  },
+  {
+    "id": "msl-altadena",
+    "lat": -4.7998472,
+    "lon": 137.3835414,
+    "name": "Altadena drill site",
+    "why": "Where Curiosity drilled its first bedrock sample in the boxwork region (June 8, 2025), picked because its chemistry matched what the team wanted from the boxwork bedrock. Light-toned veins were studied nearby. Take a fresh core to compare with the rover's results.",
+    "instrumentsNeeded": [
+      "core drill",
+      "portable XRF spectrometer",
+      "hand lens imager",
+      "sample bags"
+    ],
+    "source": "Curiosity (NASA/JPL-Caltech): rover position on sol 4560 (MMGIS waypoint, site 116, drive 1944). Reports: https://science.nasa.gov/blog/sols-4561-4562-prepping-to-drill-at-altadena/ https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/. Kit: our suited-crew equivalent (MODELED).",
+    "status": "DERIVED"
+  },
+  {
+    "id": "msl-nodules",
+    "lat": -4.8065003,
+    "lon": 137.3793853,
+    "name": "Nodules on a ridge wall",
+    "why": "Pea-size, bumpy nodules imaged on Aug 21, 2025, found along ridge walls and in hollows but not near the central fractures. The team suggests a later pulse of groundwater left them after the ridges were cemented, and cannot yet explain where they appear. Map where they occur on the wall. The rover stood on ground too steep to walk (slope 36°); this stop is 3 m away on walkable ground.",
+    "instrumentsNeeded": [
+      "hand lens imager",
+      "portable XRF spectrometer",
+      "rock hammer",
+      "sample bags"
+    ],
+    "source": "Curiosity (NASA/JPL-Caltech): rover position on sol 4636 (MMGIS waypoint, site 118, drive 1752). Reports: https://www.jpl.nasa.gov/news/nasas-curiosity-rover-sees-martian-spiderwebs-up-close/. Kit: our suited-crew equivalent (MODELED).",
+    "status": "DERIVED"
+  },
+  {
+    "id": "msl-panorama",
+    "lat": -4.808271,
+    "lon": 137.3812695,
+    "name": "Boxwork panorama viewpoint",
+    "why": "Where Curiosity's Mastcam took its panorama of ridges and hollows on Sept 26, 2025. Read the ridge network from here and choose the walking line along the ridge tops: in the hollows, Curiosity's drivers had to watch for wheel slip in sand.",
+    "instrumentsNeeded": [
+      "panoramic camera",
+      "rangefinder binoculars"
+    ],
+    "source": "Curiosity (NASA/JPL-Caltech): rover position on sol 4671 (MMGIS waypoint, site 119, drive 486). Reports: https://www.jpl.nasa.gov/news/nasas-curiosity-rover-sees-martian-spiderwebs-up-close/. Kit: our suited-crew equivalent (MODELED).",
+    "status": "DERIVED"
+  },
+  {
+    "id": "msl-valle-de-la-luna",
+    "lat": -4.8078392,
+    "lon": 137.3810353,
+    "name": "Valle de la Luna (hollow drill site)",
+    "why": "Bedrock drilled in the floor of the \"Monte Grande\" hollow (about Oct 18-19, 2025); hollow floors with bare bedrock are rare because sand and pebbles usually cover them. Paired with the ridge drill about 10 m away to compare low and high ground: NASA reported carbonate minerals in the boxwork hollow sample and clay minerals in the ridge-top sample.",
+    "instrumentsNeeded": [
+      "core drill",
+      "portable XRF spectrometer",
+      "hand lens imager",
+      "sample bags"
+    ],
+    "source": "Curiosity (NASA/JPL-Caltech): rover position on sol 4687 (MMGIS waypoint, site 119, drive 1722). Reports: https://science.nasa.gov/blog/curiosity-blog-sols-4689-4694-drill-in-the-boxwork-unit-is-go/ https://science.nasa.gov/blog/curiosity-blog-sols-4709-4715-drilling-high-and-low-in-the-boxwork-unit https://www.jpl.nasa.gov/news/nasas-curiosity-rover-sees-martian-spiderwebs-up-close/. Kit: our suited-crew equivalent (MODELED).",
+    "status": "DERIVED"
+  },
+  {
+    "id": "msl-nevado-sajama",
+    "lat": -4.8080076,
+    "lon": 137.3810041,
+    "name": "Nevado Sajama (ridge drill site)",
+    "why": "Ridge-top bedrock about 2 m above the Valle de la Luna hollow, drilled on sol 4718 (Nov 2025) and again in Feb 2026 (\"Nevado Sajama 2\"). Fine veins seen up close suggest fluids got into the ridges and may be why they resist erosion. Sample the veins and the host rock separately.",
+    "instrumentsNeeded": [
+      "core drill",
+      "hand lens imager",
+      "portable XRF spectrometer",
+      "sample bags"
+    ],
+    "source": "Curiosity (NASA/JPL-Caltech): rover position on sol 4711 (MMGIS waypoint, site 120, drive 82). Reports: https://science.nasa.gov/blog/curiosity-blog-sols-4709-4715-drilling-high-and-low-in-the-boxwork-unit https://science.nasa.gov/blog/curiosity-blog-sols-4716-4722-drilling-success-at-nevado-sajama/ https://science.nasa.gov/blog/curiosity-blog-sols-4804-4811-kicking-off-the-final-phase-of-boxwork-exploration/. Kit: our suited-crew equivalent (MODELED).",
+    "status": "DERIVED"
+  },
+  {
+    "id": "msl-final-phase",
+    "lat": -4.8078367,
+    "lon": 137.38142,
+    "name": "Final-phase workspace (Mollecita, Monte Cielo)",
+    "why": "Bedrock studied up close as the last phase of the boxwork campaign began (Feb 2026), next to \"Los Flamencos\", a narrow ridge with many small branching ridges. The final phase took last measurements of ridges and hollows and of the contacts with the units to the east and south.",
+    "instrumentsNeeded": [
+      "portable XRF spectrometer",
+      "hand lens imager",
+      "camera with scale bar",
+      "sample bags"
+    ],
+    "source": "Curiosity (NASA/JPL-Caltech): rover position on sol 4805 (MMGIS waypoint, site 120, drive 808). Reports: https://science.nasa.gov/blog/curiosity-blog-sols-4804-4811-kicking-off-the-final-phase-of-boxwork-exploration/. Kit: our suited-crew equivalent (MODELED).",
+    "status": "DERIVED"
+  }
+]

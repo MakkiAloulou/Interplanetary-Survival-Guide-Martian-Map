@@ -224,6 +224,16 @@ button.stop-text:hover {
   color: var(--text-3);
 }
 
+.source-link {
+  color: var(--blue-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.source-link:hover {
+  text-decoration-thickness: 2px;
+}
+
 .detail-empty {
   padding: 0 16px 12px;
   color: var(--text-2);
