@@ -1,7 +1,8 @@
 // The copilot's server-backed stages, each falling back to the deterministic path: LLM understanding → rule parser.
 
 import { useEffect, useMemo, useState } from 'react'
-import { fetchHealth, understandRemote, type Health } from './api'
+import { explainRemote, fetchHealth, understandRemote, type Health } from './api'
+import { wordingOk } from './guard'
 import { forSpeech } from './templates'
 import { resolve } from './understand'
 import { understandByRules, type Stages } from './useCopilot'
@@ -30,7 +31,7 @@ export function useServerHealth(): Health | null {
  * Stages for the current server state: the LLM is only asked when it is loaded (otherwise rules, at once); answers are
  * spoken by the browser's speech synthesis when `speakAnswers` is on.
  */
-export function useServerStages(health: Health | null, speakAnswers: boolean): Stages {
+export function useServerStages(health: Health | null, speakAnswers: boolean, llmWording: boolean): Stages {
   return useMemo<Stages>(
     () => ({
       understand: async (text, uctx) => {
@@ -40,9 +41,17 @@ export function useServerStages(health: Health | null, speakAnswers: boolean): S
         }
         return understandByRules(text, uctx)
       },
+      // Optional polish: the LLM's wording only if both the server's guard and ours pass it; otherwise the template.
+      explain:
+        llmWording && health?.llm_ready
+          ? async (result, template) => {
+              const text = await explainRemote(template, result)
+              return text && wordingOk(text, template, result) ? { text, source: 'llm' } : { text: template, source: 'template' }
+            }
+          : undefined,
       speak: speakAnswers ? (text) => speak(forSpeech(text)) : undefined,
       stopSpeaking,
     }),
-    [health?.llm_ready, speakAnswers],
+    [health?.llm_ready, speakAnswers, llmWording],
   )
 }

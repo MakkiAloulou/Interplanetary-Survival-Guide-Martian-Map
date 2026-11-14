@@ -28,6 +28,17 @@ Then run the app (`cd app && npm run dev`). Vite proxies `/api` to the server.
 | GET | `/health` | Ollama reachable, model pulled, `llm_ready` (false while the model loads), whisper loaded |
 | POST | `/transcribe` | multipart `audio` (the push-to-talk clip, WebM/Opus from MediaRecorder) + `prompt` (place names to expect) → `{ok, text, ms, model}` |
 | POST | `/understand` | `{transcript, context}` → `{ok, source, understood: {intent, minutes, target_id, clarify_question}}`. `ok: false` means "use the rules". |
+| POST | `/explain` | `{template, result}` → `{text, source}`: the LLM's rewording if it passes the number guard, otherwise the template |
+
+**Number guard** (`server/guard.py`; the app runs the same check again in `app/src/copilot/guard.ts`). A rewording
+is used only if:
+
+- every number in it appears in the `WhatIfResult` or the template;
+- it spells out no number;
+- it keeps the template's lead word (Yes / No / Partly);
+- it is at most 30 words.
+
+Otherwise the template is said. In the app, LLM wording is off by default; the deterministic template is the answer.
 
 Speech-to-text is faster-whisper on the CPU, int8, beam 5, with VAD. Silence hallucinations ("you", "thank you")
 count as nothing heard. `initial_prompt` is the app's list of current place names plus the walk vocabulary. On this

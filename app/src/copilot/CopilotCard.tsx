@@ -148,6 +148,7 @@ export function CopilotCard({ answer, timing, canApply, onApply, onDismiss }: Pr
         )}
         {answer.applied && <span className="copilot-applied">Applied</span>}
         {r?.apply && !canApply && !answer.applied && r.apply.kind !== 'go_home' && <span className="copilot-note">Answer only: change the plan in the planner.</span>}
+        {answer.wording?.source === 'llm' && <small className="copilot-note" title="Reworded by the LLM; every number checked against the engine's result">LLM wording, numbers checked</small>}
         {timing.totalMs !== undefined && (
           <small className="copilot-timing" title="Time per stage">
             {timing.sttMs !== undefined && `voice ${(timing.sttMs / 1000).toFixed(1)} s · `}

@@ -48,6 +48,8 @@ export interface Answer {
   clarify: PlaceRef[] | null
   applied: boolean
   at: number
+  /** who worded the answer: the deterministic template, or the LLM (passed the number guard) */
+  wording?: { text: string; source: 'llm' | 'template' }
 }
 
 const elapsedClock = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
@@ -87,7 +89,7 @@ export async function compute(plan: CopilotPlan, live: CopilotLive, snap: Snapsh
 /** Pluggable stages, so voice and the LLM can be added without changing the flow. */
 export interface Stages {
   understand?: (text: string, uctx: UnderstandContext) => Promise<{ resolution: Resolution; source: 'llm' | 'rules' }>
-  explain?: (result: WhatIfResult, template: string) => Promise<string>
+  explain?: (result: WhatIfResult, template: string) => Promise<{ text: string; source: 'llm' | 'template' }>
   speak?: (text: string) => Promise<void>
   stopSpeaking?: () => void
 }
@@ -204,20 +206,20 @@ export function useCopilot(plan: CopilotPlan, live: CopilotLive, stages: Stages 
 
         const template = answerText(result)
         const te = performance.now()
-        let spokenText = template
+        let wording: Answer['wording'] = { text: template, source: 'template' }
         if (s.explain) {
           try {
-            spokenText = await s.explain(result, template)
+            wording = await s.explain(result, template)
           } catch {
-            spokenText = template
+            // keep the template
           }
         }
         const explainMs = performance.now() - te
         const t: Timing = { sttMs, understandMs, computeMs, explainMs, source, totalMs: performance.now() - t0 + (sttMs ?? 0) }
         console.info(
-          `[copilot] stt ${Math.round(sttMs ?? 0)} ms · understand ${Math.round(understandMs)} ms (${source}) · compute ${Math.round(computeMs)} ms · explain ${Math.round(explainMs)} ms · total ${Math.round(t.totalMs!)} ms`,
+          `[copilot] stt ${Math.round(sttMs ?? 0)} ms · understand ${Math.round(understandMs)} ms (${source}) · compute ${Math.round(computeMs)} ms · explain ${Math.round(explainMs)} ms (${wording.source}) · total ${Math.round(t.totalMs!)} ms`,
         )
-        await finish({ question: text, text: spokenText, result, clarify: null, applied: false, at: Date.now() }, t)
+        await finish({ question: text, text: wording.text, wording, result, clarify: null, applied: false, at: Date.now() }, t)
       } catch (e) {
         computing.current = false
         setError(e instanceof Error ? e.message : String(e))

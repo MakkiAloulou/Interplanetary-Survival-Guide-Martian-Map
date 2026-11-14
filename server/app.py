@@ -4,6 +4,7 @@ Endpoints (all under /api/copilot):
   GET  /health      what is up: Ollama, the model, whisper
   POST /transcribe  audio (push-to-talk clip) + prompt words → text (faster-whisper, CPU)
   POST /understand  transcript + context → {intent, minutes, target_id, clarify_question}, or ok=false → app uses rules
+  POST /explain     template + WhatIfResult → the LLM's wording if it passes the number guard, else the template
 """
 
 import asyncio
@@ -17,9 +18,10 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
+from server import guard
 from server.config import Settings
 from server.llm import LLMError, OllamaClient
-from server.models import HealthResponse, TranscribeResponse, UnderstandRequest, UnderstandResponse
+from server.models import ExplainRequest, ExplainResponse, HealthResponse, TranscribeResponse, UnderstandRequest, UnderstandResponse
 from server.stt import STTError, Transcriber, Transcript
 
 log = logging.getLogger("copilot")
@@ -104,6 +106,20 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         except LLMError as e:
             log.warning("understand fell back to rules: %s", e)
             return UnderstandResponse(ok=False, source="unavailable", error=str(e), ms=(time.perf_counter() - t0) * 1000)
+
+    @app.post("/api/copilot/explain", response_model=ExplainResponse)
+    async def explain(req: ExplainRequest) -> ExplainResponse:
+        t0 = time.perf_counter()
+        ms = lambda: (time.perf_counter() - t0) * 1000  # noqa: E731
+        try:
+            text = await llm.explain(req.template)
+        except LLMError as e:
+            return ExplainResponse(text=req.template, source="template", guard_reasons=[str(e)], ms=ms())
+        g = guard.check(text, req.template, req.result)
+        if not g.ok:
+            log.warning("explain rejected by the number guard (%s): %r", "; ".join(g.reasons), text)
+            return ExplainResponse(text=req.template, source="template", guard_reasons=g.reasons, ms=ms())
+        return ExplainResponse(text=text, source="llm", ms=ms())
 
     return app
 

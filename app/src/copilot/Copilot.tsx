@@ -38,7 +38,9 @@ function serverLine(h: Health | null): string {
 export function Copilot({ plan, live, variant }: Props) {
   const health = useServerHealth()
   const [speakAnswers, setSpeakAnswers] = useState(speechSupported())
-  const stages = useServerStages(health, speakAnswers)
+  // Off by default: the deterministic template is the answer; LLM wording is optional polish.
+  const [llmWording, setLlmWording] = useState(false)
+  const stages = useServerStages(health, speakAnswers, llmWording)
   const copilot = useCopilot(plan, live, stages)
   const [text, setText] = useState('')
   const prompt = useMemo(() => whisperPrompt(plan.ctx), [plan.ctx])
@@ -76,6 +78,11 @@ export function Copilot({ plan, live, variant }: Props) {
         {speechSupported() && (
           <label className="copilot-speak">
             <input type="checkbox" checked={speakAnswers} onChange={(e) => setSpeakAnswers(e.target.checked)} /> speak answers
+          </label>
+        )}
+        {health?.llm_ready && (
+          <label className="copilot-speak" title="The LLM rewords the answer; any changed number or verdict falls back to the template">
+            <input type="checkbox" checked={llmWording} onChange={(e) => setLlmWording(e.target.checked)} /> LLM wording
           </label>
         )}
       </p>

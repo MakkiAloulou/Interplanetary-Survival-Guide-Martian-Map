@@ -37,6 +37,12 @@ Rules:
 - Do not answer the question. Only classify it."""
 
 
+EXPLAIN_SYSTEM = """You reword a short answer for an astronaut on a Mars walk, to be read aloud by a speech synthesiser.
+Keep the meaning exactly. Keep every number and clock time exactly as written, in digits. Never add a number, a fact
+or advice. Keep the first word (Yes, No or Partly) if there is one. At most 2 sentences and 30 words. Plain words,
+calm, direct. Reply with the reworded answer only."""
+
+
 def understand_schema(ids: list[str]) -> dict:
     """JSON schema for Ollama's structured output, with the target ids as an enum (built from the live context)."""
     target = {"anyOf": [{"type": "string", "enum": ids}, {"type": "null"}]} if ids else {"type": "null"}
@@ -116,6 +122,16 @@ class OllamaClient:
             u = u.model_copy(update={"minutes": None})
         log.info("understand %.0f ms: %s", (time.perf_counter() - t0) * 1000, u.model_dump())
         return u
+
+    async def explain(self, template: str) -> str:
+        """The template reworded. The caller must run guard.check on it before using it."""
+        if not self.ready:
+            raise LLMError("model still loading")
+        t0 = time.perf_counter()
+        text = await self.chat(EXPLAIN_SYSTEM, template, None, self.settings.explain_timeout_s, max_tokens=80)
+        text = text.strip().strip('"').strip()
+        log.info("explain %.0f ms: %r", (time.perf_counter() - t0) * 1000, text)
+        return text
 
     async def tags(self) -> list[str]:
         """Model names Ollama has pulled ([] when Ollama is down)."""

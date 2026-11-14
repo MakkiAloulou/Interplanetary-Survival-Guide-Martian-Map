@@ -2,6 +2,7 @@
 // null on any failure, so the copilot carries on with its deterministic path.
 
 import type { UnderstandContext, Understood } from './understand'
+import type { WhatIfResult } from './whatIf'
 
 const BASE = `${import.meta.env.BASE_URL}api/copilot`
 
@@ -49,6 +50,12 @@ export async function transcribeRemote(audio: Blob, prompt: string, timeoutMs = 
   form.append('prompt', prompt)
   const r = await call<{ ok: boolean; text: string; ms: number; model: string | null }>('/transcribe', { method: 'POST', body: form }, timeoutMs)
   return r?.ok ? { text: r.text, ms: r.ms, model: r.model } : null
+}
+
+/** The answer reworded by the LLM and passed by the server's number guard, or null (use the template). */
+export async function explainRemote(template: string, result: WhatIfResult, timeoutMs = 5000): Promise<string | null> {
+  const r = await call<{ text: string; source: 'llm' | 'template' }>('/explain', json({ template, result }), timeoutMs)
+  return r?.source === 'llm' ? r.text : null
 }
 
 /** The LLM's understanding, or null (server down, LLM down / slow / invalid): then use the rule parser. */

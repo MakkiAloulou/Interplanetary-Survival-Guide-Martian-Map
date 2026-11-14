@@ -62,6 +62,22 @@ class UnderstandResponse(BaseModel):
     ms: float
 
 
+class ExplainRequest(BaseModel):
+    """The deterministic template and the WhatIfResult it was built from (the guard checks numbers against both)."""
+
+    template: str = Field(min_length=1, max_length=400)
+    result: dict
+
+
+class ExplainResponse(BaseModel):
+    """text is always safe to say: the LLM's wording if it passed the guard, else the template."""
+
+    text: str
+    source: Literal["llm", "template"]
+    guard_reasons: list[str] = Field(default_factory=list)
+    ms: float
+
+
 class TranscribeResponse(BaseModel):
     ok: bool
     text: str = ""
