@@ -58,12 +58,22 @@
   --hud-amber: #fdd663;
   --hud-alert: #ff8a80;
 
-  /* Visor symbology (HUD and the copilot on it). Every element sits on a dark backing plate, so the text stays
-     readable over bright regolith behind a transparent visor. Text is solid, never alpha white. */
+  /* Visor symbology (HUD and the copilot on it). The visor is see-through: no filled panels, only text, numbers, icons
+     and thin strokes drawn over the terrain. Each mark carries a tight dark halo so it reads over bright sand and
+     dark rock alike. Text is solid near-white, never alpha white. Tune the halo here, in one place. */
+  /* text: a thin dark outline drawn under each glyph (paint-order: stroke, so only half of it shows outside the
+     letter), then a tight halo and a soft falloff. Bright sand needed the outline: the halo alone washed out. */
+  --visor-text-stroke: 3px rgba(0, 0, 0, 0.8);
+  --visor-halo: 0 0 2px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.7), 0 0 12px rgba(0, 0, 0, 0.45);
+  --visor-halo-icon: drop-shadow(0 0 1px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 1px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 0 5px rgba(0, 0, 0, 0.6));
+  /* a stroke (chip, button, dial ring): dark hairlines on both sides of it, then the soft falloff */
+  --visor-halo-line: 0 0 0 1.5px rgba(0, 0, 0, 0.75), inset 0 0 0 1.5px rgba(0, 0, 0, 0.75), 0 0 8px rgba(0, 0, 0, 0.5);
+  /* plates: only the demo playback bar, which is a demo control, not part of the visor */
   --visor-plate: rgba(8, 11, 14, 0.8);
   --visor-plate-strong: rgba(8, 11, 14, 0.92);
   --visor-text: #f4f5f6;
-  --visor-text-2: #c4c8cc; /* secondary text: ≥ 7:1 on the plate even over bright terrain */
+  --visor-text-2: #dde1e4; /* secondary text: near-white too, the halo carries it over bright terrain */
   --visor-line: #6b7178;
   --visor-caution: #fdd663; /* caution = watch: amber, with the word CAUTION and the triangle */
   --visor-warning: #ff8a80; /* warning = act now: red text on the plate */

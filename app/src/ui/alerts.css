@@ -1,5 +1,6 @@
 /* The fixed alert slot (HUD and tablet): one alert, icon + word + colour, the rest counted. A live warning takes
-   over as a solid band. Shapes differ too: octagon = warning, triangle = caution. */
+   over: a solid band on the tablet, a red frame on the see-through visor. Shapes differ too: octagon = warning,
+   triangle = caution. */
 
 .alert-slot {
   display: flex;
@@ -54,11 +55,16 @@
   white-space: nowrap;
 }
 
-/* ---------- visor ---------- */
+/* ---------- visor (see-through: no fill, the halo from the visor carries the text) ---------- */
 
 .alert-slot.is-visor {
-  background: var(--visor-plate);
+  padding: 0;
+  background: transparent;
   color: var(--visor-text);
+}
+
+.alert-slot.is-visor .alert-word {
+  box-shadow: var(--visor-halo-line);
 }
 
 .alert-slot.is-visor.is-caution > svg,
@@ -75,21 +81,15 @@
   color: var(--visor-text-2);
 }
 
-/* The one takeover: a live warning. Solid band, larger type, the action in words. */
+/* The one takeover: a live warning. A red frame (a stroke, not a fill), larger type, the action in words. */
 .alert-slot.is-visor.is-takeover {
   width: 100%;
   min-height: 88px;
-  padding: 16px 24px;
+  padding: 14px 22px;
   gap: 16px;
-  background: var(--visor-warning-band);
-  color: var(--on-accent);
+  border: 2px solid var(--visor-warning);
+  box-shadow: var(--visor-halo-line);
   animation: alert-in 220ms var(--ease-out);
-}
-
-.alert-slot.is-visor.is-takeover > svg,
-.alert-slot.is-visor.is-takeover .alert-word,
-.alert-slot.is-visor.is-takeover .alert-more {
-  color: var(--on-accent);
 }
 
 .alert-slot.is-takeover .alert-word {
@@ -107,7 +107,7 @@
   white-space: nowrap;
 }
 
-.alert-slot.is-takeover .badge {
+.alert-slot.is-tablet.is-takeover .badge {
   color: var(--on-accent);
   border-color: var(--on-accent);
 }

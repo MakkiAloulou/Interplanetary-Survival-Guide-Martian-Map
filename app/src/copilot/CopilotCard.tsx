@@ -23,13 +23,13 @@ const LIMIT: Partial<Record<Binding, string>> = {
 /** Answers that are not a budget (place not on the plan, already visited, walk over): said as a sentence. */
 const NOT_A_BUDGET: Binding[] = ['ALREADY_LEFT', 'ALREADY_PLANNED', 'ALREADY_VISITED', 'NOT_ON_PLAN', 'UNKNOWN_PLACE', 'WALK_DONE']
 
-type Tone = 'yes' | 'partly' | 'no' | 'info'
+export type Tone = 'yes' | 'partly' | 'no' | 'info'
 
 const min = (m: number) => formatDuration(m * 60)
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
 
 /** The verdict word first: YES / PARTLY / NO for decisions; what was asked for information. */
-function verdictOf(r: WhatIfResult): { word: string; tone: Tone } {
+export function verdictOf(r: WhatIfResult): { word: string; tone: Tone } {
   if (r.intent === 'time_left') return r.verdict === 'NO_GO' ? { word: 'No time left', tone: 'no' } : { word: 'Time left', tone: 'info' }
   if (r.intent === 'go_home') return r.verdict === 'NO_GO' ? { word: 'Way home · short', tone: 'no' } : { word: 'Way home', tone: 'info' }
   if (r.binding === 'ALREADY_PLANNED') return { word: 'Already planned', tone: 'info' }
@@ -39,7 +39,7 @@ function verdictOf(r: WhatIfResult): { word: string; tone: Tone } {
 }
 
 /** The one number that answers the question, and what it means. */
-function headline(r: WhatIfResult): { value: string; label: string } | null {
+export function headline(r: WhatIfResult): { value: string; label: string } | null {
   const n = r.numbers
   if (r.binding && NOT_A_BUDGET.includes(r.binding)) return null
   switch (r.intent) {
@@ -58,7 +58,7 @@ function headline(r: WhatIfResult): { value: string; label: string } | null {
   }
 }
 
-function leaveLine(r: WhatIfResult): ReactNode {
+export function leaveLine(r: WhatIfResult): ReactNode {
   const n = r.numbers
   if (!n.head_back_by || r.intent === 'go_home') return null
   const verb = r.intent === 'skip_stop' ? 'Back by' : r.intent === 'time_left' ? 'Turn back by' : r.next_is_home ? 'Head back by' : 'Move on by'
@@ -70,7 +70,7 @@ function leaveLine(r: WhatIfResult): ReactNode {
   )
 }
 
-const ICON: Record<Tone, ReactNode> = {
+export const ICON: Record<Tone, ReactNode> = {
   yes: <CheckIcon size={30} />,
   partly: <PartIcon size={30} />,
   no: <CloseIcon size={30} />,

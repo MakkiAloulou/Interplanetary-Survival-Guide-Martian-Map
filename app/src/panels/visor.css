@@ -1,6 +1,8 @@
-/* Helmet visor (HUD). Fixed slots at the edges of the visor, the centre kept clear for vision; every slot sits on a
-   dark backing plate so it reads over bright regolith. Flat backgrounds only: no gradients, glows or decorative
-   motion. One primary number per slot, large tabular figures, small labels. Tokens: --visor-* in index.css. */
+/* Helmet visor (HUD). See-through: a real visor cannot put a filled box in front of the terrain, so nothing here has
+   a background. Only text, numbers, icons and thin strokes, each with a tight dark halo (--visor-halo*) so it reads
+   over bright sand and dark rock alike. Groups are told apart by position and spacing at the edges of the visor; the
+   centre stays clear. One primary number per slot, large tabular figures. No gradients, glows or decorative motion.
+   The demo playback bar is the one exception: a demo control, not part of the visor, so it keeps its plate. */
 
 .visor {
   position: fixed;
@@ -21,6 +23,9 @@
   background-size: cover;
   color: var(--visor-text);
   font-variant-numeric: tabular-nums;
+  text-shadow: var(--visor-halo);
+  -webkit-text-stroke: var(--visor-text-stroke);
+  paint-order: stroke fill;
 }
 
 .visor.has-view {
@@ -34,9 +39,14 @@
 /* ---------- slots ---------- */
 
 .visor-slot {
-  border-radius: var(--radius-card);
-  padding: 16px 20px;
-  background: var(--visor-plate);
+  padding: 0;
+  background: transparent;
+}
+
+/* Icons get the same halo as the text (an SVG ignores text-shadow). */
+.visor-slot svg,
+.visor-alert-area svg {
+  filter: var(--visor-halo-icon);
 }
 
 .visor-label {
@@ -45,7 +55,7 @@
   align-items: center;
   gap: 8px;
   font-weight: 500;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--visor-text-2);
 }
 
@@ -62,6 +72,7 @@
 }
 
 .visor-sub {
+  font-weight: 500;
   font-size: 17px;
   color: var(--visor-text-2);
 }
@@ -73,13 +84,14 @@
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  border: 1px solid var(--visor-line);
+  border: 1.5px solid currentColor;
   border-radius: 6px;
+  box-shadow: var(--visor-halo-line);
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--visor-text-2);
+  color: var(--visor-text);
 }
 
 .visor-state.is-warning {
@@ -115,6 +127,7 @@
   height: 36px;
   border: 2px solid var(--visor-text);
   border-radius: 50%;
+  box-shadow: var(--visor-halo-line);
   font-size: 19px;
 }
 
@@ -144,8 +157,8 @@
 
 .visor-dial-ring {
   fill: none;
-  stroke: var(--visor-text-2);
-  stroke-width: 2;
+  stroke: var(--visor-text);
+  stroke-width: 2.5;
 }
 
 .visor-dial-north {
@@ -232,6 +245,23 @@
 
 /* ---------- controls ---------- */
 
+/* On the visor (Exit, Abort): outline only, a stroke in the button's colour with the halo; no fill, even on hover.
+   Hover and press thicken the stroke instead. */
+.visor-slot .visor-btn {
+  border: 2px solid currentColor;
+  background: transparent;
+  box-shadow: var(--visor-halo-line);
+}
+
+.visor-slot .visor-btn:hover {
+  border-color: currentColor;
+  box-shadow: inset 0 0 0 1px currentColor, var(--visor-halo-line);
+}
+
+.visor-slot .visor-btn:active {
+  box-shadow: inset 0 0 0 2px currentColor, var(--visor-halo-line);
+}
+
 .visor-btn {
   display: inline-flex;
   align-items: center;
@@ -270,14 +300,7 @@ select.visor-btn option {
 .visor-abort {
   grid-column: 1 / -1;
   justify-self: start;
-  border-color: var(--visor-warning);
   color: var(--visor-warning);
-}
-
-.visor-abort:hover {
-  background: var(--visor-warning-band);
-  border-color: var(--visor-warning-band);
-  color: var(--on-accent);
 }
 
 /* Demo playback: not part of the visor itself, so it is set apart along the bottom edge and says what it is. */
@@ -292,6 +315,8 @@ select.visor-btn option {
   padding: 8px 12px;
   border-radius: var(--radius-card);
   background: var(--visor-plate);
+  text-shadow: none;
+  -webkit-text-stroke: 0;
 }
 
 .visor-demo-label {
@@ -320,14 +345,22 @@ select.visor-btn option {
   color: var(--visor-text-2);
 }
 
-/* Status badges on the visor: light marks on the plate (the planner's grey would fall to 3:1 here). */
+/* Status badges on the visor: outline only, near-white stroke with the halo (MODELED keeps its dashed stroke,
+   SIMULATED its double one). In the playback bar they keep the planner's look, OBSERVED filled. */
 .visor .badge {
   font-size: 12px;
-  color: var(--visor-text-2);
-  border-color: var(--visor-text-2);
+  color: var(--visor-text);
+  border-color: currentColor;
+  background: transparent;
+  box-shadow: var(--visor-halo-line);
 }
 
-.visor .badge-observed {
+.visor-demo .badge {
+  color: var(--visor-text-2);
+  box-shadow: none;
+}
+
+.visor-demo .badge-observed {
   background: var(--visor-text);
   border-color: var(--visor-text);
   color: var(--hud-bg);
