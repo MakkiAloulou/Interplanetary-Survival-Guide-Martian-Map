@@ -14,6 +14,7 @@ import { walkAlerts } from '../ui/alerts'
 import { AlertIcon, CheckIcon, CloseIcon, WarningIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 import type { AbortPlan } from './Hud'
+import { RunningLate, type RiskTools } from './RunningLate'
 import { PLAYBACK_SPEEDS, usePlayback } from './usePlayback'
 
 interface Props {
@@ -35,6 +36,8 @@ interface Props {
   drill?: boolean
   /** optional what-if copilot, given the walk clock and this view's abort */
   copilot?: (live: CopilotLive) => ReactNode
+  /** running late: spare time, stay longer, and which stops to drop when the rest no longer fits */
+  risk?: RiskTools | null
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
@@ -104,7 +107,7 @@ function TabletMap(props: { config: DataConfig; stats: RouteStats; stations: Way
  * The tablet a crew member carries on the walk: where am I going next, what is wrong right now, what comes after.
  * High contrast for daylight, large targets for gloved hands. Plays the EVA on the plan's clock for the demo.
  */
-export function Tablet({ config, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit, drill = false, copilot }: Props) {
+export function Tablet({ config, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit, drill = false, copilot, risk }: Props) {
   const clock = usePlayback(stats.totalS)
   const { t } = clock
   const [follow, setFollow] = useState(true)
@@ -191,6 +194,9 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
                   ? `Leave at ${elapsed(times[nextIndex]?.departS ?? 0)}`
                   : `${formatDistance(distance)} straight line · ${compassPoint(bearing)} ${Math.round(bearing)}° · arrive ${elapsed(times[nextIndex]?.arriveS ?? 0)}`}
               </p>
+            )}
+            {risk && !done && !isHomeNext && (
+              <RunningLate risk={risk} at={nextIndex - 1} atStop={pos.atStop} planGo={!planReasons.some((r) => r.severity === 'no-go')} />
             )}
           </section>
         )}

@@ -5,7 +5,8 @@ import type { RouteParams, RouteProfile } from '../route/cost'
 import { formatDistance, formatDuration } from '../stats/format'
 import type { EvaVerdict } from '../stats/goNoGo'
 import type { CostGrid, DataStatus, ScienceTarget, Waypoint } from '../types'
-import { AlertIcon, CloseIcon, GripIcon, LineMark } from '../ui/icons'
+import { nextPriority, priorityOf, type Priorities, type Priority } from '../stats/risk'
+import { AlertIcon, CloseIcon, GripIcon, LineMark, PriorityIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 
 export interface Message {
@@ -52,6 +53,11 @@ interface Props {
   onStartTime: (iso: string) => void
   onOptimise: () => void
   optimising: boolean
+  /** stop priorities: the lowest are dropped first when the walk runs late */
+  priorities: Priorities
+  onPriority: (id: string, p: Priority) => void
+  /** planned time at each stop, s (the default plus any extra stay) */
+  dwellS: number[]
   /** move the stop at index `from` to index `to` */
   onMove: (from: number, to: number) => void
   onClear: () => void
@@ -129,7 +135,7 @@ function RouteOptions(props: {
 export function Directions(props: Props) {
   const { siteName, dataStatus, grid, routeParams, base, stops, verdict, routing, failedLeg, notice, startLabel, o2DurationS, roverSols } = props
   const { targets, onAddTarget, onRemove, onMove, onClear, onSavePlan, onPrint, selected, onSelect, hoverIndex, onHover } = props
-  const { suggestedStart, onStartTime } = props
+  const { suggestedStart, onStartTime, priorities, onPriority, dwellS } = props
   const { roverAt, onRoverAt, ride, onRide, onFootS, onOptimise, optimising, profile, onProfile, routeOptions, savingS } = props
   const [showReasons, setShowReasons] = useState(false)
   const [dragFrom, setDragFrom] = useState<number | null>(null)
@@ -413,8 +419,23 @@ export function Directions(props: Props) {
                   {isHome ? <span className="pin pin-home" aria-hidden="true" /> : <span className="pin">{i + 1}</span>}
                   <button type="button" className="stop-text" onClick={() => onSelect(isHome ? 0 : i + 1)}>
                     <strong>{s.name}</strong>
-                    <span>{isHome ? 'End of walk' : s.kind === 'science' ? 'Science stop · 20 min' : 'Via point'}</span>
+                    <span>{isHome ? 'End of walk' : s.kind === 'science' ? `Science stop · ${Math.round((dwellS[i] ?? 0) / 60)} min` : 'Via point'}</span>
                   </button>
+                  {!isHome &&
+                    (() => {
+                      const p = priorityOf(priorities, s.id)
+                      return (
+                        <button
+                          type="button"
+                          className={`prio is-${p}`}
+                          aria-label={`Priority of ${s.name}: ${p}. Change it`}
+                          title={`Priority: ${p}. If the walk runs late, the lowest-priority stops are dropped first. Click to change.`}
+                          onClick={() => onPriority(s.id, nextPriority(p))}
+                        >
+                          <PriorityIcon size={18} level={p === 'high' ? 3 : p === 'medium' ? 2 : 1} />
+                        </button>
+                      )
+                    })()}
                   <span className="stop-time">{arrive[i] !== undefined ? elapsed(arrive[i]) : ''}</span>
                   {!isHome && (
                     <button type="button" className="icon-btn" aria-label={`Remove ${s.name}`} onClick={() => onRemove(s.id)}>

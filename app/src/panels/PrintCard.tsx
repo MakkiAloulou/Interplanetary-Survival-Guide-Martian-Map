@@ -10,6 +10,7 @@ import type { RouteStats } from '../stats/stats'
 import type { Conditions, CostGrid, ScienceTarget, Waypoint } from '../types'
 import { StatusBadge } from '../ui/StatusBadge'
 import { ElevationProfile } from './ElevationProfile'
+import type { StopRef } from './RunningLate'
 
 interface Props {
   siteName: string
@@ -30,6 +31,8 @@ interface Props {
   roverAt: string | null
   params: EvaParams
   conditions: Conditions[]
+  /** running late: the stops in the order they are given up (lowest priority first) */
+  dropOrder: StopRef[]
   onClose: () => void
 }
 
@@ -260,6 +263,12 @@ export function PrintCard(props: Props) {
               Walk to the nearest safe haven: the habitat{roverAt === ROVER_WITH_CREW ? ' or the rover, parked near the crew' : roverAt ? ` or the rover at ${roverAt}` : ''}. From anywhere on this route it is at most{' '}
               {far ? formatDuration(far.s) : '—'} at planned pace, {far ? formatDuration(far.s * params.walkHomeContingency) : '—'} at emergency pace. Turn
               back at once on a radiation alert, or if O₂ comes within {formatDuration(params.o2ReserveS)} of the reserve.
+              {props.dropOrder.length > 0 && (
+                <>
+                  {' '}
+                  Running late: drop stops in this order, {props.dropOrder.map((s) => `${s.number}. ${s.name} (${s.priority})`).join(', ')}.
+                </>
+              )}
             </p>
 
             <h2>

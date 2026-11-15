@@ -192,3 +192,14 @@ export function OfflineIcon(props: IconProps) {
     </Svg>
   )
 }
+
+/** Stop priority as three bars, like signal strength: 1 = low, 2 = medium, 3 = high. Unfilled bars stay faint. */
+export function PriorityIcon({ level, ...props }: IconProps & { level: 1 | 2 | 3 }) {
+  return (
+    <Svg {...props}>
+      {[0, 1, 2].map((k) => (
+        <path key={k} d={`M${6 + k * 6} 19V${15 - k * 4}`} strokeWidth={3} opacity={k < level ? 1 : 0.25} />
+      ))}
+    </Svg>
+  )
+}

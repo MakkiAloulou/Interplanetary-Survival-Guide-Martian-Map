@@ -353,3 +353,49 @@
     flex-wrap: wrap;
   }
 }
+
+/* Running late: spare time and "stay longer" at a stop; what to drop when the rest no longer fits. */
+.late {
+  display: grid;
+  gap: 10px;
+}
+
+.late:empty {
+  display: none;
+}
+
+.late-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  font-size: 16px;
+}
+
+.late-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.late-btns .tablet-btn {
+  min-height: 52px;
+}
+
+.late-cut {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 2px solid var(--visor-warning-band);
+  border-radius: 10px;
+  background: var(--red-bg);
+  color: var(--red-text);
+}
+
+.late-cut p {
+  font-size: 17px;
+}
+
+.late-cut .tablet-btn {
+  justify-self: start;
+}

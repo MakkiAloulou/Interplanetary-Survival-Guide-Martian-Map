@@ -11,6 +11,7 @@ import { AlertSlot } from '../ui/AlertSlot'
 import { takesOver, walkAlerts } from '../ui/alerts'
 import { AlertIcon, CloseIcon, WarningIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
+import type { RiskTools } from './RunningLate'
 import { PLAYBACK_SPEEDS, usePlayback } from './usePlayback'
 import { useVisorBackdrop } from './useVisorBackdrop'
 import './visor.css'
@@ -42,6 +43,8 @@ interface Props {
   drill?: boolean
   /** optional what-if copilot, given the walk clock and this view's abort */
   copilot?: (live: CopilotLive) => ReactNode
+  /** running late: the spare time at the stop is shown under the leave countdown */
+  risk?: RiskTools | null
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
@@ -100,7 +103,7 @@ function gaugeState(live: LiveWarning[], codes: LiveWarning['code'][]): GaugeSta
  * bottom right. Composited over a real Navcam frame near the destination, so legibility over terrain is visible.
  * The EVA plays on the plan's clock (or is scrubbed by hand) for the demo; Abort switches to the escape path.
  */
-export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit, startTime, conditions = [], drill = false, copilot }: Props) {
+export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit, startTime, conditions = [], drill = false, copilot, risk }: Props) {
   const clock = usePlayback(stats.totalS)
   const { t, playing, speed, done } = clock
   const [abort, setAbort] = useState<{ atT: number; plan: AbortPlan | null } | null>(null)
@@ -130,6 +133,9 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
   const routeBearing = initialBearingDeg(pos, ahead.cell === stats.track[pos.index].cell ? next : ahead)
   const along = stats.track[legEnd].distanceM - (stats.track[pos.index].distanceM + sphericalDistanceM(stats.track[pos.index], pos))
   const leaveInS = pos.atStop ? stats.track[pos.index].departS - t : 0
+  const planGo = !alerts.some((a) => a.severity === 'no-go')
+  const stopIndex = pos.atStop && nextIndex < stations.length - 1 ? nextIndex - 1 : -1
+  const spare = useMemo(() => (risk && stopIndex >= 0 && planGo ? risk.spareAt(stopIndex) : null), [risk, stopIndex, planGo])
 
   const backdrop = useVisorBackdrop(abort ? null : next, routeBearing)
   const live = startTime ? liveWarnings({ t, startTime, emergencyHomeS: home, conditions, params }) : []
@@ -234,7 +240,10 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
         ) : pos.atStop ? (
           <div className="visor-route-main">
             <strong className="visor-number is-hero">{leaveInS > 0 ? formatDuration(leaveInS) : 'Now'}</strong>
-            <span className="visor-sub">{leaveInS > 0 ? 'until you leave this stop' : 'time to leave this stop'}</span>
+            <span className="visor-sub">
+              {leaveInS > 0 ? 'until you leave this stop' : 'time to leave this stop'}
+              {spare && ` · ${spare.limit ? `${spare.minutes} min` : `over ${formatDuration(spare.minutes * 60)}`} spare`}
+            </span>
           </div>
         ) : (
           <div className="visor-route-main">

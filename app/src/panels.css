@@ -1134,3 +1134,17 @@ button.tl-stop.is-selected {
   background: var(--red-bg);
   color: var(--red);
 }
+
+/* Stop card: priority and spare time if the walk runs late */
+.detail-prio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.detail-prio .segmented {
+  flex: 1;
+}

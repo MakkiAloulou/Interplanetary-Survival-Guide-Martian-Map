@@ -1031,3 +1031,36 @@ input[type='range'].opacity {
     max-height: calc(58vh - 120px);
   }
 }
+
+/* Stop priority: a compact three-bar control between the stop name and its arrival time. */
+.stop {
+  grid-template-columns: 28px minmax(0, 1fr) auto auto 28px;
+}
+
+.stop .stop-time {
+  grid-column: 4;
+}
+
+button.prio {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-3);
+}
+
+button.prio:hover {
+  background: var(--surface-2);
+}
+
+button.prio.is-high {
+  color: var(--text);
+}
+
+button.prio.is-medium {
+  color: var(--text-2);
+}

@@ -10,7 +10,15 @@ import { combinedViewshed, type Antenna } from './viewshed'
 
 export type WorkerRequest =
   | { type: 'init'; id: number; meta: CostGridMeta; buffer: ArrayBuffer; params?: RouteParams }
-  | { type: 'route'; id: number; stops: number[]; profile?: RouteProfile; ride?: boolean }
+  | {
+      type: 'route'
+      id: number
+      stops: number[]
+      profile?: RouteProfile
+      ride?: boolean
+      /** rover-assisted re-plan of the rest of a walk: where the rover is parked at stops[0]; default stops[0] */
+      roverStart?: number
+    }
   | { type: 'walkHome'; id: number; base: number }
   | { type: 'matrix'; id: number; cells: number[] }
   | { type: 'viewshed'; id: number; antennas: Antenna[]; targetHeightM: number }
@@ -48,9 +56,9 @@ export function handleRequest(state: WorkerState, req: WorkerRequest): { respons
       if (req.profile === 'safest') grid = state.safest ??= prepareGrid(state.prepared.grid, SAFEST_ROUTE_PARAMS)
       if (!req.ride) return { response: { type: 'route', id: req.id, result: planRoute(grid, req.stops) }, transfer: [] }
       const rover = (state.rover ??= prepareGrid(state.prepared.grid, ROVER_ROUTE_PARAMS))
-      const base = req.stops[0]
+      const base = req.stops[req.stops.length - 1] // the habitat
       if (state.roverReach?.base !== base) state.roverReach = { base, field: walkHomeField(rover, base) }
-      const planned = planRide(grid, rover, state.roverReach.field, req.stops, ROVER_DROP_MAX_DISTANCE_M, ROVER_BOARDING_S)
+      const planned = planRide(grid, rover, state.roverReach.field, req.stops, ROVER_DROP_MAX_DISTANCE_M, ROVER_BOARDING_S, req.roverStart)
       // Emergency times to the parked rover on the standard walking model, as the walk-home field (any route profile).
       const result = planned.ok ? { ...planned, legs: annotateRover(state.prepared, planned.legs, ROVER_ANTENNA_HEIGHT_M, SUIT_ANTENNA_HEIGHT_M) } : planned
       return { response: { type: 'route', id: req.id, result }, transfer: [] }

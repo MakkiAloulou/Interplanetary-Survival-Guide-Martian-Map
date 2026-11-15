@@ -128,7 +128,9 @@ export function nearestRoverCell(drive: PreparedGrid, reach: Float32Array, targe
  * and the whole sequence of choices is optimised together (dynamic programming over where the rover is parked), so the
  * rover is not left behind on a short walk when it is needed later. A ride must save `boardingS` to be taken. The
  * rover must be back at the habitat at the end. Each leg still runs from one stop to the next; leg.ride marks the
- * driven steps and leg.rover where the rover is parked at every walked step. `stops` = [base, ...stops, base].
+ * driven steps and leg.rover where the rover is parked at every walked step. `stops` = [base, ...stops, base], or, to
+ * re-plan the rest of a walk under way, [the crew's stop, ...stops, base] with `roverStart` = where the rover is
+ * parked now. The habitat is always the last stop; `reach` is the rover's time-to-habitat field.
  */
 export function planRide(
   walk: PreparedGrid,
@@ -137,8 +139,9 @@ export function planRide(
   stops: number[],
   maxParkM: number,
   boardingS: number,
+  roverStart: number = stops[0],
 ): RouteResult {
-  const base = stops[0]
+  const base = stops[stops.length - 1]
   const paths = new Map<string, Path | null>()
   const path = (p: PreparedGrid, tag: string, a: number, b: number): Path | null => {
     if (a === b) return { cells: [a], timeS: 0 }
@@ -166,7 +169,7 @@ export function planRide(
     cost: number
     legs: Leg[]
   }
-  let states = new Map<number, State>([[base, { cost: 0, legs: [] }]])
+  let states = new Map<number, State>([[roverStart, { cost: 0, legs: [] }]])
   for (let i = 0; i + 1 < stops.length; i++) {
     const a = stops[i]
     const b = stops[i + 1]
@@ -217,8 +220,18 @@ export function planRide(
   const end = states.get(base)
   if (!end) return { ok: false, failedLeg: stops.length - 2, reason: 'the rover cannot drive back to the habitat' }
   const legs = end.legs
+  return { ok: true, legs, timeS: legs.reduce((sum, l) => sum + l.timeS, 0), ride: rideInfo(legs, base) }
+}
+
+/** Where the rover parks (not the habitat), in order, and how many legs are ridden, from rover-assisted legs. */
+export function rideInfo(legs: Leg[], base: number): RideInfo {
   const parked: number[] = []
-  for (const l of legs) for (const c of l.rover!) if (c >= 0 && c !== base && c !== parked[parked.length - 1]) parked.push(c)
-  const riddenLegs = legs.filter((l) => l.ride!.some((x) => x === 1)).length
-  return { ok: true, legs, timeS: legs.reduce((sum, l) => sum + l.timeS, 0), ride: { parked, riddenLegs } }
+  for (const l of legs) for (const c of l.rover ?? []) if (c >= 0 && c !== base && c !== parked[parked.length - 1]) parked.push(c)
+  return { parked, riddenLegs: legs.filter((l) => l.ride?.some((x) => x === 1)).length }
+}
+
+/** Where the rover is parked while the crew is at the end of `leg` (the stop itself when it drove them onto it). */
+export function roverAtLegEnd(leg: Leg): number | undefined {
+  const r = leg.rover?.[leg.rover.length - 1]
+  return r === undefined ? undefined : r >= 0 ? r : leg.cells[leg.cells.length - 1]
 }
