@@ -1,9 +1,12 @@
 import L from 'leaflet'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { CopilotLive } from '../copilot/useCopilot'
+import { planDetour, walkStateAt, walkTotalS, withDetour, type Detour } from '../localize/detour'
+import { getRealPosition } from '../localize/getRealPosition'
 import { MARS_CRS } from '../map/crs'
 import { INK } from '../map/overlays'
-import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
+import type { PreparedGrid } from '../route/cost'
+import { compassPoint, initialBearingDeg } from '../stats/eva'
 import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
 import { liveWarnings } from '../stats/live'
@@ -11,7 +14,7 @@ import { safetyS, sphericalDistanceM, type RouteStats } from '../stats/stats'
 import type { Conditions, DataConfig, Waypoint } from '../types'
 import { AlertSlot } from '../ui/AlertSlot'
 import { walkAlerts } from '../ui/alerts'
-import { AlertIcon, CheckIcon, CloseIcon, WarningIcon } from '../ui/icons'
+import { AlertIcon, CheckIcon, CloseIcon, LocateIcon, WarningIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 import type { AbortPlan } from './Hud'
 import { RunningLate, type RiskTools } from './RunningLate'
@@ -19,6 +22,8 @@ import { PLAYBACK_SPEEDS, usePlayback } from './usePlayback'
 
 interface Props {
   config: DataConfig
+  /** the terrain the walk runs on, for re-planning back to the route after a position fix */
+  prepared: PreparedGrid
   stats: RouteStats
   /** [habitat, ...stops, habitat] */
   stations: Waypoint[]
@@ -40,6 +45,9 @@ interface Props {
   risk?: RiskTools | null
 }
 
+/** Zoom levels the tablet map may go past the deepest base-map tiles, to show a position fix up close. */
+const FIX_OVERZOOM = 2
+
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
 
 /** Arrival and departure times at each station (index into stations). */
@@ -49,23 +57,54 @@ function stationTimes(stats: RouteStats): { arriveS: number; departS: number }[]
   return out
 }
 
-/** The crew's map: follows them along the route, walked part grey, abort path in red. */
-function TabletMap(props: { config: DataConfig; stats: RouteStats; stations: Waypoint[]; index: number; crew: { lat: number; lon: number }; abort: AbortPlan | null; follow: boolean }) {
-  const { config, stats, stations, index, crew, abort, follow } = props
+/**
+ * The crew's map: follows them along the route, walked part grey, abort path in red. After a position fix: the jump
+ * from the planned to the fixed position dashed grey, and the way back onto the route in pink.
+ */
+function TabletMap(props: {
+  config: DataConfig
+  stats: RouteStats
+  stations: Waypoint[]
+  index: number
+  crew: { lat: number; lon: number }
+  abort: AbortPlan | null
+  follow: boolean
+  detour: Detour | null
+  onDetour: boolean
+}) {
+  const { config, stats, stations, index, crew, abort, follow, detour, onDetour } = props
   const box = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
-  const parts = useRef<{ walked: L.Polyline; ahead: L.Polyline; crew: L.CircleMarker; abort: L.Polyline } | null>(null)
+  const parts = useRef<{
+    walked: L.Polyline
+    ahead: L.Polyline
+    crew: L.CircleMarker
+    abort: L.Polyline
+    rejoinCasing: L.Polyline
+    rejoin: L.Polyline
+    correction: L.Polyline
+    correctionCasing: L.Polyline
+    fix: L.CircleMarker
+  } | null>(null)
 
   useEffect(() => {
-    const m = L.map(box.current!, { crs: MARS_CRS, minZoom: config.site.zoom.min, maxZoom: config.site.zoom.max, zoomSnap: 1, zoomControl: false, attributionControl: false })
+    // Two levels past the deepest tiles (upscaled) so a position fix tens of metres off the route is legible.
+    const maxZoom = config.site.zoom.max + FIX_OVERZOOM
+    const m = L.map(box.current!, { crs: MARS_CRS, minZoom: config.site.zoom.min, maxZoom, zoomSnap: 1, zoomControl: false, attributionControl: false })
     for (const layer of config.layers.filter((l) => l.tileUrl && config.initialLayers.includes(l.id))) {
-      L.tileLayer(layer.tileUrl!, { maxZoom: config.site.zoom.max, maxNativeZoom: config.site.zoom.max }).addTo(m)
+      L.tileLayer(layer.tileUrl!, { maxZoom, maxNativeZoom: config.site.zoom.max }).addTo(m)
     }
     const pts = stats.track.map((p) => L.latLng(p.lat, p.lon))
     const line = { lineCap: 'round', lineJoin: 'round', interactive: false } as const
     L.polyline(pts, { ...line, color: INK.white, weight: 12 }).addTo(m)
     const ahead = L.polyline(pts, { ...line, color: INK.blue, weight: 7 }).addTo(m)
     const walked = L.polyline([], { ...line, color: INK.walked, weight: 7 }).addTo(m)
+    const correctionCasing = L.polyline([], { ...line, color: INK.white, weight: 7 }).addTo(m)
+    const correction = L.polyline([], { ...line, color: INK.correction, weight: 3, dashArray: '4 8' }).addTo(m)
+    const rejoinCasing = L.polyline([], { ...line, color: INK.white, weight: 12 }).addTo(m)
+    const rejoin = L.polyline([], { ...line, color: INK.rejoin, weight: 7 }).addTo(m)
+    const fix = L.circleMarker([0, 0], { radius: 9, color: INK.rejoin, weight: 4, fillColor: INK.white, fillOpacity: 1, interactive: true })
+      .bindTooltip('<strong>Position fix</strong><span>Simulated (demo)</span>', { direction: 'top', offset: [0, -10], className: 'map-tip' })
     const abortLine = L.polyline([], { ...line, color: INK.red, weight: 7, dashArray: '2 12' }).addTo(m)
     stations.forEach((s, i) => {
       if (i === stations.length - 1) return
@@ -80,7 +119,7 @@ function TabletMap(props: { config: DataConfig; stats: RouteStats; stations: Way
     const crewDot = L.circleMarker([stats.track[0].lat, stats.track[0].lon], { pane: 'crew', radius: 10, color: INK.white, weight: 4, fillColor: INK.green, fillOpacity: 1, className: 'crew-dot', interactive: false }).addTo(m)
     m.setView([stats.track[0].lat, stats.track[0].lon], config.site.zoom.max - 1)
     map.current = m
-    parts.current = { walked, ahead, crew: crewDot, abort: abortLine }
+    parts.current = { walked, ahead, crew: crewDot, abort: abortLine, rejoinCasing, rejoin, correction, correctionCasing, fix }
     return () => {
       m.remove()
       map.current = null
@@ -92,12 +131,46 @@ function TabletMap(props: { config: DataConfig; stats: RouteStats; stations: Way
     const p = parts.current
     if (!p) return
     const pts = stats.track.map((q) => L.latLng(q.lat, q.lon))
-    p.walked.setLatLngs([...pts.slice(0, index + 1), L.latLng(crew.lat, crew.lon)])
-    p.ahead.setLatLngs([L.latLng(crew.lat, crew.lon), ...pts.slice(index + 1)])
-    p.crew.setLatLng([crew.lat, crew.lon])
+    const here = L.latLng(crew.lat, crew.lon)
+    if (!detour) {
+      p.walked.setLatLngs([...pts.slice(0, index + 1), here])
+      p.ahead.setLatLngs([here, ...pts.slice(index + 1)])
+      p.rejoin.setLatLngs([])
+      p.rejoinCasing.setLatLngs([])
+      p.correction.setLatLngs([])
+      p.correctionCasing.setLatLngs([])
+      p.fix.remove()
+    } else {
+      // Walked as believed up to the fix; then the way back (pink); then the plan from where it was rejoined.
+      const way = detour.points.map((q) => L.latLng(q.lat, q.lon))
+      const believed = [...pts.slice(0, detour.estimateIndex + 1), L.latLng(detour.estimate.lat, detour.estimate.lon)]
+      p.walked.setLatLngs(onDetour ? [believed] : [believed, [...pts.slice(detour.rejoinIndex, index + 1), here]])
+      p.ahead.setLatLngs(onDetour ? pts.slice(detour.rejoinIndex) : [here, ...pts.slice(index + 1)])
+      p.rejoin.setLatLngs(way)
+      p.rejoinCasing.setLatLngs(way)
+      const jump = [L.latLng(detour.estimate.lat, detour.estimate.lon), way[0]]
+      p.correction.setLatLngs(jump)
+      p.correctionCasing.setLatLngs(jump)
+      p.fix.setLatLng(way[0]).addTo(map.current!)
+    }
+    p.crew.setLatLng(here)
     p.abort.setLatLngs(abort ? abort.points.map((q) => L.latLng(q.lat, q.lon)) : [])
-    if (follow) map.current!.panTo([crew.lat, crew.lon], { animate: false })
-  }, [stats, index, crew.lat, crew.lon, abort, follow])
+    if (follow) map.current!.panTo(here, { animate: false })
+  }, [stats, index, crew.lat, crew.lon, abort, follow, detour, onDetour])
+
+  // A new fix: zoom to the correction and the way back (tens of metres; too small to see at the walking zoom).
+  useEffect(() => {
+    if (!detour || !map.current) return
+    const area = L.latLngBounds([detour.estimate, ...detour.points].map((q) => L.latLng(q.lat, q.lon)))
+    map.current.fitBounds(area.pad(0.8), { maxZoom: config.site.zoom.max + FIX_OVERZOOM, animate: false })
+  }, [detour, config])
+
+  // Back on the route: return to the walking zoom.
+  const wasOnDetour = useRef(false)
+  useEffect(() => {
+    if (wasOnDetour.current && !onDetour && map.current) map.current.setZoom(config.site.zoom.max - 1, { animate: false })
+    wasOnDetour.current = onDetour
+  }, [onDetour, config])
 
   // .map shares the main map's marker, zoom and tooltip styles.
   return <div ref={box} className="map tablet-map" />
@@ -107,8 +180,12 @@ function TabletMap(props: { config: DataConfig; stats: RouteStats; stations: Way
  * The tablet a crew member carries on the walk: where am I going next, what is wrong right now, what comes after.
  * High contrast for daylight, large targets for gloved hands. Plays the EVA on the plan's clock for the demo.
  */
-export function Tablet({ config, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit, drill = false, copilot, risk }: Props) {
-  const clock = usePlayback(stats.totalS)
+export function Tablet({ config, prepared, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit, drill = false, copilot, risk }: Props) {
+  /** position fixes taken on this walk, each with its way back onto the route (in EVA-time order) */
+  const [detours, setDetours] = useState<Detour[]>([])
+  const [locating, setLocating] = useState(false)
+  const [fixError, setFixError] = useState<string | null>(null)
+  const clock = usePlayback(walkTotalS(stats.totalS, detours))
   const { t } = clock
   const [follow, setFollow] = useState(true)
   const [abort, setAbort] = useState<{ atT: number; plan: AbortPlan | null } | null>(null)
@@ -120,8 +197,11 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
     return () => window.removeEventListener('keydown', onKey)
   }, [onExit])
 
-  const pos = positionAt(stats.track, abort ? abort.atT : t)
-  const cell = stats.track[pos.index].cell
+  const pos = walkStateAt(stats.track, detours, abort ? abort.atT : t)
+  const cell = pos.cell
+  const detour = pos.detour
+  // After a fix, everything from the rejoin point on runs earlier or later by the detour's shift.
+  const shift = (planS: number) => planS + (detour && planS >= detour.rejoinPlanS ? detour.shiftS : 0)
   const nextIndex = Math.min(pos.nextStation, stations.length - 1)
   const next = stations[nextIndex]
   const isHomeNext = nextIndex === stations.length - 1
@@ -140,11 +220,35 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
   }
   const o2State = gauge(['O2_LOW'])
   const pnrState = gauge(['NO_RETURN', 'MARGIN_LOW'])
-  const done = t >= stats.totalS
+  const done = t >= walkTotalS(stats.totalS, detours)
+
+  /** Get the crew's real position (SIMULATED, see localize/getRealPosition.ts) and re-plan back onto the route. */
+  async function locate() {
+    clock.pause()
+    setLocating(true)
+    setFixError(null)
+    const atT = t
+    const state = walkStateAt(stats.track, detours, atT)
+    // Walking direction: toward a point ~20 m further along the plan (for the sideways simulated drift).
+    const track = stats.track
+    const ahead = track[Math.min(state.index + 10, track.length - 1)]
+    const headingDeg = ahead.cell === track[state.index].cell ? undefined : initialBearingDeg(state, ahead)
+    try {
+      // Only accept a position from which the route ahead can be reached on foot.
+      const fix = await getRealPosition({ prepared, estimate: state, headingDeg, accept: (c) => planDetour(prepared, track, state, atT, { cell: c }) !== null })
+      const d = planDetour(prepared, stats.track, state, atT, fix)
+      if (!d) throw new Error('No walkable way back to the route from the fixed position.')
+      setDetours((all) => withDetour(all, d))
+    } catch (e) {
+      setFixError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLocating(false)
+    }
+  }
 
   return (
     <div className="tablet" role="dialog" aria-modal="true" aria-label="Tablet view for the walk">
-      <TabletMap config={config} stats={stats} stations={stations} index={pos.index} crew={pos} abort={abort?.plan ?? null} follow={follow} />
+      <TabletMap config={config} stats={stats} stations={stations} index={pos.index} crew={pos} abort={abort?.plan ?? null} follow={follow} detour={detour} onDetour={pos.onDetour} />
 
       <aside className="tablet-side">
         <header className="tablet-head">
@@ -191,13 +295,58 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
             {!done && (
               <p>
                 {pos.atStop
-                  ? `Leave at ${elapsed(times[nextIndex]?.departS ?? 0)}`
-                  : `${formatDistance(distance)} straight line · ${compassPoint(bearing)} ${Math.round(bearing)}° · arrive ${elapsed(times[nextIndex]?.arriveS ?? 0)}`}
+                  ? `Leave at ${elapsed(shift(times[nextIndex]?.departS ?? 0))}`
+                  : `${formatDistance(distance)} straight line · ${compassPoint(bearing)} ${Math.round(bearing)}° · arrive ${elapsed(shift(times[nextIndex]?.arriveS ?? 0))}`}
               </p>
             )}
             {risk && !done && !isHomeNext && (
               <RunningLate risk={risk} at={nextIndex - 1} atStop={pos.atStop} planGo={!planReasons.some((r) => r.severity === 'no-go')} />
             )}
+          </section>
+        )}
+
+        {locating && (
+          <section className="tablet-fix" aria-live="polite">
+            <span className="tablet-kick">Position fix</span>
+            <h2>Getting the crew's real position…</h2>
+          </section>
+        )}
+        {!locating && fixError && (
+          <section className="tablet-fix is-error" aria-live="assertive">
+            <span className="tablet-kick">Position fix failed</span>
+            <p>{fixError}</p>
+            <button type="button" className="tablet-btn" onClick={() => setFixError(null)}>
+              Dismiss
+            </button>
+          </section>
+        )}
+        {!locating && !fixError && detour && (
+          <section className="tablet-fix" aria-live="polite">
+            <div className="tablet-fix-head">
+              <span className="tablet-kick">Position fix at {elapsed(detour.atT)}</span>
+              <StatusBadge status={detour.fix.status} />
+            </div>
+            <h2>{pos.onDetour ? 'Off the planned route: follow the pink path back' : 'Back on the planned route'}</h2>
+            <p>
+              The fix puts the crew {formatDistance(detour.fix.offsetM)} {compassPoint(detour.fix.bearingDeg)} of where the plan had them (±{detour.fix.accuracyM} m).
+              {detour.timeS > 0
+                ? ` Way back: ${formatDistance(detour.distanceM)}, ${formatDuration(detour.timeS)}; the rest of the plan runs ${formatDuration(Math.abs(detour.shiftS))} ${detour.shiftS >= 0 ? 'later' : 'earlier'}.`
+                : ' Already on the route: carry on.'}
+            </p>
+            <div className="tablet-fix-key" aria-hidden="true">
+              <span>
+                <i className="key-correction" /> correction
+              </span>
+              <span>
+                <i className="key-rejoin" /> way back
+              </span>
+              <span>
+                <i className="key-plan" /> planned route
+              </span>
+            </div>
+            <button type="button" className="tablet-btn" onClick={() => setDetours([])}>
+              Clear fixes
+            </button>
           </section>
         )}
 
@@ -251,7 +400,7 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
                 <li key={`${s.id}-${i}`}>
                   {home ? <span className="pin pin-home" aria-hidden="true" /> : <span className="pin">{i}</span>}
                   <span>{s.name}</span>
-                  <span className="tablet-eta">{elapsed(times[i]?.arriveS ?? 0)}</span>
+                  <span className="tablet-eta">{elapsed(shift(times[i]?.arriveS ?? 0))}</span>
                 </li>
               )
             })}
@@ -259,10 +408,19 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
         </section>
 
         <footer className="tablet-controls">
-          <button type="button" className="tablet-btn is-primary" onClick={clock.toggle} disabled={!!abort}>
+          <button type="button" className="tablet-btn is-primary" onClick={clock.toggle} disabled={!!abort || locating}>
             {clock.playing ? 'Pause' : done ? 'Replay' : 'Play walk'}
           </button>
-          <input type="range" min={0} max={stats.totalS} step={10} value={t} aria-label="Marswalk time" disabled={!!abort} onChange={(e) => clock.seek(Number(e.target.value))} />
+          <input
+            type="range"
+            min={0}
+            max={walkTotalS(stats.totalS, detours)}
+            step={10}
+            value={t}
+            aria-label="Marswalk time"
+            disabled={!!abort || locating}
+            onChange={(e) => clock.seek(Number(e.target.value))}
+          />
           <select value={clock.speed} aria-label="Playback speed" onChange={(e) => clock.setSpeed(Number(e.target.value))}>
             {PLAYBACK_SPEEDS.map((s) => (
               <option key={s} value={s}>
@@ -272,6 +430,15 @@ export function Tablet({ config, stats, stations, walkHome, params, planReasons,
           </select>
           <button type="button" className="tablet-btn" aria-pressed={follow} onClick={() => setFollow((v) => !v)}>
             {follow ? 'Following crew' : 'Follow crew'}
+          </button>
+          <button
+            type="button"
+            className="tablet-btn is-locate"
+            disabled={!!abort || locating || done}
+            title="Get the crew's real position and a way back to the planned route (simulated for the demo)"
+            onClick={locate}
+          >
+            <LocateIcon size={18} /> {locating ? 'Locating…' : 'Get real position'}
           </button>
           <button
             type="button"

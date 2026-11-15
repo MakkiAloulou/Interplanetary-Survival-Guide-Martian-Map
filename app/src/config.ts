@@ -128,6 +128,18 @@ export const SUIT_ANTENNA_HEIGHT_M = 1.8
 /** Out of line of sight for at least this long in total → a caution, minutes. */
 export const COMMS_CAUTION_MIN = 1
 
+// ---------- Simulated position fix (localize/getRealPosition.ts) ----------
+// MOCK: demo stand-in for a real localization system (e.g. a 360° stereo view matched to the HiRISE map). No real
+// measurement is made; these numbers only shape the simulated drift.
+
+/** Simulated drift between where the plan puts the crew and where the fix says they are, m (min, max). MOCK. */
+export const SIMULATED_FIX_OFFSET_M: readonly [number, number] = [15, 40]
+
+/** Simulated time to get a fix, ms, so the demo shows a "locating" step. MOCK. */
+export const SIMULATED_FIX_DELAY_MS = 1200
+
+/** Simulated fix accuracy shown with the result, m. MOCK (the published rover method reports ~0.25 m). */
+export const SIMULATED_FIX_ACCURACY_M = 0.25
 // ---------- Rover-assisted Marswalk ("ride and walk") ----------
 // The support rover drives the crew from the habitat to a drop-off point by the first stop and back from a pick-up
 // point by the last stop. An unpressurized rover, like NASA's Artemis LTV concept: the crew stays suited, so suit O2
