@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Live location correction in three steps</title>
+  <defs>
+    <pattern id="ground" width="14" height="14" patternUnits="userSpaceOnUse">
+      <rect width="14" height="14" fill="#eef0f1"/>
+      <circle cx="3" cy="4" r="1.1" fill="#dadce0"/>
+      <circle cx="10" cy="11" r="0.9" fill="#dadce0"/>
+    </pattern>
+    <g id="route">
+      <!-- walked (grey) -->
+      <polyline points="24,236 60,214 92,196 118,170" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="24,236 60,214 92,196 118,170" fill="none" stroke="#9aa0a6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- ahead (blue) to the next stop -->
+      <polyline points="118,170 150,150 186,138 222,112 256,78" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="118,170 150,150 186,138 222,112 256,78" fill="none" stroke="#1a73e8" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- next stop -->
+      <circle cx="256" cy="78" r="13" fill="#1a73e8" stroke="#fff" stroke-width="3"/>
+      <text x="256" y="83" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">2</text>
+    </g>
+  </defs>
+
+  <rect width="960" height="400" rx="16" fill="#ffffff"/>
+
+  <!-- Panel 1 -->
+  <g transform="translate(24,24)">
+    <text x="0" y="18" font-size="15" font-weight="700" fill="#202124"><tspan fill="#1a73e8">1</tspan>  The plan's estimate</text>
+    <text x="0" y="38" font-size="13" fill="#5f6368">Dead reckoning along the planned route</text>
+    <g transform="translate(0,52)">
+      <rect width="290" height="262" rx="12" fill="url(#ground)"/>
+      <use href="#route"/>
+      <circle cx="118" cy="170" r="10" fill="#fff" stroke="#202124" stroke-width="3"/>
+      <rect x="128" y="186" width="136" height="44" rx="8" fill="#fff" stroke="#dadce0"/>
+      <text x="138" y="204" font-size="12.5" font-weight="600" fill="#202124">"You are here"</text>
+      <text x="138" y="221" font-size="12" fill="#5f6368">T+0:32, by the clock</text>
+    </g>
+  </g>
+
+  <!-- Panel 2 -->
+  <g transform="translate(335,24)">
+    <text x="0" y="18" font-size="15" font-weight="700" fill="#202124"><tspan fill="#1a73e8">2</tspan>  The position fix</text>
+    <text x="0" y="38" font-size="13" fill="#5f6368">Where the crew really is (±0.25 m)</text>
+    <g transform="translate(0,52)">
+      <rect width="290" height="262" rx="12" fill="url(#ground)"/>
+      <use href="#route"/>
+      <circle cx="118" cy="170" r="10" fill="#fff" stroke="#202124" stroke-width="3" opacity="0.45"/>
+      <line x1="118" y1="170" x2="170" y2="214" stroke="#fff" stroke-width="6"/>
+      <line x1="118" y1="170" x2="170" y2="214" stroke="#5f6368" stroke-width="2.5" stroke-dasharray="5 6"/>
+      <circle cx="170" cy="214" r="16" fill="#188038" opacity="0.18"/>
+      <circle cx="170" cy="214" r="9" fill="#188038" stroke="#fff" stroke-width="3"/>
+      <rect x="18" y="200" width="118" height="44" rx="8" fill="#fff" stroke="#dadce0"/>
+      <text x="28" y="218" font-size="12.5" font-weight="600" fill="#202124">26 m off route</text>
+      <text x="28" y="235" font-size="12" fill="#5f6368">correction, dashed</text>
+    </g>
+  </g>
+
+  <!-- Panel 3 -->
+  <g transform="translate(646,24)">
+    <text x="0" y="18" font-size="15" font-weight="700" fill="#202124"><tspan fill="#1a73e8">3</tspan>  The way back</text>
+    <text x="0" y="38" font-size="13" fill="#5f6368">Quickest walkable path onto the route ahead</text>
+    <g transform="translate(0,52)">
+      <rect width="290" height="262" rx="12" fill="url(#ground)"/>
+      <use href="#route"/>
+      <!-- forbidden: behind the crew -->
+      <g transform="translate(78,192)">
+        <circle r="11" fill="#fff" stroke="#d93025" stroke-width="2.5"/>
+        <path d="M-5,-5 L5,5 M5,-5 L-5,5" stroke="#d93025" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+      <text x="22" y="246" font-size="11.5" font-weight="600" fill="#d93025">never back over walked ground</text>
+      <!-- way back (pink) -->
+      <polyline points="170,214 188,196 196,170 192,140" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="170,214 188,196 196,170 192,140" fill="none" stroke="#e52592" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="170" cy="214" r="9" fill="#188038" stroke="#fff" stroke-width="3"/>
+      <circle cx="192" cy="140" r="6" fill="#fff" stroke="#e52592" stroke-width="3"/>
+      <text x="204" y="160" font-size="12" font-weight="600" fill="#e52592">rejoin</text>
+      <text x="196" y="52" font-size="11.5" font-weight="600" fill="#1a73e8" text-anchor="end">never past the next stop</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <line x1="24" y1="350" x2="936" y2="350" stroke="#e8eaed"/>
+  <g font-size="13" fill="#3c4043">
+    <circle cx="34" cy="374" r="5" fill="#9aa0a6"/><text x="46" y="378">walked</text>
+    <circle cx="118" cy="374" r="5" fill="#1a73e8"/><text x="130" y="378">planned route</text>
+    <line x1="232" y1="374" x2="254" y2="374" stroke="#5f6368" stroke-width="2.5" stroke-dasharray="4 4"/><text x="262" y="378">correction</text>
+    <circle cx="356" cy="374" r="5" fill="#e52592"/><text x="368" y="378">way back</text>
+    <text x="470" y="378" fill="#202124"><tspan font-weight="700">Then:</tspan> follow the pink path; later arrival times shift by the detour.</text>
+  </g>
+</svg>
