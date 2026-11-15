@@ -190,6 +190,10 @@ export function MapControls(props: Props) {
                   {h === 'clear' ? 'Clear walking' : HAZARD_LABELS[h]}
                 </li>
               ))}
+              <li>
+                <span className="swatch swatch-dashed" style={{ borderColor: INK.rover }} />
+                Riding the rover
+              </li>
             </ul>
           )}
           {gridStatus === 'MOCK' && (

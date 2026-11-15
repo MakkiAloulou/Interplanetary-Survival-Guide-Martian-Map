@@ -6,7 +6,7 @@ import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import type { RouteParams } from '../route/cost'
 import type { CostGrid, ScienceTarget, Waypoint } from '../types'
 import { compassPoint, crewAtStop, initialBearingDeg, type CrewTasks } from './eva'
-import type { RouteStats, TrackPoint } from './stats'
+import { safetyS, type RouteStats, type TrackPoint } from './stats'
 
 /** "10:42" Mars local true solar time at the site, `s` seconds after the start. */
 export function marsClockAt(startMs: number, s: number, lonEastDeg: number): string {
@@ -16,6 +16,8 @@ export function marsClockAt(startMs: number, s: number, lonEastDeg: number): str
 export interface CardLeg {
   distanceM: number
   walkS: number
+  /** riding the rover on this leg, s (rover-assisted plans) */
+  rideS: number
   /** straight-line initial bearing to the next station, degrees from north */
   bearingDeg: number
   compass: string
@@ -63,6 +65,7 @@ export function cardStations(
       next = {
         distanceM: leg.distanceM,
         walkS: leg.walkS,
+        rideS: leg.rideS,
         bearingDeg,
         compass: compassPoint(bearingDeg),
         maxSlopeDeg: leg.maxSlopeDeg,
@@ -89,7 +92,7 @@ export function cardStations(
 export function farthestFromSafety(track: TrackPoint[], walkHome: Float32Array): { s: number; point: TrackPoint } | null {
   let best: { s: number; point: TrackPoint } | null = null
   for (const p of track) {
-    const s = walkHome[p.cell]
+    const s = safetyS(walkHome, p)
     if (Number.isFinite(s) && (!best || s > best.s)) best = { s, point: p }
   }
   return best

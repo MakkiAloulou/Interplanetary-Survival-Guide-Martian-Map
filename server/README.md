@@ -21,6 +21,34 @@ python -m server                             # http://127.0.0.1:8787, model warm
 
 Then run the app (`cd app && npm run dev`). Vite proxies `/api` to the server.
 
+## The deployed app (Vercel) with the laptop's copilot
+
+The static site has no server of its own. It reaches this laptop's copilot server (speech-to-text and the model)
+through a Cloudflare quick tunnel, because browsers need **https**:
+
+```powershell
+winget install Cloudflare.cloudflared            # once
+gh auth login                                    # once, for the gist below
+powershell -ExecutionPolicy Bypass -File server\start-llm-tunnel.ps1
+```
+
+The script:
+
+1. starts Ollama and `python -m server` if they are not running;
+2. opens the tunnel to the server;
+3. writes the tunnel's address to the team's GitHub gist (`martian-map-laptop.json`).
+
+The site reads that gist (`app/src/copilot/remote.ts`, `LAPTOP_GIST`), so **any browser that opens the plain site
+link** uses the laptop: hold to talk, typed questions, the model. A quick tunnel gets a new address on every run;
+the gist keeps the link the same. The script also prints a `?copilot=<tunnel>` link that works without the gist.
+
+The server accepts browser calls only from the local dev server and the deployed site (`COPILOT_CORS_ORIGINS`,
+`COPILOT_CORS_ORIGIN_REGEX`). The tunnel has no password: anyone with the address can use the copilot directly, so run
+it only while you need it (Ctrl+C closes it). Without the laptop the site answers in rules mode.
+
+The browser can also call Ollama alone through its own tunnel (`?ollama=<url>`, `app/src/copilot/ollama.ts`): typed
+questions only, no voice. Ollama then needs the site in `OLLAMA_ORIGINS`.
+
 ## Endpoints (`/api/copilot/…`)
 
 | Method | Path | What |
@@ -62,6 +90,7 @@ is still loading, questions go straight to the rules instead of queueing in Olla
 | `COPILOT_WHISPER_SLOW_S` | `3` (switch to the fallback model above this) |
 | `COPILOT_WHISPER_DEVICE` / `COPILOT_WHISPER_COMPUTE_TYPE` | `cpu` / `int8` |
 | `COPILOT_HOST` / `COPILOT_PORT` | `127.0.0.1` / `8787` |
+| `COPILOT_CORS_ORIGINS` / `COPILOT_CORS_ORIGIN_REGEX` | the local dev server and the deployed site |
 | `COPILOT_WARMUP` | `1` |
 | `COPILOT_API_URL` (read by `app/vite.config.ts`) | `http://127.0.0.1:8787` |
 

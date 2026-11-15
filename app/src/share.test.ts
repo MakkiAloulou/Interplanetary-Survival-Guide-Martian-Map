@@ -35,6 +35,17 @@ describe('plan link', () => {
     expect(back).toMatchObject({ startTime: plan.startTime, roverAt: 'via-1', profile: 'fastest', storm: true })
   })
 
+  test('priorities: one letter per stop, only when one is not medium; they follow their stops', () => {
+    expect(encodePlan({ ...plan, priorities: { 'ridge-a': 'medium' } })).not.toContain('prio=')
+    const hash = encodePlan({ ...plan, priorities: { 'ridge-a': 'high', 'vein:b': 'low' } })
+    expect(hash).toContain('&prio=hml')
+    const back = decodePlan(hash, targets, ok)!
+    expect(back.priorities).toEqual({ 'ridge-a': 'high', 'vein:b': 'low' }) // medium is the default, not stored
+    // a stop that is not restored takes its letter with it
+    const skipped = decodePlan('#stops=t:gone,t:vein%3Ab&prio=hl', targets, ok)!
+    expect(skipped.priorities).toEqual({ 'vein:b': 'low' })
+  })
+
   test('an empty plan with defaults has no hash, and no hash means no plan', () => {
     expect(encodePlan({ stops: [], startTime: null, roverAt: 'habitat', profile: 'safest', storm: false })).toBe('')
     expect(decodePlan('', targets, ok)).toBeNull()

@@ -60,3 +60,32 @@ export function combinedViewshed(grid: CostGrid, antennas: Antenna[], targetHeig
   }
   return out
 }
+
+/**
+ * Line of sight from the antenna to each of `cells` only (one ray per cell, same test and curvature as viewshed):
+ * 1 when a receiver `targetHeightM` above that cell sees the antenna. Much cheaper than a viewshed for a route.
+ */
+export function inSight(grid: CostGrid, antenna: Antenna, targetHeightM: number, cells: number[]): Uint8Array {
+  const { width, cellSizeM, elevation } = grid
+  const r0 = (antenna.cell / width) | 0
+  const c0 = antenna.cell - r0 * width
+  const eye = elevation[antenna.cell] + antenna.heightM
+  const drop = (d: number) => (d * d) / (2 * MARS_MEAN_RADIUS_M)
+  return Uint8Array.from(cells, (target) => {
+    const r1 = (target / width) | 0
+    const c1 = target - r1 * width
+    const steps = Math.max(Math.abs(r1 - r0), Math.abs(c1 - c0))
+    if (steps === 0) return 1
+    const dr = (r1 - r0) / steps
+    const dc = (c1 - c0) / steps
+    let maxSlope = -Infinity
+    for (let k = 1; k < steps; k++) {
+      const r = Math.round(r0 + dr * k)
+      const c = Math.round(c0 + dc * k)
+      const d = Math.hypot(r - r0, c - c0) * cellSizeM
+      maxSlope = Math.max(maxSlope, (elevation[r * width + c] - drop(d) - eye) / d)
+    }
+    const d = Math.hypot(r1 - r0, c1 - c0) * cellSizeM
+    return (elevation[target] - drop(d) - eye + targetHeightM) / d >= maxSlope ? 1 : 0
+  })
+}

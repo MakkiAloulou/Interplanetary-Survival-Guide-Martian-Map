@@ -1,8 +1,10 @@
 // The plan in the URL hash, so a link opens the same Marswalk: stops (science targets by id, via points by
 // position), planned start, rover staging, chosen route and the storm drill. Layers, panels and views are not shared.
-// Example: #stops=t:drill-1,v:-4.712345:137.384567&start=2026-11-15T10:25:03.000Z&rover=2&route=fastest&storm=1
+// Example: #stops=t:drill-1,v:-4.712345:137.384567&start=2026-11-15T10:25:03.000Z&rover=2&route=fastest&storm=1&prio=hl
+// (prio: one letter per stop, h / m / l, left out when every stop is medium)
 
 import type { RouteProfile } from './route/cost'
+import { DEFAULT_PRIORITY, PRIORITIES, priorityOf, type Priorities } from './stats/risk'
 import type { ScienceTarget, Waypoint } from './types'
 
 export interface SharedPlan {
@@ -13,6 +15,10 @@ export interface SharedPlan {
   roverAt: string
   profile: RouteProfile
   storm: boolean
+  /** rover-assisted: ride the rover to the first stop and back */
+  ride?: boolean
+  /** stop priorities by stop id (missing = medium) */
+  priorities?: Priorities
 }
 
 export interface DecodedPlan extends SharedPlan {
@@ -37,6 +43,9 @@ export function encodePlan(plan: SharedPlan): string {
   if (rover >= 0) parts.push(`rover=${rover + 1}`)
   if (plan.profile === 'fastest') parts.push('route=fastest')
   if (plan.storm) parts.push('storm=1')
+  if (plan.ride) parts.push('ride=1')
+  const prio = plan.stops.map((s) => priorityOf(plan.priorities ?? {}, s.id))
+  if (prio.some((p) => p !== DEFAULT_PRIORITY)) parts.push(`prio=${prio.map((p) => p[0]).join('')}`)
   return parts.length > 0 ? `#${parts.join('&')}` : ''
 }
 
@@ -50,7 +59,7 @@ export function decodePlan(hash: string, targets: ScienceTarget[], problem: (w: 
     const eq = part.indexOf('=')
     if (eq > 0) fields.set(part.slice(0, eq), part.slice(eq + 1))
   }
-  if (!['stops', 'start', 'rover', 'route', 'storm'].some((k) => fields.has(k))) return null
+  if (!['stops', 'start', 'rover', 'route', 'storm', 'ride', 'prio'].some((k) => fields.has(k))) return null
 
   const skipped: string[] = []
   const stops: Waypoint[] = []
@@ -107,7 +116,24 @@ export function decodePlan(hash: string, targets: ScienceTarget[], problem: (w: 
     else skipped.push('The rover stop in the link was not restored: the rover stays at the habitat.')
   }
 
-  return { stops, startTime, roverAt, profile: fields.get('route') === 'fastest' ? 'fastest' : 'safest', storm: fields.get('storm') === '1', skipped }
+  // Priorities follow the stops' positions in the link; letters for stops that were not restored are dropped with them.
+  const priorities: Priorities = {}
+  ;[...(fields.get('prio') ?? '')].forEach((letter, i) => {
+    const id = restored.get(i + 1)
+    const p = PRIORITIES.find((x) => x[0] === letter)
+    if (id && p && p !== DEFAULT_PRIORITY) priorities[id] = p
+  })
+
+  return {
+    stops,
+    startTime,
+    roverAt,
+    profile: fields.get('route') === 'fastest' ? 'fastest' : 'safest',
+    storm: fields.get('storm') === '1',
+    ride: fields.get('ride') === '1',
+    priorities,
+    skipped,
+  }
 }
 
 function decodeSafe(s: string): string {

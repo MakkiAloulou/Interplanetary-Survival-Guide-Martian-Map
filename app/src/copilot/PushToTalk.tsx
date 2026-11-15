@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { MicIcon, OfflineIcon, RecordIcon, SpeakerIcon, WorkingIcon } from '../ui/icons'
 import { transcribeRemote } from './api'
 import type { useCopilot } from './useCopilot'
 import { createRecorder, stopSpeaking, voiceSupported, type Recorder } from './voice'
@@ -13,11 +14,16 @@ interface Props {
 
 const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
 
+/** Said when the space bar is pressed with no voice available (no server, no microphone support). */
+export const VOICE_OFFLINE = 'Voice offline'
+
 /**
- * Hold to talk: the big button, or the space bar anywhere in the view (except while typing). Releasing sends the clip
- * to the server's speech-to-text, then asks the copilot. Pressing while it speaks interrupts it.
+ * Push-to-talk without the button: the space bar anywhere in the view (except while typing) stands in for a suit
+ * button. Releasing sends the clip to the server's speech-to-text, then asks the copilot. Pressing while it speaks
+ * interrupts it. `start` / `finish` drive it from a button too. With `sayOffline`, pressing the space bar while voice
+ * is unavailable sets the error VOICE_OFFLINE instead of doing nothing (the visor has no other way to say so).
  */
-export function PushToTalk({ copilot, prompt, ready }: Props) {
+export function usePushToTalk(copilot: Props['copilot'], prompt: string, ready: boolean, sayOffline = false) {
   const rec = useRef<Recorder | null>(null)
   const held = useRef(false)
   const latest = useRef({ copilot, prompt })
@@ -74,18 +80,21 @@ export function PushToTalk({ copilot, prompt, ready }: Props) {
 
   // Space bar push-to-talk. Capture phase, so a focused HUD button is not also pressed.
   useEffect(() => {
-    if (!ready || !supported) return
+    const live = ready && supported
+    if (!live && !sayOffline) return
     const down = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
       e.preventDefault()
       e.stopPropagation()
-      if (!e.repeat) void start()
+      if (e.repeat) return
+      if (live) void start()
+      else latest.current.copilot.setError(VOICE_OFFLINE)
     }
     const up = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
       e.preventDefault()
       e.stopPropagation()
-      void finish()
+      if (live) void finish()
     }
     window.addEventListener('keydown', down, true)
     window.addEventListener('keyup', up, true)
@@ -94,32 +103,55 @@ export function PushToTalk({ copilot, prompt, ready }: Props) {
       window.removeEventListener('keyup', up, true)
     }
     // start/finish read the latest props through refs, so the listeners are bound once.
-  }, [ready, supported])
+  }, [ready, supported, sayOffline])
 
   useEffect(() => () => rec.current?.release(), [])
 
+  return { start, finish, supported, blocked }
+}
+
+/** Hold to talk: the big button (tablet), with the space bar too. */
+export function PushToTalk({ copilot, prompt, ready }: Props) {
+  const { start, finish, supported, blocked } = usePushToTalk(copilot, prompt, ready)
+  const { phase } = copilot
+
   const listening = phase === 'listening'
-  const label = !supported ? 'No microphone' : !ready ? 'Voice loading…' : listening ? 'Listening… release' : 'Hold to talk'
+  // Each state has its own glyph, word and outline, so it is told apart by shape and word, never by colour alone.
+  const state = !supported
+    ? { key: 'off', Icon: OfflineIcon, word: 'Voice off', sub: 'no microphone' }
+    : !ready
+      ? { key: 'off', Icon: OfflineIcon, word: 'Voice loading', sub: 'type meanwhile' }
+      : phase === 'listening'
+        ? { key: 'listening', Icon: RecordIcon, word: 'Listening', sub: 'release to send' }
+        : phase === 'transcribing' || phase === 'thinking'
+          ? { key: 'working', Icon: WorkingIcon, word: 'Working', sub: phase === 'transcribing' ? 'hearing you' : 'checking the budget' }
+          : phase === 'speaking'
+            ? { key: 'speaking', Icon: SpeakerIcon, word: 'Speaking', sub: 'hold to interrupt' }
+            : phase === 'error'
+              ? { key: 'error', Icon: OfflineIcon, word: 'No answer', sub: 'hold to try again' }
+              : { key: 'idle', Icon: MicIcon, word: 'Hold to talk', sub: 'or hold the space bar' }
   return (
     <button
       type="button"
-      className={`copilot-ptt ${listening ? 'is-listening' : ''}`}
+      className={`copilot-ptt is-${state.key}`}
       disabled={blocked && !listening}
       aria-pressed={listening}
-      title="Hold to ask (or hold the space bar)"
+      aria-label={`${state.word}: ${state.sub}`}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId)
         void start()
       }}
       onPointerUp={() => void finish()}
       onPointerCancel={() => void finish()}
+      onKeyDown={(e) => e.key === 'Enter' && !e.repeat && void start()}
+      onKeyUp={(e) => e.key === 'Enter' && void finish()}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-        <rect x="9" y="3" width="6" height="11" rx="3" />
-        <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-      </svg>
-      {label}
+      <state.Icon size={30} />
+      <span className="copilot-ptt-text">
+        <strong>{state.word}</strong>
+        <span>{state.sub}</span>
+      </span>
     </button>
   )
 }

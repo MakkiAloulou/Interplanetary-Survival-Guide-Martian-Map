@@ -110,3 +110,107 @@ export function AlertIcon(props: IconProps) {
     </Svg>
   )
 }
+
+/** WARNING (act now): an octagon, a different shape from the caution triangle so severity never rests on colour. */
+export function WarningIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8.2 2.8h7.6l5.4 5.4v7.6l-5.4 5.4H8.2l-5.4-5.4V8.2z" />
+      <path d="M12 7.5v5.5M12 16.5v.01" />
+    </Svg>
+  )
+}
+
+export function MicIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </Svg>
+  )
+}
+
+/** Recording: a filled dot inside a ring. */
+export function RecordIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" fill="currentColor" />
+    </Svg>
+  )
+}
+
+/** Working: three steps. */
+export function WorkingIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 12h.01M12 12h.01M20 12h.01" strokeWidth={3.5} />
+    </Svg>
+  )
+}
+
+export function SpeakerIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+    </Svg>
+  )
+}
+
+export function SpeakerOffIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+      <path d="M16 9.5l5 5M21 9.5l-5 5" />
+    </Svg>
+  )
+}
+
+export function KeyboardIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7.5 14h9" />
+    </Svg>
+  )
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4.5 12.5l5 5 10-11" />
+    </Svg>
+  )
+}
+
+/** PARTLY: a half-filled circle. */
+export function PartIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" />
+    </Svg>
+  )
+}
+
+/** Not heard / rules mode: a ring with a bar. */
+export function OfflineIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8 12h8" />
+    </Svg>
+  )
+}
+
+/** Stop priority as three bars, like signal strength: 1 = low, 2 = medium, 3 = high. Unfilled bars stay faint. */
+export function PriorityIcon({ level, ...props }: IconProps & { level: 1 | 2 | 3 }) {
+  return (
+    <Svg {...props}>
+      {[0, 1, 2].map((k) => (
+        <path key={k} d={`M${6 + k * 6} 19V${15 - k * 4}`} strokeWidth={3} opacity={k < level ? 1 : 0.25} />
+      ))}
+    </Svg>
+  )
+}

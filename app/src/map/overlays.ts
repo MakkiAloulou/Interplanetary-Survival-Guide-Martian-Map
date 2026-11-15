@@ -30,6 +30,8 @@ export const INK = {
   rejoin: '#e52592',
   /** the jump from where the plan had the crew to where the fix puts them */
   correction: '#5f6368',
+  /** stretches the crew rides the rover */
+  rover: '#3c4043',
 } as const
 
 export const HAZARD_COLORS: Record<Hazard, string> = {

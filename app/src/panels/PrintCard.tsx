@@ -4,11 +4,13 @@ import type { RouteParams } from '../route/cost'
 import { cardStations, cropAround, farthestFromSafety, hillshadePixels, marsClockAt, type Crop } from '../stats/card'
 import { findSunset } from '../stats/conditions'
 import { formatDistance, formatDuration } from '../stats/format'
+import { ROVER_WITH_CREW } from '../stats/eva'
 import type { EvaParams, EvaVerdict } from '../stats/goNoGo'
 import type { RouteStats } from '../stats/stats'
 import type { Conditions, CostGrid, ScienceTarget, Waypoint } from '../types'
 import { StatusBadge } from '../ui/StatusBadge'
 import { ElevationProfile } from './ElevationProfile'
+import type { StopRef } from './RunningLate'
 
 interface Props {
   siteName: string
@@ -29,6 +31,8 @@ interface Props {
   roverAt: string | null
   params: EvaParams
   conditions: Conditions[]
+  /** running late: the stops in the order they are given up (lowest priority first) */
+  dropOrder: StopRef[]
   onClose: () => void
 }
 
@@ -131,7 +135,7 @@ export function PrintCard(props: Props) {
             <dt>Marswalk</dt>
             <dd>{formatDuration(endS)}</dd>
             <small>
-              {formatDuration(stats.walkS)} walking, {formatDuration(stats.dwellS)} at stops
+              {formatDuration(stats.walkS)} walking{stats.rideS > 0 && `, ${formatDuration(stats.rideS)} riding the rover`}, {formatDuration(stats.dwellS)} at stops
             </small>
           </div>
           <div>
@@ -256,9 +260,15 @@ export function PrintCard(props: Props) {
 
             <h2>If something goes wrong</h2>
             <p>
-              Walk to the nearest safe haven: the habitat{roverAt ? ` or the rover at ${roverAt}` : ''}. From anywhere on this route it is at most{' '}
+              Walk to the nearest safe haven: the habitat{roverAt === ROVER_WITH_CREW ? ' or the rover, parked near the crew' : roverAt ? ` or the rover at ${roverAt}` : ''}. From anywhere on this route it is at most{' '}
               {far ? formatDuration(far.s) : '—'} at planned pace, {far ? formatDuration(far.s * params.walkHomeContingency) : '—'} at emergency pace. Turn
               back at once on a radiation alert, or if O₂ comes within {formatDuration(params.o2ReserveS)} of the reserve.
+              {props.dropOrder.length > 0 && (
+                <>
+                  {' '}
+                  Running late: drop stops in this order, {props.dropOrder.map((s) => `${s.number}. ${s.name} (${s.priority})`).join(', ')}.
+                </>
+              )}
             </p>
 
             <h2>
@@ -316,7 +326,7 @@ export function PrintCard(props: Props) {
                 <td>
                   {row.next ? (
                     <>
-                      {formatDistance(row.next.distanceM)} · {formatDuration(row.next.walkS)}
+                      {formatDistance(row.next.distanceM)} · {row.next.rideS > 0 && `rover ${formatDuration(row.next.rideS)} + `}{formatDuration(row.next.walkS)}
                       <small>
                         heading {Math.round(row.next.bearingDeg)}° {row.next.compass}, max {row.next.maxSlopeDeg.toFixed(0)}°
                       </small>

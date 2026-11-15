@@ -10,24 +10,27 @@ import { StopDetail } from './panels/StopDetail'
 import { Tablet } from './panels/Tablet'
 import { Timeline } from './panels/Timeline'
 import { createRouteClient, type RouteClient } from './route/client'
-import { DEFAULT_ROUTE_PARAMS, isPassable, prepareGrid, type RouteProfile } from './route/cost'
+import { DEFAULT_ROUTE_PARAMS, isPassable, prepareGrid, ROVER_ROUTE_PARAMS, type RouteProfile } from './route/cost'
 import type { Message } from './panels/Directions'
 import type { AbortPlan } from './panels/Hud'
 import { bestOrder, nearestHaven, tourTime } from './route/optimize'
 import { cellAt, cellCenter, type RouteResult } from './route/route'
 import { findPath } from './route/search'
-import { sphericalDistanceM } from './stats/stats'
-import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, povsNear, roverSolsAt, withSimulatedStorm } from './stats/eva'
+import { routeStats, sphericalDistanceM } from './stats/stats'
+import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, povsNear, ROVER_WITH_CREW, roverSolsAt, withSimulatedStorm } from './stats/eva'
 import { defaultStartOption, describeTime, startOptions, withMarsSun } from './stats/sun'
 import { decodePlan, encodePlan, type DecodedPlan } from './share'
 import { loadSavedPlans, planLink, storeSavedPlans, withPlanSaved, type SavedPlan } from './saved'
 import { SavedPlans } from './panels/SavedPlans'
 import { PrintCard } from './panels/PrintCard'
-import { FASTER_ALTERNATIVE_MIN_SAVING_MIN, HABITAT_ANTENNA_HEIGHT_M, ROVER_ANTENNA_HEIGHT_M, SUIT_ANTENNA_HEIGHT_M } from './config'
+import { FASTER_ALTERNATIVE_MIN_SAVING_MIN, HABITAT_ANTENNA_HEIGHT_M, ROVER_ANTENNA_HEIGHT_M, SCIENCE_STOP_DWELL_MIN, SUIT_ANTENNA_HEIGHT_M } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
+import { betterStart, windowLevel, type WindowSlot } from './stats/window'
 import type { Conditions, DataConfig, PovImage, RoverTraverse, ScienceTarget, SpaceWeather, Waypoint } from './types'
 import { Copilot } from './copilot/Copilot'
 import { dwellWithExtras, useCopilotPlan, type DwellExtras } from './copilot/plan'
+import { cutsAhead, dropOrder, priorityOf, spareAt, stopCostS, type Priorities } from './stats/risk'
+import type { RiskTools } from './panels/RunningLate'
 
 interface Loaded {
   config: DataConfig
@@ -111,7 +114,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [overlay, setOverlay] = useState<GridOverlayMode>('none')
   const [showTraverse, setShowTraverse] = useState(true)
   const [stops, setStops] = useState<Waypoint[]>(() => linked?.stops ?? [])
-  const [routes, setRoutes] = useState<Record<RouteProfile, RouteResult> | null>(null)
+  const [routes, setRoutes] = useState<(Record<RouteProfile, RouteResult> & { onFoot?: RouteResult }) | null>(null)
+  /** rover-assisted Marswalk: the rover drives the crew to the first stop and back from the last */
+  const [ride, setRide] = useState(() => linked?.ride ?? false)
   /** the user's pick when a real trade-off is offered; the safest route otherwise */
   const [profile, setProfile] = useState<RouteProfile>(() => linked?.profile ?? 'safest')
   const [walkHome, setWalkHome] = useState<Float32Array | null>(null)
@@ -130,7 +135,11 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [hud, setHud] = useState(false)
   const [tablet, setTablet] = useState(false)
   const [card, setCard] = useState(false)
-  const [dwellExtras, setDwellExtras] = useState<DwellExtras>({}) // extra stop dwell applied from the copilot
+  const [dwellExtras, setDwellExtras] = useState<DwellExtras>({}) // extra stop dwell: copilot, or the crew staying longer
+  /** stop priorities set before the walk: the lowest are dropped first when the walk runs late */
+  const [priorities, setPriorities] = useState<Priorities>(() => linked?.priorities ?? {})
+  /** a walk re-planned on the way after stops were dropped: the part already walked is kept exactly as it was */
+  const [livePlan, setLivePlan] = useState<{ key: string; route: RouteResult } | null>(null)
   const client = useRef<{ client: RouteClient; ready: Promise<void> } | null>(null)
   /** bumps whenever the worker client is (re)created, so requests sent to a terminated client are made again */
   const [clientEpoch, setClientEpoch] = useState(0)
@@ -138,7 +147,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const baseCell = cellAt(grid, base.lat, base.lon)
 
   // Keep the address bar a working link to the current plan (replaceState: no history entry per edit).
-  const planHash = encodePlan({ stops, startTime: startTime === defaultStart ? null : startTime, roverAt, profile, storm })
+  const planHash = encodePlan({ stops, startTime: startTime === defaultStart ? null : startTime, roverAt, profile, storm, ride, priorities })
   useEffect(() => {
     if (planHash !== window.location.hash) window.history.replaceState(null, '', planHash || window.location.pathname + window.location.search)
   }, [planHash])
@@ -151,8 +160,10 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
       setStops(plan.stops)
       setStartTime(plan.startTime ?? defaultStart)
       setRoverAt(plan.roverAt)
+      setRide(plan.ride ?? false)
       setProfile(plan.profile)
       setStorm(plan.storm)
+      setPriorities(plan.priorities ?? {})
       viaCount.current = plan.stops.filter((s) => s.kind === 'via').length
       setSelected(null)
       setNoticeState(linkNotice(plan))
@@ -185,15 +196,22 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     setRouting(true)
     const c = client.current!
     c.ready
-      // Plan both alternatives together, so switching between them is instant.
-      .then(() => Promise.all([c.client.route(cells, 'fastest'), c.client.route(cells, 'safest')]))
-      .then(([fastest, safest]) => current && setRoutes({ fastest, safest }))
+      // Plan both alternatives together, so switching between them is instant; rover-assisted plans also get the
+      // on-foot safest route, for the comparison.
+      .then(() =>
+        Promise.all([
+          c.client.route(cells, 'fastest', ride),
+          c.client.route(cells, 'safest', ride),
+          ride ? c.client.route(cells, 'safest', false) : Promise.resolve(undefined),
+        ]),
+      )
+      .then(([fastest, safest, onFoot]) => current && setRoutes({ fastest, safest, onFoot }))
       .catch((e: unknown) => current && setNotice(`Route failed: ${e instanceof Error ? e.message : String(e)}`))
       .finally(() => current && setRouting(false))
     return () => {
       current = false
     }
-  }, [grid, base, stops])
+  }, [grid, base, stops, ride, clientEpoch])
 
   // The solar-storm drill raises a radiation alert across the whole O₂ span from the planned start.
   const effectiveConditions = useMemo(() => {
@@ -203,7 +221,12 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   }, [storm, sunConditions, startTime, evaParams])
 
   const roverStop = stops.find((s) => s.id === roverAt) ?? null
-  const roverCell = roverStop ? cellAt(grid, roverStop.lat, roverStop.lon) : null
+  // Where the rover waits as safe haven and radio relay, when it is staged at a stop. On a rover-assisted plan it
+  // travels with the crew instead: its parking spot at every step is in the route (TrackPoint.roverCell / toRoverS).
+  const roverHaven =
+    !ride && roverStop ? { cell: cellAt(grid, roverStop.lat, roverStop.lon), lat: roverStop.lat, lon: roverStop.lon, name: roverStop.name } : null
+  const roverCell = roverHaven?.cell ?? null
+  const roverPrepared = useMemo(() => prepareGrid(grid, ROVER_ROUTE_PARAMS), [grid])
   useEffect(() => {
     if (roverAt !== 'habitat' && !roverStop) setRoverAt('habitat') // its stop was removed
   }, [roverAt, roverStop])
@@ -237,21 +260,114 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
 
   // Both alternatives are judged on the same walking model; safety first, so the safest route is the default and
   // the fastest is offered only when it saves enough time to be worth the extra hazard.
-  const judge = (r: RouteResult | null) =>
-    r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams, dwellS: dwellWithExtras(stops, dwellExtras), lineOfSight: lineOfSight ?? undefined, spaceWeather: spaceWeather?.windows }) : null
-  const fastVerdict = useMemo(() => judge(routes?.fastest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather])
-  const safeVerdict = useMemo(() => judge(routes?.safest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather])
+  const judge = (r: RouteResult | null, at: string = startTime, dwellS: number[] | undefined = dwellWithExtras(stops, dwellExtras)) =>
+    r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime: at, conditions: effectiveConditions, params: evaParams, dwellS, lineOfSight: lineOfSight ?? undefined, spaceWeather: spaceWeather?.windows, drive: ride ? roverPrepared : undefined }) : null
+  /** Dwell at each of `list`, s: the default plus any extra stay. */
+  const dwellOf = (list: Waypoint[]) => list.map((s) => SCIENCE_STOP_DWELL_MIN * 60 + (dwellExtras[s.id] ?? 0))
+  const planKey = (list: Waypoint[]) => list.map((s) => s.id).join('|') + (ride ? '|ride' : '')
+  const livePlanOn = livePlan !== null && livePlan.key === planKey(stops)
+  useEffect(() => {
+    if (livePlan && !livePlanOn) setLivePlan(null) // the plan was edited: back to normal planning
+  }, [livePlan, livePlanOn])
+  const liveVerdict = useMemo(() => (livePlanOn ? judge(livePlan!.route) : null), [livePlanOn, livePlan, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather, ride, roverPrepared])
+  /** while a re-planned walk is shown, the full re-plan running behind it does not hide the plan */
+  const busy = routing && !livePlanOn
+  const fastVerdict = useMemo(() => judge(routes?.fastest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather, ride, roverPrepared])
+  const safeVerdict = useMemo(() => judge(routes?.safest ?? null), [routes, safeHaven, prepared, startTime, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather, ride, roverPrepared])
   const savingS = fastVerdict?.stats && safeVerdict?.stats ? safeVerdict.stats.totalS - fastVerdict.stats.totalS : 0
   const tradeOff = savingS >= FASTER_ALTERNATIVE_MIN_SAVING_MIN * 60
   const active: RouteProfile = tradeOff ? profile : 'safest'
-  const route = routes ? routes[active] : null
-  const altRoute = routes && tradeOff ? routes[active === 'fastest' ? 'safest' : 'fastest'] : null
-  const verdict = active === 'fastest' ? fastVerdict : safeVerdict
-  const routeOptions = tradeOff && fastVerdict && safeVerdict ? { fastest: fastVerdict, safest: safeVerdict } : null
+  const route = livePlanOn ? livePlan!.route : routes ? routes[active] : null
+  // Every spot where the rover parks on a rover-assisted plan, for the map.
+  const roverParks = useMemo(() => {
+    const r = ride && route?.ok ? route.ride : undefined
+    return r ? r.parked.map((c) => cellCenter(grid, c)) : []
+  }, [ride, route, grid])
+  // Every possible start judged with the same route: which starts are clear, which carry a start-dependent caution
+  // (e.g. a space-weather advisory) and which are NO-GO.
+  const startWindow = useMemo<WindowSlot[]>(() => {
+    if (!route?.ok || busy || !safeHaven) return []
+    return startChoices.map((o) => {
+      const v = judge(route, o.time)
+      return { time: o.time, ltst: o.ltst, ...(v ? windowLevel(v) : { level: 'nogo' as const, why: 'Not judged' }) }
+    })
+  }, [route, busy, safeHaven, startChoices, prepared, effectiveConditions, evaParams, dwellExtras, lineOfSight, spaceWeather, ride, roverPrepared])
+  const suggestedStart = useMemo(() => betterStart(startWindow, startTime), [startWindow, startTime])
+  // Rover-assisted plans: the same stops walked all the way, for the comparison line.
+  const onFootS = useMemo(
+    () => (ride && routes?.onFoot?.ok ? routeStats(prepared, routes.onFoot.legs, dwellWithExtras(stops, dwellExtras)).totalS : null),
+    [ride, routes, prepared, stops, dwellExtras],
+  )
+  const altRoute = routes && tradeOff && !livePlanOn ? routes[active === 'fastest' ? 'safest' : 'fastest'] : null
+  const verdict = livePlanOn ? liveVerdict : active === 'fastest' ? fastVerdict : safeVerdict
+  const routeOptions = tradeOff && fastVerdict && safeVerdict && !livePlanOn ? { fastest: fastVerdict, safest: safeVerdict } : null
   // Stats only while the route matches the current stops (the render right after an edit still holds the old route).
   const routeMatches = route?.ok === true && route.legs.length === stops.length + 1
-  const stats = stops.length > 0 && !routing && routeMatches ? (verdict?.stats ?? null) : null
-  const copilotPlan = useCopilotPlan({ prepared, route: routeMatches ? route : null, profile: active, stops, targets, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams, lonEast: base.lon, extras: dwellExtras, setExtras: setDwellExtras, client, planAbort })
+  const stats = stops.length > 0 && !busy && routeMatches ? (verdict?.stats ?? null) : null
+  const copilotPlan = useCopilotPlan({ prepared, route: routeMatches ? route : null, profile: active, stops, targets, walkHome: safeHaven, startTime, conditions: effectiveConditions, params: evaParams, lonEast: base.lon, extras: dwellExtras, setExtras: setDwellExtras, client, planAbort, drive: ride ? roverPrepared : undefined })
+  // Running late: spare time at a stop, staying longer, and which stops to drop (lowest priority first) when the rest
+  // of the walk no longer fits. Only the rest is re-planned, from the crew's stop and wherever the rover is parked;
+  // the walked part is kept exactly. Every verdict is the planner's own judge.
+  const risk = useMemo<RiskTools | null>(() => {
+    if (!stats || !route?.ok || !routeMatches || !safeHaven) return null
+    const r = route
+    const list = stops
+    const dwell = dwellOf(list)
+    const stations = [base, ...list, base]
+    const cellOf = (w: Waypoint) => cellAt(grid, w.lat, w.lon)
+    // A rover staged at a stop is the safe haven there: that stop stays on the plan.
+    const stagedAt = ride ? -1 : list.findIndex((s) => s.id === roverAt)
+    const order = (from: number) =>
+      dropOrder(
+        list.map((_, k) => k).filter((k) => k > from && k !== stagedAt),
+        (k) => priorityOf(priorities, list[k].id),
+        (k) => stopCostS(stats, stations, k, dwell[k]),
+      )
+    return {
+      spareAt: (i) => spareAt((extraS) => judge(r, startTime, dwell.map((d, k) => (k === i ? d + extraS : d))), Math.ceil(evaParams.o2DurationS / 60)),
+      extraS: (i) => dwellExtras[list[i]?.id] ?? 0,
+      stayLonger: (i, deltaS) => {
+        const id = list[i].id
+        setDwellExtras((e) => ({ ...e, [id]: Math.max(0, (e[id] ?? 0) + deltaS) }))
+      },
+      dropOrder: (from) => order(from).map((k) => ({ number: k + 1, name: list[k].name, priority: priorityOf(priorities, list[k].id) })),
+      cutsFrom: async (i) => {
+        const cut = await cutsAhead({
+          route: r,
+          stats,
+          stops: list,
+          stations,
+          cells: stations.map(cellOf),
+          at: i,
+          dwellS: dwell,
+          priorityAt: (k) => priorityOf(priorities, list[k].id),
+          keep: stagedAt >= 0 ? [stagedAt] : [],
+          ride,
+          planRest: async (cells, roverStart) => {
+            const c = client.current
+            if (!c) return { ok: false, failedLeg: 0 }
+            await c.ready
+            return c.client.route(cells, active, ride, roverStart)
+          },
+          judge: (whole, dwellS) => judge(whole, startTime, dwellS),
+        })
+        if (cut.kind === 'none') return { kind: 'none' }
+        return {
+          kind: 'drop',
+          stops: cut.drop.map((k) => ({ number: k + 1, name: list[k].name, priority: priorityOf(priorities, list[k].id) })),
+          savedS: stats.totalS - (cut.verdict.stats?.totalS ?? stats.totalS),
+          apply: { route: cut.route, stops: cut.stops },
+        }
+      },
+      applyCuts: (cut) => {
+        setStops(cut.apply.stops)
+        setLivePlan({ key: planKey(cut.apply.stops), route: cut.apply.route })
+        setSelected(null)
+        setNotice(`Dropped ${cut.stops.map((s) => s.name).join(' and ')} on the way to keep the Marswalk GO.`, 'info')
+      },
+    }
+    // judge's inputs are listed so the tools always use the planner's current rules
+  }, [stats, route, routeMatches, safeHaven, stops, base, grid, baseCell, dwellExtras, priorities, ride, roverAt, active, startTime, prepared, effectiveConditions, evaParams, lineOfSight, spaceWeather, roverPrepared])
   const timeline = useMemo(() => (stats ? buildTimeline(stats, stops, targets) : []), [stats, stops, targets])
   const stations = [base, ...stops, base]
 
@@ -274,6 +390,8 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
       headingDeg: selected === stops.length && selected > 0 ? initialBearingDeg(station, base) : initialBearingDeg(station, next),
     }
   })()
+  // How much longer the crew can stay at the selected stop (a few verdicts by bisection, only for the open card).
+  const detailSpare = useMemo(() => (risk && selected && selected <= stops.length ? risk.spareAt(selected - 1) : null), [risk, selected, stops.length])
   const hoverPoint = stats && hoverIndex !== null ? stats.track[hoverIndex] : null
   // How long the rover spent at the same stops, for comparison with one Marswalk.
   const roverSols = useMemo(() => (traverse && stops.length ? roverSolsAt(traverse.points, stops) : null), [traverse, stops])
@@ -309,10 +427,11 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
     }
   }
 
-  /** Fastest way from a cell to the nearer safe haven (habitat, or the staged rover). */
-  function planAbort(cell: number): AbortPlan | null {
+  /** Fastest way from a cell to the nearer safe haven (habitat, the staged rover, or where the rover is parked). */
+  function planAbort(cell: number, rover?: number): AbortPlan | null {
     const havens = [{ cell: baseCell, name: base.name }]
-    if (roverCell !== null && roverStop) havens.push({ cell: roverCell, name: `the rover at ${roverStop.name}` })
+    if (roverHaven) havens.push({ cell: roverHaven.cell, name: `the rover at ${roverHaven.name}` })
+    if (rover !== undefined && rover !== baseCell) havens.push({ cell: rover, name: 'the parked rover' })
     let best: AbortPlan | null = null
     for (const h of havens) {
       const path = findPath(prepared, cell, h.cell)
@@ -374,7 +493,11 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           onSelectStation={setSelected}
           hoverPoint={hoverPoint}
           walkHome={safeHaven}
-          rover={roverStop ? { lat: roverStop.lat, lon: roverStop.lon, name: roverStop.name } : null}
+          rovers={
+            roverHaven
+              ? [{ lat: roverHaven.lat, lon: roverHaven.lon, title: 'Rover staged here', note: `Safe haven and tool carrier at ${roverHaven.name}` }]
+              : roverParks.map((p, i) => ({ ...p, title: `Rover parks here (${i + 1} of ${roverParks.length})`, note: 'Carries the crew, tools, safe haven and radio relay while they work nearby' }))
+          }
           traverse={showTraverse ? traverse : null}
           lineOfSight={lineOfSight}
         />
@@ -416,6 +539,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
               startTime={startTime}
               startChoices={startChoices}
               onStartTime={setStartTime}
+              startWindow={startWindow}
               lonEast={base.lon}
               endTime={verdict?.endTime ?? null}
               storm={storm}
@@ -437,7 +561,17 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           panorama={detail.panorama}
           arriveS={detail.arriveS}
           headingDeg={detail.headingDeg}
-          crew={selected ? crewAtStop(detail.station, targets, roverStop?.name ?? null) : null}
+          crew={selected ? crewAtStop(detail.station, targets, ride ? ROVER_WITH_CREW : (roverHaven?.name ?? null)) : null}
+          late={
+            selected && selected <= stops.length
+              ? {
+                  priority: priorityOf(priorities, detail.station.id),
+                  onPriority: (p) => setPriorities((all) => ({ ...all, [detail.station.id]: p })),
+                  spare: detailSpare,
+                  dropFirst: risk ? risk.dropOrder(selected - 1) : [],
+                }
+              : null
+          }
           onClose={() => setSelected(null)}
         />
       )}
@@ -454,7 +588,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           conditions={effectiveConditions}
           startTime={startTime}
           planAbort={planAbort}
+          drill={storm}
           onExit={() => setTablet(false)}
+          risk={risk}
           copilot={copilotPlan ? (live) => <Copilot variant="tablet" plan={copilotPlan} live={live} /> : undefined}
         />
       )}
@@ -473,9 +609,10 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           grid={grid}
           routeParams={routeParams}
           walkHome={safeHaven}
-          roverAt={roverStop?.name ?? null}
+          roverAt={ride ? ROVER_WITH_CREW : (roverHaven?.name ?? null)}
           params={evaParams}
           conditions={effectiveConditions}
+          dropOrder={risk ? risk.dropOrder(-1) : []}
           onClose={() => setCard(false)}
         />
       )}
@@ -488,7 +625,11 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           params={evaParams}
           planAbort={planAbort}
           alerts={verdict.reasons.filter((r) => r.severity !== 'info')}
+          startTime={startTime}
+          conditions={effectiveConditions}
+          drill={storm}
           onExit={() => setHud(false)}
+          risk={risk}
           copilot={copilotPlan ? (live) => <Copilot variant="hud" plan={copilotPlan} live={live} /> : undefined}
         />
       )}
@@ -502,16 +643,18 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
         stops={stops}
         targets={targets}
         onAddTarget={addTarget}
-        verdict={stops.length > 0 && !routing ? verdict : null}
-        routing={routing}
+        verdict={stops.length > 0 && !busy ? verdict : null}
+        routing={busy}
         failedLeg={route && !route.ok ? route.failedLeg : null}
         profile={active}
         onProfile={setProfile}
-        routeOptions={stops.length > 0 && !routing ? routeOptions : null}
+        routeOptions={stops.length > 0 && !busy ? routeOptions : null}
         savingS={savingS}
         notice={notice}
         startTime={startTime}
         startLabel={describeTime(startTime, base.lon)}
+        suggestedStart={suggestedStart}
+        onStartTime={setStartTime}
         o2DurationS={evaParams.o2DurationS}
         roverSols={traverse && roverSols ? { rover: traverse.rover, ...roverSols } : null}
         onRemove={(id) => {
@@ -519,6 +662,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           setSelected(null)
         }}
         roverAt={roverAt}
+        ride={ride}
+        onRide={setRide}
+        onFootS={onFootS}
         onRoverAt={setRoverAt}
         onOptimise={optimiseOrder}
         optimising={optimising}
@@ -538,6 +684,9 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           setNotice(null)
           setSelected(null)
         }}
+        priorities={priorities}
+        onPriority={(id, p) => setPriorities((all) => ({ ...all, [id]: p }))}
+        dwellS={dwellOf(stops)}
         selected={selected}
         onSelect={setSelected}
         hoverIndex={hoverIndex}

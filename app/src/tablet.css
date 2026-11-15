@@ -1,4 +1,5 @@
-/* Tablet view: carried on the walk. High contrast for Martian daylight, 52px targets for gloved hands. */
+/* Tablet view: carried on the walk. High contrast for Martian daylight; every target at least 64 px, 16 px apart, for
+   gloved hands. Severity is always icon + word + colour. */
 
 .tablet {
   position: fixed;
@@ -140,9 +141,39 @@
   background: var(--amber-bg);
 }
 
-.tablet-gauges .is-alert {
+.tablet-gauges .is-warning {
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
+}
+
+.tablet-gauge-state {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* An inline state word in front of a heading (Next, At stop, Abort): part of the line, not a label above it. */
+.tablet-state {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tablet-drill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 17px;
 }
 
 .tablet-side h3 {
@@ -182,8 +213,15 @@
 }
 
 .tablet-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 17px;
   color: var(--green);
+}
+
+.tablet-plan-head {
+  margin-top: 16px;
 }
 
 .tablet-warnings ul.tablet-plan {
@@ -193,8 +231,17 @@
 
 .tablet-warnings .tablet-plan li {
   padding: 0;
-  font-size: 14px;
-  color: var(--text-2);
+  background: none;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.tablet-warnings .tablet-plan li.is-warning svg {
+  color: var(--red-text);
+}
+
+.tablet-warnings .tablet-plan li.is-caution svg {
+  color: var(--amber-text);
 }
 
 .tablet-upcoming ol {
@@ -222,9 +269,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   margin-top: auto;
-  padding: 14px 0 18px;
+  padding: 16px 0 20px;
   border-top: 1px solid var(--line);
   background: var(--surface);
 }
@@ -234,8 +281,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 52px;
-  padding: 0 18px;
+  min-height: 64px;
+  padding: 0 20px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
@@ -259,8 +306,14 @@
 }
 
 .tablet-btn.is-danger {
-  border-color: var(--red);
-  color: var(--red);
+  border-color: var(--visor-warning-band);
+  background: var(--visor-warning-band);
+  color: var(--on-accent);
+}
+
+.tablet-btn[aria-pressed='true'] {
+  border-color: var(--black);
+  box-shadow: inset 0 0 0 1px var(--black);
 }
 
 /* Position fix (simulated): the button, the result card and its map key share the rejoin pink. */
@@ -350,28 +403,17 @@
 .tablet-controls input[type='range'] {
   order: -1;
   flex: 1 1 100%;
-  height: 28px;
+  height: 64px;
   accent-color: var(--blue);
 }
 
-.tablet-follow {
-  margin-right: auto;
-}
-
 .tablet-controls select {
-  height: 52px;
+  height: 64px;
   padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: 12px;
   font: inherit;
   font-size: 16px;
-}
-
-.tablet-follow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 15px;
 }
 
 @media (max-width: 960px) {
@@ -388,4 +430,50 @@
   .tablet-controls {
     flex-wrap: wrap;
   }
+}
+
+/* Running late: spare time and "stay longer" at a stop; what to drop when the rest no longer fits. */
+.late {
+  display: grid;
+  gap: 10px;
+}
+
+.late:empty {
+  display: none;
+}
+
+.late-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  font-size: 16px;
+}
+
+.late-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.late-btns .tablet-btn {
+  min-height: 52px;
+}
+
+.late-cut {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 2px solid var(--visor-warning-band);
+  border-radius: 10px;
+  background: var(--red-bg);
+  color: var(--red-text);
+}
+
+.late-cut p {
+  font-size: 17px;
+}
+
+.late-cut .tablet-btn {
+  justify-self: start;
 }

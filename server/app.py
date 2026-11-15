@@ -61,10 +61,11 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app = FastAPI(title="Martian Map copilot", lifespan=lifespan)
     app.state.settings = settings
     app.state.llm = llm
-    # The app reaches the server through the Vite proxy (same origin); this allows direct calls from the dev server too.
+    # On the laptop the app goes through the Vite proxy (same origin). The deployed site calls through the tunnel.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+        allow_origin_regex=settings.cors_origin_regex or None,
         allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )

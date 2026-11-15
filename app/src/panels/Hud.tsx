@@ -1,12 +1,20 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { CopilotLive } from '../copilot/useCopilot'
+import { marsClockAt } from '../stats/card'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
-import { formatDistance, formatDuration, shortReason } from '../stats/format'
-import type { EvaParams, Reason } from '../stats/goNoGo'
-import { sphericalDistanceM, type RouteStats } from '../stats/stats'
-import type { Waypoint } from '../types'
-import { AlertIcon, CloseIcon } from '../ui/icons'
+import { formatDistance, formatDuration } from '../stats/format'
+import { evaDoseMSv, type EvaParams, type Reason } from '../stats/goNoGo'
+import { liveWarnings, type LiveWarning } from '../stats/live'
+import { safetyS, sphericalDistanceM, type RouteStats, type TrackPoint } from '../stats/stats'
+import type { Conditions, Waypoint } from '../types'
+import { AlertSlot } from '../ui/AlertSlot'
+import { takesOver, walkAlerts } from '../ui/alerts'
+import { AlertIcon, CloseIcon, WarningIcon } from '../ui/icons'
+import { StatusBadge } from '../ui/StatusBadge'
+import type { RiskTools } from './RunningLate'
 import { PLAYBACK_SPEEDS, usePlayback } from './usePlayback'
+import { useVisorBackdrop } from './useVisorBackdrop'
+import './visor.css'
 
 /** Fastest way from the crew's position to the nearer safe haven. */
 export interface AbortPlan {
@@ -23,47 +31,83 @@ interface Props {
   /** seconds to the nearest safe haven (habitat or staged rover) from every cell */
   walkHome: Float32Array
   params: EvaParams
+  /** the plan's own cautions and no-go reasons */
   alerts: Reason[]
-  planAbort: (cell: number) => AbortPlan | null
+  /** fastest way to the nearer safe haven from a cell; `rover` = where the rover is parked on a rover-assisted plan */
+  planAbort: (cell: number, rover?: number) => AbortPlan | null
   onExit: () => void
+  /** EVA start (ISO UTC) and the conditions series, for the live warnings and Mars local time */
+  startTime?: string
+  conditions?: Conditions[]
+  /** the simulated solar-storm drill is on: its alerts are labelled SIMULATED */
+  drill?: boolean
   /** optional what-if copilot, given the walk clock and this view's abort */
   copilot?: (live: CopilotLive) => ReactNode
+  /** running late: the spare time at the stop is shown under the leave countdown */
+  risk?: RiskTools | null
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
-/** The abort arrow points along the escape path this far ahead (in path cells), not at the haven as the crow flies. */
+/** The arrows point along the route (or the escape path) this far ahead, in path cells, not as the crow flies. */
 const LOOK_AHEAD_CELLS = 15
 
-function Compass({ bearing, big, sub }: { bearing: number; big: string; sub: string }) {
+/** A small north-up bearing dial: ring, north tick, arrow. Symbology, not decoration. */
+function Bearing({ deg, label }: { deg: number; label: string }) {
   return (
-    <div className="hud-compass" aria-label={`Bearing ${Math.round(bearing)} degrees ${compassPoint(bearing)}`}>
-      <svg viewBox="-60 -60 120 120" aria-hidden="true">
-        <circle r="52" className="hud-ring" />
-        {['N', 'E', 'S', 'W'].map((c, i) => (
-          <text key={c} x={Math.sin((i * Math.PI) / 2) * 42} y={-Math.cos((i * Math.PI) / 2) * 42 + 4} className="hud-cardinal">
-            {c}
-          </text>
-        ))}
-        <g transform={`rotate(${bearing})`}>
-          <path d="M0,-34 L9,4 L0,-3 L-9,4 Z" className="hud-arrow" />
-        </g>
-      </svg>
-      <div>
-        <strong>{big}</strong>
-        <span>{sub}</span>
-      </div>
+    <svg className="visor-dial" viewBox="-30 -30 60 60" role="img" aria-label={label}>
+      <circle r="26" className="visor-dial-ring" />
+      <path d="M0,-29 L0,-21" className="visor-dial-north" />
+      <g transform={`rotate(${deg})`}>
+        <path d="M0,-18 L8,10 L0,4 L-8,10 Z" className="visor-dial-arrow" />
+      </g>
+    </svg>
+  )
+}
+
+/** Index of the last track point of every leg (the stop it ends at). */
+function legEnds(track: TrackPoint[]): number[] {
+  const out: number[] = []
+  track.forEach((p, i) => (out[p.leg] = i))
+  return out
+}
+
+type GaugeState = 'ok' | 'caution' | 'warning'
+
+function Gauge({ label, value, state = 'ok', badge }: { label: string; value: string; state?: GaugeState; badge?: ReactNode }) {
+  return (
+    <div className={`visor-gauge is-${state}`}>
+      <span className="visor-label">
+        {label}
+        {badge}
+      </span>
+      <strong className="visor-number">{value}</strong>
+      {state !== 'ok' && (
+        <span className="visor-state">
+          {state === 'warning' ? <WarningIcon size={16} /> : <AlertIcon size={16} />}
+          {state === 'warning' ? 'Warning' : 'Caution'}
+        </span>
+      )}
     </div>
   )
 }
 
+function gaugeState(live: LiveWarning[], codes: LiveWarning['code'][]): GaugeState {
+  const hit = live.filter((w) => codes.includes(w.code))
+  if (hit.some((w) => w.severity === 'no-go')) return 'warning'
+  return hit.length ? 'caution' : 'ok'
+}
+
 /**
- * Helmet-visor view: only what a suited astronaut needs at a glance. The EVA plays on the plan's clock (or is
- * scrubbed by hand), so the demo can walk the route. Abort switches to the fastest way to the nearest safe haven.
+ * Helmet-visor view: what a suited astronaut needs at a glance, in fixed slots at the edges of the visor so the
+ * centre stays clear. One alert slot (a live warning takes over), life support at the bottom left, the copilot at the
+ * bottom right. Composited over a real Navcam frame near the destination, so legibility over terrain is visible.
+ * The EVA plays on the plan's clock (or is scrubbed by hand) for the demo; Abort switches to the escape path.
  */
-export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit, copilot }: Props) {
+export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit, startTime, conditions = [], drill = false, copilot, risk }: Props) {
   const clock = usePlayback(stats.totalS)
   const { t, playing, speed, done } = clock
   const [abort, setAbort] = useState<{ atT: number; plan: AbortPlan | null } | null>(null)
+  const ends = useMemo(() => legEnds(stats.track), [stats])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onExit()
@@ -71,133 +115,186 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
     return () => window.removeEventListener('keydown', onKey)
   }, [onExit])
 
-
-  const pos = positionAt(stats.track, t)
+  const pos = positionAt(stats.track, abort ? abort.atT : t)
   const cell = stats.track[pos.index].cell
   const o2Left = params.o2DurationS - t
   const usable = params.o2DurationS - params.o2ReserveS
+  const home = params.walkHomeContingency * safetyS(walkHome, stats.track[pos.index])
+  const margin = usable - (t + home)
+  const startMs = startTime ? Date.parse(startTime) : null
+  const lonEast = stations[0]?.lon ?? 0
+  const marsNow = startMs !== null ? marsClockAt(startMs, abort ? abort.atT : t, lonEast) : null
+
+  // Where the route goes next: look ahead along the planned path within the current leg.
+  const nextIndex = Math.min(pos.nextStation, stations.length - 1)
+  const next = stations[nextIndex]
+  const legEnd = ends[Math.max(0, nextIndex - 1)] ?? stats.track.length - 1
+  const ahead = stats.track[Math.min(pos.index + LOOK_AHEAD_CELLS, legEnd)]
+  const routeBearing = initialBearingDeg(pos, ahead.cell === stats.track[pos.index].cell ? next : ahead)
+  const along = stats.track[legEnd].distanceM - (stats.track[pos.index].distanceM + sphericalDistanceM(stats.track[pos.index], pos))
+  const leaveInS = pos.atStop ? stats.track[pos.index].departS - t : 0
+  const planGo = !alerts.some((a) => a.severity === 'no-go')
+  const stopIndex = pos.atStop && nextIndex < stations.length - 1 ? nextIndex - 1 : -1
+  const spare = useMemo(() => (risk && stopIndex >= 0 && planGo ? risk.spareAt(stopIndex) : null), [risk, stopIndex, planGo])
+
+  const backdrop = useVisorBackdrop(abort ? null : next, routeBearing)
+  const live = startTime ? liveWarnings({ t, startTime, emergencyHomeS: home, conditions, params }) : []
+  const list = walkAlerts(live, alerts, { marginS: margin, o2LeftS: o2Left }, drill)
+  const takeover = takesOver(list)
+
+  const credit = backdrop && (
+    <p className="visor-credit">
+      View: Curiosity {backdrop.camera}, sol {backdrop.sol}, {formatDistance(backdrop.distanceM)} from {next.name}{' '}
+      <StatusBadge status={backdrop.status} /> <span>stands in for the view through the visor</span>
+    </p>
+  )
+
+  const clockSlot = (
+    <div className="visor-slot visor-clock">
+      <div className="visor-clock-time">
+        <span className="visor-label">EVA clock</span>
+        <strong className="visor-number">{elapsed(abort ? abort.atT : t)}</strong>
+        {marsNow && <span className="visor-sub">{marsNow} Mars local</span>}
+      </div>
+      <button type="button" className="visor-btn visor-exit" onClick={onExit}>
+        <CloseIcon size={20} /> Exit
+      </button>
+      {drill && (
+        <p className="visor-drill">
+          Storm drill <StatusBadge status="SIMULATED" />
+        </p>
+      )}
+    </div>
+  )
 
   if (abort) {
     const plan = abort.plan
-    const ahead = plan ? plan.points[Math.min(LOOK_AHEAD_CELLS, plan.points.length - 1)] : null
-    const bearing = plan && ahead ? initialBearingDeg(pos, ahead) : 0
+    const escapeAhead = plan ? plan.points[Math.min(LOOK_AHEAD_CELLS, plan.points.length - 1)] : null
+    const bearing = plan && escapeAhead ? initialBearingDeg(pos, escapeAhead) : 0
     const worstCase = plan ? params.walkHomeContingency * plan.timeS : Infinity
     const spare = usable - (abort.atT + worstCase)
     return (
-      <div className="hud is-abort" role="dialog" aria-modal="true" aria-label="Helmet HUD: abort">
-        <button type="button" className="hud-exit" onClick={onExit}>
-          <CloseIcon size={18} /> Exit HUD
-        </button>
-        <div className="hud-next">
-          <span className="hud-label">Abort · return to safety</span>
-          <strong>{plan ? `Head to ${plan.haven}` : 'No walkable way to a safe haven'}</strong>
-        </div>
-        {plan && <Compass bearing={bearing} big={formatDistance(plan.distanceM)} sub={`${compassPoint(bearing)} ${Math.round(bearing)}° · follow the path`} />}
-        <div className="hud-gauges">
-          <div>
-            <span className="hud-label">Time to safety</span>
-            <strong>{plan ? formatDuration(plan.timeS) : '—'}</strong>
-            <small>{plan ? `${formatDuration(worstCase)} if ${params.walkHomeContingency}× slower` : ''}</small>
-          </div>
-          <div className={o2Left < params.o2ReserveS ? 'is-alert' : ''}>
-            <span className="hud-label">O₂ left</span>
-            <strong>{formatDuration(params.o2DurationS - abort.atT)}</strong>
-          </div>
-          <div className={spare < 0 ? 'is-alert' : spare < 1800 ? 'is-caution' : ''}>
-            <span className="hud-label">Spare O₂ at arrival</span>
-            <strong>{plan ? (spare < 0 ? `Short ${formatDuration(-spare)}` : formatDuration(spare)) : '—'}</strong>
-            <small>above the reserve, at the slow pace</small>
-          </div>
-        </div>
-        <div className="hud-controls">
-          <button type="button" onClick={() => setAbort(null)}>
+      <div className="visor is-abort" role="dialog" aria-modal="true" aria-label="Helmet HUD: abort">
+        <section className="visor-slot visor-route" aria-label="Escape route">
+          <p className="visor-route-head">
+            <span className="visor-state is-warning">
+              <WarningIcon size={18} /> Abort
+            </span>
+            {plan ? `Head to ${plan.haven}` : 'No walkable way to a safe haven'}
+          </p>
+          {plan ? (
+            <div className="visor-route-main">
+              <Bearing deg={bearing} label={`Escape path ${compassPoint(bearing)} ${Math.round(bearing)} degrees`} />
+              <strong className="visor-number is-hero">{formatDistance(plan.distanceM)}</strong>
+              <span className="visor-sub">
+                {compassPoint(bearing)} {Math.round(bearing)}° · follow the escape path
+              </span>
+            </div>
+          ) : (
+            <p className="visor-sub">Call the habitat and hold position.</p>
+          )}
+        </section>
+        <div className="visor-alert-area" />
+        {clockSlot}
+        <section className="visor-slot visor-life" aria-label="Life support during the abort">
+          <Gauge label="Time to safety" value={plan ? formatDuration(plan.timeS) : '—'} />
+          <Gauge label="O₂ left" value={formatDuration(params.o2DurationS - abort.atT)} state={params.o2DurationS - abort.atT < params.o2ReserveS ? 'warning' : 'ok'} />
+          <Gauge
+            label="Spare O₂ at arrival, slow pace"
+            value={plan ? (spare < 0 ? `Short ${formatDuration(-spare)}` : formatDuration(spare)) : '—'}
+            state={spare < 0 ? 'warning' : spare < 1800 ? 'caution' : 'ok'}
+          />
+        </section>
+        <div className="visor-demo">
+          <button type="button" className="visor-btn" onClick={() => setAbort(null)}>
             Cancel abort, resume plan
           </button>
-          <span className="hud-clock">Aborted at {elapsed(abort.atT)}</span>
+          <span className="visor-sub">Aborted at {elapsed(abort.atT)}</span>
         </div>
       </div>
     )
   }
 
-  const next = stations[Math.min(pos.nextStation, stations.length - 1)]
-  const nextNumber = pos.nextStation >= stations.length - 1 ? null : pos.nextStation
-  const bearing = initialBearingDeg(pos, next)
-  const distance = sphericalDistanceM(pos, next)
-  const home = params.walkHomeContingency * walkHome[cell]
-  const margin = usable - (t + home)
+  const state = done ? 'Walk complete' : pos.atStop ? 'At stop' : 'Next'
+  const number = pos.nextStation >= stations.length - 1 ? null : pos.nextStation
 
   return (
-    <div className="hud" role="dialog" aria-modal="true" aria-label="Helmet HUD view">
-      <button type="button" className="hud-exit" onClick={onExit}>
-        <CloseIcon size={18} /> Exit HUD
-      </button>
-
-      <div className="hud-next">
-        <span className="hud-label">{done ? 'Walk complete' : pos.atStop ? 'Working at' : 'Next'}</span>
-        <strong>
-          {nextNumber !== null && <span className="hud-num">{nextNumber}</span>}
+    <div
+      className={`visor${takeover ? ' is-takeover' : ''}${backdrop ? ' has-view' : ''}`}
+      style={backdrop ? { backgroundImage: `url("${backdrop.url}")` } : undefined}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Helmet HUD view"
+    >
+      <section className="visor-slot visor-route" aria-label="Route">
+        <p className="visor-route-head">
+          <span className="visor-state">{state}</span>
+          {number !== null && !done && <span className="visor-stopnum">{number}</span>}
           {done ? 'Back at the habitat' : next.name}
-        </strong>
+        </p>
+        {done ? (
+          <div className="visor-route-main">
+            <strong className="visor-number is-hero">{formatDuration(o2Left)}</strong>
+            <span className="visor-sub">of O₂ left on return</span>
+          </div>
+        ) : pos.atStop ? (
+          <div className="visor-route-main">
+            <strong className="visor-number is-hero">{leaveInS > 0 ? formatDuration(leaveInS) : 'Now'}</strong>
+            <span className="visor-sub">
+              {leaveInS > 0 ? 'until you leave this stop' : 'time to leave this stop'}
+              {spare && ` · ${spare.limit ? `${spare.minutes} min` : `over ${formatDuration(spare.minutes * 60)}`} spare`}
+            </span>
+          </div>
+        ) : (
+          <div className="visor-route-main">
+            <Bearing deg={routeBearing} label={`Route ${compassPoint(routeBearing)} ${Math.round(routeBearing)} degrees`} />
+            <strong className="visor-number is-hero">{formatDistance(Math.max(0, along))}</strong>
+            <span className="visor-sub">
+              {compassPoint(routeBearing)} {Math.round(routeBearing)}° · along the route
+            </span>
+          </div>
+        )}
+      </section>
+
+      <div className="visor-alert-area">
+        <AlertSlot alerts={list} variant="visor" />
       </div>
 
-      <Compass bearing={bearing} big={pos.atStop || done ? '—' : formatDistance(distance)} sub={`${compassPoint(bearing)} ${Math.round(bearing)}° · straight line`} />
+      {clockSlot}
 
-      <div className="hud-gauges">
-        <div className={o2Left < params.o2ReserveS ? 'is-alert' : ''}>
-          <span className="hud-label">O₂ left</span>
-          <strong>{formatDuration(o2Left)}</strong>
-        </div>
-        <div className={margin < 0 ? 'is-alert' : margin < 3600 ? 'is-caution' : ''}>
-          <span className="hud-label">Walk-home margin</span>
-          <strong>{margin < 0 ? 'Past the limit' : formatDuration(margin)}</strong>
-        </div>
-        <div>
-          <span className="hud-label">Marswalk clock</span>
-          <strong>{elapsed(t)}</strong>
-        </div>
-      </div>
+      <section className="visor-slot visor-life" aria-label="Life support">
+        <Gauge label="O₂ left" value={formatDuration(o2Left)} state={gaugeState(live, ['O2_LOW'])} />
+        <Gauge label="Point of no return" value={margin < 0 ? 'Passed' : `in ${formatDuration(margin)}`} state={gaugeState(live, ['NO_RETURN', 'MARGIN_LOW'])} />
+        <Gauge label="EVA dose" value={`${evaDoseMSv(t).toFixed(2)} mSv`} badge={<StatusBadge status="MODELED" />} />
+        <button
+          type="button"
+          className="visor-btn visor-abort"
+          onClick={() => {
+            clock.pause()
+            setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })
+          }}
+        >
+          <WarningIcon size={20} /> Abort · return to safety
+        </button>
+      </section>
 
-      <ul className="hud-alerts" aria-live="polite">
-        {/* The visor shows the first clause of the three most serious alerts; the full text is on the planning card. */}
-        {alerts.slice(0, 3).map((r) => (
-          <li key={r.code} className={`sev-${r.severity}`} title={r.message}>
-            {shortReason(r.message)}
-          </li>
-        ))}
-      </ul>
-
-      <div className="hud-controls">
-        <button type="button" onClick={clock.toggle}>
+      <div className="visor-demo" aria-label="Demo playback">
+        <span className="visor-demo-label">Demo playback</span>
+        <button type="button" className="visor-btn" onClick={clock.toggle}>
           {playing ? 'Pause' : done ? 'Replay' : 'Play walk'}
         </button>
-        <input
-          type="range"
-          min={0}
-          max={stats.totalS}
-          step={10}
-          value={t}
-          aria-label="Marswalk time"
-          onChange={(e) => clock.seek(Number(e.target.value))}
-        />
-        <select value={speed} aria-label="Playback speed" onChange={(e) => clock.setSpeed(Number(e.target.value))}>
+        <input type="range" min={0} max={stats.totalS} step={10} value={t} aria-label="Marswalk time" onChange={(e) => clock.seek(Number(e.target.value))} />
+        <select className="visor-btn" value={speed} aria-label="Playback speed" onChange={(e) => clock.setSpeed(Number(e.target.value))}>
           {PLAYBACK_SPEEDS.map((s) => (
             <option key={s} value={s}>
               {s}× speed
             </option>
           ))}
         </select>
-        <button
-          type="button"
-          className="hud-abort"
-          onClick={() => {
-            clock.pause()
-            setAbort({ atT: t, plan: planAbort(cell) })
-          }}
-        >
-          <AlertIcon size={16} /> Abort
-        </button>
+        {credit}
       </div>
-      {copilot?.({ t, index: pos.index, cell, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell) })) })}
+
+      {copilot?.({ t, index: pos.index, cell, drill, onAbort: () => (clock.pause(), setAbort({ atT: t, plan: planAbort(cell, stats.track[pos.index].roverCell) })) })}
     </div>
   )
 }
