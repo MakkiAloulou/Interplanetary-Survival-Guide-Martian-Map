@@ -16,14 +16,14 @@ import type { AbortPlan } from './panels/Hud'
 import { bestOrder, nearestHaven, tourTime } from './route/optimize'
 import { cellAt, cellCenter, type RouteResult } from './route/route'
 import { findPath } from './route/search'
-import { routeStats, sphericalDistanceM } from './stats/stats'
+import { routeStats, sphericalDistanceM, stopDwellS } from './stats/stats'
 import { buildTimeline, crewAtStop, initialBearingDeg, nearestPov, povsNear, ROVER_WITH_CREW, roverSolsAt, withSimulatedStorm } from './stats/eva'
 import { defaultStartOption, describeTime, startOptions, withMarsSun } from './stats/sun'
 import { decodePlan, encodePlan, type DecodedPlan } from './share'
 import { loadSavedPlans, planLink, storeSavedPlans, withPlanSaved, type SavedPlan } from './saved'
 import { SavedPlans } from './panels/SavedPlans'
 import { PrintCard } from './panels/PrintCard'
-import { FASTER_ALTERNATIVE_MIN_SAVING_MIN, HABITAT_ANTENNA_HEIGHT_M, ROVER_ANTENNA_HEIGHT_M, SCIENCE_STOP_DWELL_MIN, SUIT_ANTENNA_HEIGHT_M } from './config'
+import { FASTER_ALTERNATIVE_MIN_SAVING_MIN, HABITAT_ANTENNA_HEIGHT_M, ROVER_ANTENNA_HEIGHT_M, SUIT_ANTENNA_HEIGHT_M, CONTROL_LEAD_CELLS } from './config'
 import { DEFAULT_EVA_PARAMS, evaluateEva } from './stats/goNoGo'
 import { betterStart, windowLevel, type WindowSlot } from './stats/window'
 import type { Conditions, DataConfig, PovImage, RoverTraverse, ScienceTarget, SpaceWeather, Waypoint } from './types'
@@ -31,6 +31,10 @@ import { Copilot } from './copilot/Copilot'
 import { dwellWithExtras, useCopilotPlan, type DwellExtras } from './copilot/plan'
 import { cutsAhead, dropOrder, priorityOf, spareAt, stopCostS, type Priorities } from './stats/risk'
 import type { RiskTools } from './panels/RunningLate'
+import { MissionControl, type Draft } from './panels/MissionControl'
+import { openLiveLink, planSig, type CrewReport, type LiveLink, type LiveMessage } from './live/link'
+import type { CrewPosition } from './live/useCrewReport'
+import { joinRoute, splitAt, type CrewAt } from './route/reroute'
 
 interface Loaded {
   config: DataConfig
@@ -132,8 +136,15 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const [storm, setStorm] = useState(() => linked?.storm ?? false)
   const [selected, setSelected] = useState<number | null>(null)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
-  const [hud, setHud] = useState(false)
-  const [tablet, setTablet] = useState(false)
+  // ?view=tablet|hud|control opens that view at once: mission control opens the crew tablet in a second window this way.
+  const [startView] = useState(() => new URLSearchParams(window.location.search).get('view'))
+  const [hud, setHud] = useState(startView === 'hud')
+  const [tablet, setTablet] = useState(startView === 'tablet')
+  const [control, setControl] = useState(startView === 'control')
+  /** the latest crew position heard from a walk view in another window (mission control) */
+  const [crewReport, setCrewReport] = useState<(CrewReport & { receivedAt: number }) | null>(null)
+  /** a route change heard from the other side of the live link, until dismissed */
+  const [liveNote, setLiveNote] = useState<string | null>(null)
   const [card, setCard] = useState(false)
   const [dwellExtras, setDwellExtras] = useState<DwellExtras>({}) // extra stop dwell: copilot, or the crew staying longer
   /** stop priorities set before the walk: the lowest are dropped first when the walk runs late */
@@ -263,7 +274,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
   const judge = (r: RouteResult | null, at: string = startTime, dwellS: number[] | undefined = dwellWithExtras(stops, dwellExtras)) =>
     r && safeHaven ? evaluateEva({ prepared, route: r, walkHome: safeHaven, startTime: at, conditions: effectiveConditions, params: evaParams, dwellS, lineOfSight: lineOfSight ?? undefined, spaceWeather: spaceWeather?.windows, drive: ride ? roverPrepared : undefined }) : null
   /** Dwell at each of `list`, s: the default plus any extra stay. */
-  const dwellOf = (list: Waypoint[]) => list.map((s) => SCIENCE_STOP_DWELL_MIN * 60 + (dwellExtras[s.id] ?? 0))
+  const dwellOf = (list: Waypoint[]) => list.map((s) => stopDwellS(s) + (dwellExtras[s.id] ?? 0))
   const planKey = (list: Waypoint[]) => list.map((s) => s.id).join('|') + (ride ? '|ride' : '')
   const livePlanOn = livePlan !== null && livePlan.key === planKey(stops)
   useEffect(() => {
@@ -360,16 +371,119 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
         }
       },
       applyCuts: (cut) => {
-        setStops(cut.apply.stops)
-        setLivePlan({ key: planKey(cut.apply.stops), route: cut.apply.route })
-        setSelected(null)
+        applyLive(cut.apply.stops, cut.apply.route, `The crew dropped ${cut.stops.map((s) => s.name).join(' and ')} to keep the Marswalk GO.`, 'crew')
         setNotice(`Dropped ${cut.stops.map((s) => s.name).join(' and ')} on the way to keep the Marswalk GO.`, 'info')
       },
     }
     // judge's inputs are listed so the tools always use the planner's current rules
   }, [stats, route, routeMatches, safeHaven, stops, base, grid, baseCell, dwellExtras, priorities, ride, roverAt, active, startTime, prepared, effectiveConditions, evaParams, lineOfSight, spaceWeather, roverPrepared])
+  // ---------- Live link: mission control and the crew's walk view in two windows (see live/link.ts) ----------
+  const walkView = tablet || hud || control
+  const liveState = { stops, live: livePlanOn ? livePlan : null, extras: dwellExtras }
+  const sig = planSig(liveState)
+  const link = useRef<LiveLink | null>(null)
+  /** the live plan this window last sent or received: never echoed back */
+  const lastSig = useRef<string | null>(null)
+  const onLiveMessage = useRef<(m: LiveMessage) => void>(() => {})
+  onLiveMessage.current = (m) => {
+    if (!walkView) return // a window planning a walk is never changed from elsewhere
+    if (m.type === 'hello') {
+      lastSig.current = sig
+      link.current?.post({ type: 'plan', sig, from: control ? 'control' : 'crew', note: null, ...liveState })
+    } else if (m.type === 'crew') {
+      if (control && m.sig === sig) setCrewReport({ ...m, receivedAt: Date.now() })
+    } else if (m.sig !== sig) {
+      lastSig.current = m.sig
+      setStops(m.stops)
+      setDwellExtras(m.extras)
+      setLivePlan(m.live)
+      setSelected(null)
+      setCrewReport(null)
+      if (m.note) setLiveNote(m.note)
+    }
+  }
+  useEffect(() => {
+    const l = openLiveLink((m) => onLiveMessage.current(m))
+    link.current = l
+    return () => l.close()
+  }, [])
+  // Opening a walk view asks the other window for the live plan; after that, every change here is sent.
+  useEffect(() => {
+    if (!walkView) return
+    lastSig.current = sig
+    link.current?.post({ type: 'hello' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walkView])
+  useEffect(() => {
+    if (!walkView || sig === lastSig.current) return
+    lastSig.current = sig
+    link.current?.post({ type: 'plan', sig, from: control ? 'control' : 'crew', note: null, ...liveState })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig, walkView])
+  const sigNow = useRef(sig)
+  sigNow.current = sig
+  const lastCrew = useRef<(CrewPosition & { view: 'tablet' | 'hud'; at: number }) | null>(null)
+  // Sent at once (~30 a second while walking) and timestamped, so mission control can carry it forward exactly.
+  const reportCrew = (view: 'tablet' | 'hud') => (p: CrewPosition) => {
+    lastCrew.current = { view, at: Date.now(), ...p }
+    link.current?.post({ type: 'crew', sig: sigNow.current, ...lastCrew.current })
+  }
+  // A crew standing still still reports (on the plan as it is now), so mission control can tell a paused walk from a
+  // closed window.
+  useEffect(() => {
+    if (!tablet && !hud) return
+    const id = setInterval(() => lastCrew.current && link.current?.post({ type: 'crew', sig: sigNow.current, ...lastCrew.current }), 1000)
+    return () => clearInterval(id)
+  }, [tablet, hud])
+
+  /** Puts a walk re-planned on the way on the plan here, and sends it over the live link with a note. */
+  function applyLive(nextStops: Waypoint[], r: RouteResult, note: string | null, from: 'control' | 'crew') {
+    const live = { key: planKey(nextStops), route: r }
+    setStops(nextStops)
+    setLivePlan(live)
+    setSelected(null)
+    const state = { stops: nextStops, live, extras: dwellExtras }
+    const s = planSig(state)
+    lastSig.current = s
+    link.current?.post({ type: 'plan', sig: s, from, note, ...state })
+  }
+
+  /** Mission control: the rest of the walk with `ahead` as its stops, planned from where the crew is, and judged. */
+  async function replanAhead(ahead: Waypoint[], at: CrewAt): Promise<Draft | { error: string }> {
+    if (!route?.ok || !stats || !routeMatches) return { error: 'The plan is still being worked out. Try again in a moment.' }
+    const split = splitAt(route, stats.track, at, CONTROL_LEAD_CELLS)
+    if (split.kind === 'done') return { error: 'The crew is nearly home: nothing left to change.' }
+    const kept = stops.slice(0, split.kept)
+    const rest = ahead.filter((s) => !kept.some((k) => k.id === s.id))
+    // Mid-leg, the cut becomes a via point (no time spent there), so the legs keep matching the stops.
+    const cut: Waypoint[] = split.reroute === null ? [] : [{ id: `reroute-${Date.now().toString(36)}`, kind: 'via', name: 'Start of the new route', ...cellCenter(grid, split.reroute) }]
+    const nextStops = [...kept, ...cut, ...rest]
+    const c = client.current
+    if (!c) return { error: 'The route planner is not ready.' }
+    await c.ready
+    const planned = await c.client.route([split.fromCell, ...rest.map((w) => cellAt(grid, w.lat, w.lon)), baseCell], active, ride, split.roverStart)
+    if (!planned.ok) return { error: planned.failedLeg < rest.length ? `No walkable way to ${rest[planned.failedLeg].name}.` : 'No walkable way back to the habitat.' }
+    const whole = joinRoute(split, planned, baseCell, ride)
+    const v = judge(whole, startTime, dwellOf(nextStops))
+    return v ? { stops: nextStops, route: whole, verdict: v } : { error: 'The change could not be judged.' }
+  }
+
+  /** Mission control: a via point at a clicked spot, or why there cannot be one. */
+  function controlVia(lat: number, lon: number): Waypoint | string {
+    const w: Waypoint = { id: `via-c${Date.now().toString(36)}`, lat, lon, kind: 'via', name: `Via point ${viaCount.current + 1}` }
+    const why = stopProblem(w)
+    if (why) return `That spot is ${why}`
+    viaCount.current += 1
+    return w
+  }
+
+  function openCrewWindow() {
+    const url = `${window.location.pathname}?view=tablet${window.location.hash}`
+    if (!window.open(url, 'martian-map-crew')) setNotice('The browser blocked the new window. Allow pop-ups for this page, or open the plan link in a second window and choose Tablet.')
+  }
+
   const timeline = useMemo(() => (stats ? buildTimeline(stats, stops, targets) : []), [stats, stops, targets])
-  const stations = [base, ...stops, base]
+  const stations = useMemo(() => [base, ...stops, base], [base, stops]) // stable, so the walk views' maps are not rebuilt on every render
 
   const photoPovs = useMemo(() => povs.filter((p) => !p.isPanorama), [povs])
   const panoramaPovs = useMemo(() => povs.filter((p) => p.isPanorama), [povs])
@@ -518,6 +632,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           hudEnabled={stats !== null && safeHaven !== null}
           onHud={() => setHud(true)}
           onTablet={() => setTablet(true)}
+          onControl={() => setControl(true)}
           savedPanel={
             <SavedPlans
               plans={saved}
@@ -591,7 +706,32 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           drill={storm}
           onExit={() => setTablet(false)}
           risk={risk}
+          onLive={reportCrew('tablet')}
+          note={liveNote ? { text: liveNote, onDismiss: () => setLiveNote(null) } : null}
           copilot={copilotPlan ? (live) => <Copilot variant="tablet" plan={copilotPlan} live={live} /> : undefined}
+        />
+      )}
+
+      {control && stats && safeHaven && verdict && (
+        <MissionControl
+          config={config}
+          stats={stats}
+          stations={stations}
+          stops={stops}
+          targets={targets}
+          walkHome={safeHaven}
+          params={evaParams}
+          planReasons={verdict.reasons}
+          conditions={effectiveConditions}
+          startTime={startTime}
+          drill={storm}
+          crew={crewReport}
+          replan={replanAhead}
+          onSend={(d, note) => applyLive(d.stops, d.route, note, 'control')}
+          makeVia={controlVia}
+          note={liveNote ? { text: liveNote, onDismiss: () => setLiveNote(null) } : null}
+          onOpenCrew={openCrewWindow}
+          onExit={() => setControl(false)}
         />
       )}
 
@@ -630,6 +770,7 @@ function Planner({ config, grid: { grid, meta, buffer }, base, targets, conditio
           drill={storm}
           onExit={() => setHud(false)}
           risk={risk}
+          onLive={reportCrew('hud')}
           copilot={copilotPlan ? (live) => <Copilot variant="hud" plan={copilotPlan} live={live} /> : undefined}
         />
       )}

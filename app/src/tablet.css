@@ -477,3 +477,14 @@
 .late-cut .tablet-btn {
   justify-self: start;
 }
+
+/* A route change sent by mission control. */
+.tablet-fix.is-control {
+  border-color: var(--draft);
+  background: var(--draft-bg);
+}
+
+.tablet-fix.is-control p {
+  margin: 0;
+  font-weight: 500;
+}

@@ -33,6 +33,8 @@
   --traverse: #a142f4; /* Curiosity's real path; same as INK.traverse */
   --rejoin: #e52592; /* way back to the route after a position fix; same as INK.rejoin */
   --rejoin-bg: #fde7f3;
+  --draft: #007b83; /* a route change drafted by mission control; same as INK.draft */
+  --draft-bg: #e0f2f1;
   --blue-bg: #e8f0fe;
   --green: #188038;
   --green-bg: #e6f4ea;

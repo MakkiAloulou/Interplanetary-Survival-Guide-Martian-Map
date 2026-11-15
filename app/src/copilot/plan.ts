@@ -1,12 +1,12 @@
 // Builds what the copilot needs from the planner's state, so App.tsx only wires a few lines.
 
 import { useMemo, useRef } from 'react'
-import { SCIENCE_STOP_DWELL_MIN } from '../config'
 import type { AbortPlan } from '../panels/Hud'
 import type { PreparedGrid, RouteProfile } from '../route/cost'
 import type { RouteClient } from '../route/client'
 import type { RouteResult } from '../route/route'
 import type { EvaParams } from '../stats/goNoGo'
+import { stopDwellS } from '../stats/stats'
 import type { Conditions, ScienceTarget, Waypoint } from '../types'
 import type { CopilotPlan } from './useCopilot'
 import type { ApplyAction } from './whatIf'
@@ -14,10 +14,13 @@ import type { ApplyAction } from './whatIf'
 /** Extra dwell per stop id, s, added by an applied "stay longer". */
 export type DwellExtras = Record<string, number>
 
-/** Per-stop dwell for evaluateEva: the engine default plus any applied extra; undefined when nothing was added. */
+/**
+ * Per-stop dwell for evaluateEva: the planned time at each stop (none at via points) plus any applied extra; undefined
+ * when that is the engine default at every stop.
+ */
 export function dwellWithExtras(stops: Waypoint[], extras: DwellExtras): number[] | undefined {
-  if (!stops.some((s) => extras[s.id])) return undefined
-  return stops.map((s) => SCIENCE_STOP_DWELL_MIN * 60 + (extras[s.id] ?? 0))
+  if (!stops.some((s) => extras[s.id] || s.kind === 'via')) return undefined
+  return stops.map((s) => stopDwellS(s) + (extras[s.id] ?? 0))
 }
 
 /** An applied stay as a new extras map (null when this Apply is not supported: a pause mid-leg has no stop). */

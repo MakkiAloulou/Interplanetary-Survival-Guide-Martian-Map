@@ -32,6 +32,8 @@ export const INK = {
   correction: '#5f6368',
   /** stretches the crew rides the rover */
   rover: '#3c4043',
+  /** a change to the rest of the walk drafted by mission control, before it is sent */
+  draft: '#007b83',
 } as const
 
 export const HAZARD_COLORS: Record<Hazard, string> = {

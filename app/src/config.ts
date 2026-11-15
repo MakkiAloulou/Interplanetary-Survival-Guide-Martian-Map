@@ -177,3 +177,11 @@ export const ROVER_DROP_MAX_DISTANCE_M = 400
  */
 export const ROVER_BOARDING_S = 120
 
+
+// ---------- Mission control (panels/MissionControl.tsx, route/reroute.ts) ----------
+
+/**
+ * A change sent while the crew walks starts this many route cells (~2 m each) ahead of them on the leg they are on,
+ * so they never have to turn back to reach the new path. MODELED: team assumption.
+ */
+export const CONTROL_LEAD_CELLS = 10

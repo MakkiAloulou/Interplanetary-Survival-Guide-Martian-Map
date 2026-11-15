@@ -1,6 +1,7 @@
 import L from 'leaflet'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { CopilotLive } from '../copilot/useCopilot'
+import { useCrewReport, type CrewPosition } from '../live/useCrewReport'
 import { planDetour, walkStateAt, walkTotalS, withDetour, type Detour } from '../localize/detour'
 import { getRealPosition } from '../localize/getRealPosition'
 import { MARS_CRS } from '../map/crs'
@@ -43,6 +44,10 @@ interface Props {
   copilot?: (live: CopilotLive) => ReactNode
   /** running late: spare time, stay longer, and which stops to drop when the rest no longer fits */
   risk?: RiskTools | null
+  /** the crew's position, for mission control in another window */
+  onLive?: (p: CrewPosition) => void
+  /** a change mission control sent, until the crew dismisses it */
+  note?: { text: string; onDismiss: () => void } | null
 }
 
 /** Zoom levels the tablet map may go past the deepest base-map tiles, to show a position fix up close. */
@@ -180,9 +185,12 @@ function TabletMap(props: {
  * The tablet a crew member carries on the walk: where am I going next, what is wrong right now, what comes after.
  * High contrast for daylight, large targets for gloved hands. Plays the EVA on the plan's clock for the demo.
  */
-export function Tablet({ config, prepared, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit, drill = false, copilot, risk }: Props) {
+export function Tablet({ config, prepared, stats, stations, walkHome, params, planReasons, conditions, startTime, planAbort, onExit, drill = false, copilot, risk, onLive, note }: Props) {
   /** position fixes taken on this walk, each with its way back onto the route (in EVA-time order) */
   const [detours, setDetours] = useState<Detour[]>([])
+  // A new set of stops (mission control changed the route): earlier fixes were made against the old route.
+  const stopsKey = stations.map((s) => s.id).join('|')
+  useEffect(() => setDetours([]), [stopsKey])
   const [locating, setLocating] = useState(false)
   const [fixError, setFixError] = useState<string | null>(null)
   const clock = usePlayback(walkTotalS(stats.totalS, detours))
@@ -221,6 +229,7 @@ export function Tablet({ config, prepared, stats, stations, walkHome, params, pl
   const o2State = gauge(['O2_LOW'])
   const pnrState = gauge(['NO_RETURN', 'MARGIN_LOW'])
   const done = t >= walkTotalS(stats.totalS, detours)
+  useCrewReport(onLive, { t, lat: pos.lat, lon: pos.lon, index: pos.index, atStop: pos.atStop, nextStation: pos.nextStation, abort: !!abort, playing: clock.playing, speed: clock.speed, onDetour: pos.onDetour, planOffsetS: detour && !pos.onDetour ? detour.atT + detour.timeS - detour.rejoinPlanS : 0 })
 
   /** Get the crew's real position (SIMULATED, see localize/getRealPosition.ts) and re-plan back onto the route. */
   async function locate() {
@@ -265,6 +274,16 @@ export function Tablet({ config, prepared, stats, stations, walkHome, params, pl
           <p className="tablet-drill">
             Storm drill running <StatusBadge status="SIMULATED" />
           </p>
+        )}
+
+        {note && (
+          <section className="tablet-fix is-control" aria-live="assertive">
+            <span className="tablet-kick">Message from mission control</span>
+            <p>{note.text}</p>
+            <button type="button" className="tablet-btn" onClick={note.onDismiss}>
+              OK
+            </button>
+          </section>
         )}
 
         {abort ? (
