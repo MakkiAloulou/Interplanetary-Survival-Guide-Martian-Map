@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { CopilotLive } from '../copilot/useCopilot'
+import { useCrewReport, type CrewPosition } from '../live/useCrewReport'
 import { marsClockAt } from '../stats/card'
 import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration } from '../stats/format'
@@ -45,6 +46,8 @@ interface Props {
   copilot?: (live: CopilotLive) => ReactNode
   /** running late: the spare time at the stop is shown under the leave countdown */
   risk?: RiskTools | null
+  /** the crew's position, for mission control in another window */
+  onLive?: (p: CrewPosition) => void
 }
 
 const elapsed = (s: number) => `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
@@ -103,7 +106,7 @@ function gaugeState(live: LiveWarning[], codes: LiveWarning['code'][]): GaugeSta
  * bottom right. Composited over a real Navcam frame near the destination, so legibility over terrain is visible.
  * The EVA plays on the plan's clock (or is scrubbed by hand) for the demo; Abort switches to the escape path.
  */
-export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit, startTime, conditions = [], drill = false, copilot, risk }: Props) {
+export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onExit, startTime, conditions = [], drill = false, copilot, risk, onLive }: Props) {
   const clock = usePlayback(stats.totalS)
   const { t, playing, speed, done } = clock
   const [abort, setAbort] = useState<{ atT: number; plan: AbortPlan | null } | null>(null)
@@ -116,6 +119,7 @@ export function Hud({ stats, stations, walkHome, params, alerts, planAbort, onEx
   }, [onExit])
 
   const pos = positionAt(stats.track, abort ? abort.atT : t)
+  useCrewReport(onLive, { t, lat: pos.lat, lon: pos.lon, index: pos.index, atStop: pos.atStop, nextStation: pos.nextStation, abort: !!abort, playing: clock.playing, speed: clock.speed, onDetour: false, planOffsetS: 0 })
   const cell = stats.track[pos.index].cell
   const o2Left = params.o2DurationS - t
   const usable = params.o2DurationS - params.o2ReserveS

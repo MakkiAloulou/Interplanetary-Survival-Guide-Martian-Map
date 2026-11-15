@@ -3,7 +3,7 @@ import type { LayerState } from '../map/MapView'
 import { HAZARD_COLORS, HAZARD_LABELS, WALK_HOME_BANDS, WALK_HOME_UNREACHABLE, type GridOverlayMode, type Hazard, INK } from '../map/overlays'
 import { formatMarsClock, ltstHours, marsTime } from '../marsTime'
 import type { DataConfig, DataStatus, RoverTraverse } from '../types'
-import { BookmarkIcon, CloseIcon, LayersIcon, TabletIcon, VisorIcon } from '../ui/icons'
+import { BookmarkIcon, CloseIcon, ControlIcon, LayersIcon, TabletIcon, VisorIcon } from '../ui/icons'
 import { StatusBadge } from '../ui/StatusBadge'
 
 interface Props {
@@ -27,6 +27,7 @@ interface Props {
   hudEnabled: boolean
   onHud: () => void
   onTablet: () => void
+  onControl: () => void
 }
 
 type Panel = 'layers' | 'conditions' | 'saved'
@@ -64,7 +65,7 @@ function MarsClock({ lon, open, alert, onClick }: { lon: number; open: boolean; 
 
 export function MapControls(props: Props) {
   const { config, baseLon, gridStatus, layerState, onLayerChange, overlay, onOverlayChange, traverse, showTraverse, onShowTraverse } = props
-  const { panel, onPanel, conditionsPanel, savedPanel, savedCount, stormActive, hudEnabled, onHud, onTablet } = props
+  const { panel, onPanel, conditionsPanel, savedPanel, savedCount, stormActive, hudEnabled, onHud, onTablet, onControl } = props
   const toggle = (p: Panel) => onPanel(panel === p ? null : p)
   return (
     <div className="map-controls">
@@ -86,6 +87,10 @@ export function MapControls(props: Props) {
         <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Helmet visor view' : 'Plan a route first'} onClick={onHud}>
           <VisorIcon size={18} />
           HUD
+        </button>
+        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Mission control: follow the crew and change the rest of the walk' : 'Plan a route first'} onClick={onControl}>
+          <ControlIcon size={18} />
+          Control
         </button>
       </div>
 

@@ -214,3 +214,30 @@ export function PriorityIcon({ level, ...props }: IconProps & { level: 1 | 2 | 3
     </Svg>
   )
 }
+
+/** Mission control: a radio mast sending to the field. */
+export function ControlIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 11v10M8.5 21h7" />
+      <circle cx="12" cy="9" r="2" />
+      <path d="M8 5.5a5.5 5.5 0 0 0 0 7M16 5.5a5.5 5.5 0 0 1 0 7M5.2 3a9 9 0 0 0 0 12M18.8 3a9 9 0 0 1 0 12" />
+    </Svg>
+  )
+}
+
+export function ChevronUpIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 15l6-6 6 6" />
+    </Svg>
+  )
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 9l6 6 6-6" />
+    </Svg>
+  )
+}

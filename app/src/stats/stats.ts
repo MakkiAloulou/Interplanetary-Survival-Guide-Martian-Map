@@ -28,6 +28,11 @@ export interface TrackPoint {
   roverInSight?: boolean
 }
 
+/** Planned time at a stop before any extra stay, s: science stops are worked, via points are only walked through. */
+export function stopDwellS(stop: { kind: string }): number {
+  return stop.kind === 'via' ? 0 : SCIENCE_STOP_DWELL_MIN * 60
+}
+
 /**
  * Walking seconds from a track point to the nearest safe haven: `walkHome` (the habitat, or the habitat and a staged
  * rover), or the rover parked near the crew on a rover-assisted Marswalk.

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 export const PLAYBACK_SPEEDS = [60, 300, 900]
+/** Clock tick while playing, ms (~30 updates a second). */
+const TICK_MS = 33
 
 /** The EVA clock for demoing a walk: play at a speed-up, pause, or scrub. Shared by the tablet and the HUD. */
 export function usePlayback(totalS: number) {
@@ -9,23 +11,23 @@ export function usePlayback(totalS: number) {
   const [speed, setSpeed] = useState(300)
   const last = useRef<number | null>(null)
 
+  // A timer, not animation frames: browsers pause animation frames in a window hidden behind another one, and the
+  // crew's window must keep walking while mission control is in front. Each tick adds the real time elapsed.
   useEffect(() => {
     if (!playing) return
-    let raf = 0
-    const tick = (now: number) => {
-      if (last.current !== null) {
-        setT((v) => {
-          const next = v + ((now - last.current!) / 1000) * speed
-          if (next >= totalS) setPlaying(false)
-          return Math.min(next, totalS)
-        })
-      }
+    last.current = performance.now()
+    const id = setInterval(() => {
+      const now = performance.now()
+      const dt = (now - last.current!) / 1000
       last.current = now
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
+      setT((v) => {
+        const next = v + dt * speed
+        if (next >= totalS) setPlaying(false)
+        return Math.min(next, totalS)
+      })
+    }, TICK_MS)
     return () => {
-      cancelAnimationFrame(raf)
+      clearInterval(id)
       last.current = null
     }
   }, [playing, speed, totalS])
