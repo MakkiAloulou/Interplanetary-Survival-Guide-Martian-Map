@@ -7,7 +7,7 @@ import { getRealPosition } from '../localize/getRealPosition'
 import { MARS_CRS } from '../map/crs'
 import { INK } from '../map/overlays'
 import type { PreparedGrid } from '../route/cost'
-import { compassPoint, initialBearingDeg } from '../stats/eva'
+import { compassPoint, currentLegEnd, initialBearingDeg, isRouteChangePoint } from '../stats/eva'
 import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, Reason } from '../stats/goNoGo'
 import { liveWarnings } from '../stats/live'
@@ -83,6 +83,8 @@ function TabletMap(props: {
   const parts = useRef<{
     walked: L.Polyline
     ahead: L.Polyline
+    aheadCasing: L.Polyline
+    later: L.Polyline
     crew: L.CircleMarker
     abort: L.Polyline
     rejoinCasing: L.Polyline
@@ -101,9 +103,12 @@ function TabletMap(props: {
     }
     const pts = stats.track.map((p) => L.latLng(p.lat, p.lon))
     const line = { lineCap: 'round', lineJoin: 'round', interactive: false } as const
-    L.polyline(pts, { ...line, color: INK.white, weight: 12 }).addTo(m)
-    const ahead = L.polyline(pts, { ...line, color: INK.blue, weight: 7 }).addTo(m)
-    const walked = L.polyline([], { ...line, color: INK.walked, weight: 7 }).addTo(m)
+    // The leg being walked (to the next stop) bold; the legs after it thinner and faded; the walked part grey.
+    L.polyline(pts, { ...line, color: INK.white, weight: 9 }).addTo(m)
+    const later = L.polyline([], { ...line, color: INK.blue, weight: 4, opacity: 0.55 }).addTo(m)
+    const walked = L.polyline([], { ...line, color: INK.walked, weight: 6 }).addTo(m)
+    const aheadCasing = L.polyline([], { ...line, color: INK.white, weight: 14 }).addTo(m)
+    const ahead = L.polyline(pts, { ...line, color: INK.blue, weight: 8 }).addTo(m)
     const correctionCasing = L.polyline([], { ...line, color: INK.white, weight: 7 }).addTo(m)
     const correction = L.polyline([], { ...line, color: INK.correction, weight: 3, dashArray: '4 8' }).addTo(m)
     const rejoinCasing = L.polyline([], { ...line, color: INK.white, weight: 12 }).addTo(m)
@@ -112,7 +117,7 @@ function TabletMap(props: {
       .bindTooltip('<strong>Position fix</strong><span>Simulated (demo)</span>', { direction: 'top', offset: [0, -10], className: 'map-tip' })
     const abortLine = L.polyline([], { ...line, color: INK.red, weight: 7, dashArray: '2 12' }).addTo(m)
     stations.forEach((s, i) => {
-      if (i === stations.length - 1) return
+      if (i === stations.length - 1 || isRouteChangePoint(s)) return
       const home = i === 0
       L.marker([s.lat, s.lon], {
         icon: L.divIcon({ className: `map-mark ${home ? 'mark-home' : 'mark-stop'}`, html: home ? '' : String(i), iconSize: [30, 30], iconAnchor: [15, 15] }),
@@ -124,7 +129,7 @@ function TabletMap(props: {
     const crewDot = L.circleMarker([stats.track[0].lat, stats.track[0].lon], { pane: 'crew', radius: 10, color: INK.white, weight: 4, fillColor: INK.green, fillOpacity: 1, className: 'crew-dot', interactive: false }).addTo(m)
     m.setView([stats.track[0].lat, stats.track[0].lon], config.site.zoom.max - 1)
     map.current = m
-    parts.current = { walked, ahead, crew: crewDot, abort: abortLine, rejoinCasing, rejoin, correction, correctionCasing, fix }
+    parts.current = { walked, ahead, aheadCasing, later, crew: crewDot, abort: abortLine, rejoinCasing, rejoin, correction, correctionCasing, fix }
     return () => {
       m.remove()
       map.current = null
@@ -137,9 +142,11 @@ function TabletMap(props: {
     if (!p) return
     const pts = stats.track.map((q) => L.latLng(q.lat, q.lon))
     const here = L.latLng(crew.lat, crew.lon)
+    const end = currentLegEnd(stats.track, index, (leg) => stations[leg + 1]?.kind !== 'via') // the next stop
+    p.later.setLatLngs(pts.slice(end))
     if (!detour) {
       p.walked.setLatLngs([...pts.slice(0, index + 1), here])
-      p.ahead.setLatLngs([here, ...pts.slice(index + 1)])
+      p.ahead.setLatLngs([here, ...pts.slice(index + 1, end + 1)])
       p.rejoin.setLatLngs([])
       p.rejoinCasing.setLatLngs([])
       p.correction.setLatLngs([])
@@ -150,7 +157,7 @@ function TabletMap(props: {
       const way = detour.points.map((q) => L.latLng(q.lat, q.lon))
       const believed = [...pts.slice(0, detour.estimateIndex + 1), L.latLng(detour.estimate.lat, detour.estimate.lon)]
       p.walked.setLatLngs(onDetour ? [believed] : [believed, [...pts.slice(detour.rejoinIndex, index + 1), here]])
-      p.ahead.setLatLngs(onDetour ? pts.slice(detour.rejoinIndex) : [here, ...pts.slice(index + 1)])
+      p.ahead.setLatLngs(onDetour ? pts.slice(detour.rejoinIndex, end + 1) : [here, ...pts.slice(index + 1, end + 1)])
       p.rejoin.setLatLngs(way)
       p.rejoinCasing.setLatLngs(way)
       const jump = [L.latLng(detour.estimate.lat, detour.estimate.lon), way[0]]
@@ -158,6 +165,7 @@ function TabletMap(props: {
       p.correctionCasing.setLatLngs(jump)
       p.fix.setLatLng(way[0]).addTo(map.current!)
     }
+    p.aheadCasing.setLatLngs(p.ahead.getLatLngs() as L.LatLng[])
     p.crew.setLatLng(here)
     p.abort.setLatLngs(abort ? abort.points.map((q) => L.latLng(q.lat, q.lon)) : [])
     if (follow) map.current!.panTo(here, { animate: false })
@@ -210,7 +218,9 @@ export function Tablet({ config, prepared, stats, stations, walkHome, params, pl
   const detour = pos.detour
   // After a fix, everything from the rejoin point on runs earlier or later by the detour's shift.
   const shift = (planS: number) => planS + (detour && planS >= detour.rejoinPlanS ? detour.shiftS : 0)
-  const nextIndex = Math.min(pos.nextStation, stations.length - 1)
+  // The next stop to announce: mission control's route-change point (a few metres ahead) is passed, not announced.
+  let nextIndex = Math.min(pos.nextStation, stations.length - 1)
+  while (nextIndex < stations.length - 1 && isRouteChangePoint(stations[nextIndex])) nextIndex++
   const next = stations[nextIndex]
   const isHomeNext = nextIndex === stations.length - 1
   const bearing = initialBearingDeg(pos, next)

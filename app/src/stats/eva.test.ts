@@ -3,7 +3,7 @@ import { prepareGrid } from '../route/cost'
 import { planLoop } from '../route/route'
 import { gridFrom } from '../testing/grids'
 import type { Conditions, PovImage, ScienceTarget, Waypoint } from '../types'
-import { buildTimeline, compassPoint, initialBearingDeg, nearestPov, povsNear, positionAt, roverSolsAt, withSimulatedStorm } from './eva'
+import { buildTimeline, compassPoint, currentLegEnd, initialBearingDeg, nearestPov, povsNear, positionAt, roverSolsAt, withSimulatedStorm } from './eva'
 import { routeStats } from './stats'
 
 function loop() {
@@ -122,3 +122,23 @@ describe('roverSolsAt', () => {
   })
 })
 
+
+describe('the leg being walked', () => {
+  // legs: 0 = points 0-3 (stop at 3), 1 = points 4-6 (stop at 6), 2 = points 7-9 (home at 9)
+  const legs = [0, 0, 0, 0, 1, 1, 1, 2, 2, 2]
+  const track = legs.map((leg) => ({ leg })) as Parameters<typeof currentLegEnd>[0]
+  test('ends at the next stop, mid-leg and while working at a stop', () => {
+    expect(currentLegEnd(track, 0)).toBe(3) // leaving the habitat
+    expect(currentLegEnd(track, 2)).toBe(3)
+    expect(currentLegEnd(track, 3)).toBe(6) // at stop 1: the next leg is the one ahead
+    expect(currentLegEnd(track, 5)).toBe(6)
+    expect(currentLegEnd(track, 8)).toBe(9)
+    expect(currentLegEnd(track, 9)).toBe(9) // home
+  })
+  test('carries on through via points to the next real stop', () => {
+    const viaAtEndOfLeg0 = (leg: number) => leg !== 0
+    expect(currentLegEnd(track, 1, viaAtEndOfLeg0)).toBe(6)
+    expect(currentLegEnd(track, 3, viaAtEndOfLeg0)).toBe(6)
+    expect(currentLegEnd(track, 5, () => false)).toBe(9) // nothing but via points: home
+  })
+})

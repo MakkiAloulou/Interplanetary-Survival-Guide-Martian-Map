@@ -10,7 +10,7 @@ import { MARS_CRS } from '../map/crs'
 import { INK } from '../map/overlays'
 import type { CrewAt } from '../route/reroute'
 import type { RouteResult } from '../route/route'
-import { compassPoint, initialBearingDeg, positionAt } from '../stats/eva'
+import { compassPoint, currentLegEnd, initialBearingDeg, isRouteChangePoint, positionAt } from '../stats/eva'
 import { formatDistance, formatDuration, shortReason } from '../stats/format'
 import type { EvaParams, EvaVerdict, Reason } from '../stats/goNoGo'
 import { liveWarnings } from '../stats/live'
@@ -81,7 +81,7 @@ function ControlMap(props: {
   const box = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const crewDot = useRef<L.CircleMarker | null>(null)
-  const lines = useRef<{ walked: L.Polyline; ahead: L.Polyline } | null>(null)
+  const lines = useRef<{ walked: L.Polyline; ahead: L.Polyline; aheadCasing: L.Polyline; later: L.Polyline } | null>(null)
   const cb = useRef({ onTarget, onMapClick, editable })
   cb.current = { onTarget, onMapClick, editable }
   const trackPts = useMemo(() => stats.track.map((p) => L.latLng(p.lat, p.lon)), [stats])
@@ -108,10 +108,13 @@ function ControlMap(props: {
     const g = L.layerGroup().addTo(m)
     const pts = stats.track.map((p) => L.latLng(p.lat, p.lon))
     const line = { lineCap: 'round', lineJoin: 'round', interactive: false } as const
-    L.polyline(pts, { ...line, color: INK.white, weight: 11 }).addTo(g)
-    const ahead = L.polyline(pts, { ...line, color: INK.blue, weight: 6 }).addTo(g)
-    const walked = L.polyline([], { ...line, color: INK.walked, weight: 6 }).addTo(g)
-    lines.current = { walked, ahead }
+    // The leg being walked (to the next stop) bold; the legs after it thinner and faded; the walked part grey.
+    L.polyline(pts, { ...line, color: INK.white, weight: 8 }).addTo(g)
+    const later = L.polyline(pts, { ...line, color: INK.blue, weight: 4, opacity: 0.55 }).addTo(g)
+    const walked = L.polyline([], { ...line, color: INK.walked, weight: 5 }).addTo(g)
+    const aheadCasing = L.polyline([], { ...line, color: INK.white, weight: 12 }).addTo(g)
+    const ahead = L.polyline([], { ...line, color: INK.blue, weight: 7 }).addTo(g)
+    lines.current = { walked, ahead, aheadCasing, later }
     const mark = (cls: string, html: string, size: number) => L.divIcon({ className: `map-mark ${cls}`, html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
     for (const t of targets) {
       if (stations.some((s) => s.id === t.id) || added.some((s) => s.id === t.id)) continue
@@ -121,7 +124,7 @@ function ControlMap(props: {
         .addTo(g)
     }
     stations.forEach((s, i) => {
-      if (i === stations.length - 1) return
+      if (i === stations.length - 1 || isRouteChangePoint(s)) return
       L.marker([s.lat, s.lon], { pane: 'pins', icon: mark(i === 0 ? 'mark-home' : 'mark-stop', i === 0 ? '' : String(i), i === 0 ? 28 : 26), keyboard: false, interactive: false }).addTo(g)
     })
     return () => {
@@ -152,9 +155,13 @@ function ControlMap(props: {
     crewDot.current?.setLatLng(here)
     const l = lines.current
     if (!l) return
+    const end = currentLegEnd(stats.track, crew.index, (leg) => stations[leg + 1]?.kind !== 'via') // the next stop
+    const current = [here, ...trackPts.slice(crew.index + 1, end + 1)]
     l.walked.setLatLngs([...trackPts.slice(0, crew.index + 1), here])
-    l.ahead.setLatLngs([here, ...trackPts.slice(crew.index + 1)])
-  }, [crew.lat, crew.lon, crew.index, trackPts])
+    l.ahead.setLatLngs(current)
+    l.aheadCasing.setLatLngs(current)
+    l.later.setLatLngs(trackPts.slice(end))
+  }, [crew.lat, crew.lon, crew.index, trackPts, stats, stations])
 
   // Fit the whole walk at the start; "Centre on crew" re-centres (centre is a counter).
   useEffect(() => {
@@ -221,7 +228,8 @@ export function MissionControl(props: Props) {
       ? { lat: crew!.lat, lon: crew!.lon, index: Math.min(crew!.index, stats.track.length - 1), atStop: crew!.atStop, nextStation: crew!.nextStation }
       : positionAt(stats.track, live ? t - crew!.planOffsetS : t)
   const done = t >= stats.totalS
-  const nextIndex = Math.min(pos.nextStation, stations.length - 1)
+  let nextIndex = Math.min(pos.nextStation, stations.length - 1)
+  while (nextIndex < stations.length - 1 && isRouteChangePoint(stations[nextIndex])) nextIndex++
   const next = stations[nextIndex]
   const emergencyHomeS = params.walkHomeContingency * safetyS(walkHome, stats.track[pos.index])
   const margin = params.o2DurationS - params.o2ReserveS - (t + emergencyHomeS)

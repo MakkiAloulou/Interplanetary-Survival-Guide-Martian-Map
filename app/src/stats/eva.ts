@@ -39,6 +39,27 @@ export function positionAt(track: TrackPoint[], t: number): Position {
   return { lat: p.lat + f * (q.lat - p.lat), lon: p.lon + f * (q.lon - p.lon), index: lo, atStop: false, nextStation: q.leg + 1 }
 }
 
+/**
+ * Track index of the next stop: where the stretch the crew is on (or about to start, when working at a stop) ends.
+ * `index` = track index at or just before the crew; `isStop(leg)` = the leg ends at a real stop (legs ending at a via
+ * point carry on to the next one). Default: every leg ends at a stop.
+ */
+export function currentLegEnd(track: TrackPoint[], index: number, isStop: (leg: number) => boolean = () => true): number {
+  const last = track.length - 1
+  const i = Math.max(0, Math.min(index, last))
+  if (i === last) return last
+  let end = i + 1
+  for (;;) {
+    const leg = track[end].leg
+    while (end < last && track[end + 1].leg === leg) end++
+    if (end >= last || isStop(leg)) return end
+    end++
+  }
+}
+
+/** A via point mission control puts where it cut the route: passed through, never announced as the next stop. */
+export const isRouteChangePoint = (w: { id: string; kind: string }) => w.kind === 'via' && w.id.startsWith('reroute-')
+
 /** Initial great-circle bearing from a to b, degrees clockwise from north. */
 export function initialBearingDeg(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
   const rad = Math.PI / 180
