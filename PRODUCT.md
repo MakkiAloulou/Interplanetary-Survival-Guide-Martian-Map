@@ -59,7 +59,7 @@ The walk views (HUD, tablet, copilot) must read as mission-grade, calm and legib
 ## Accessibility & Inclusion
 
 - Legibility at a distance (habitat screen) and in a demo video is a practical requirement.
-- The HUD is read in under 1 second by a tired, suited crew, with glare and bright dusty terrain behind a transparent visor. One primary number per slot, nothing thin, high contrast on a dark backing.
+- The HUD is read in under 1 second by a tired, suited crew, with glare and bright dusty terrain behind a transparent visor. One primary number per slot, nothing thin. The visor is see-through: no filled panels, only text, icons and thin strokes, each with a tight dark halo so it reads over bright sand and dark rock.
 - Red = warning (act now), amber = caution (watch). Never colour alone: always icon + word + colour. Only one warning takes over the visor at a time.
 - The tablet is used with gloves: touch targets at least 64 px with generous spacing.
 - Motion only for state changes and new alerts, and it respects `prefers-reduced-motion`.

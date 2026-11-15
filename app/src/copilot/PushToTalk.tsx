@@ -14,11 +14,16 @@ interface Props {
 
 const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
 
+/** Said when the space bar is pressed with no voice available (no server, no microphone support). */
+export const VOICE_OFFLINE = 'Voice offline'
+
 /**
- * Hold to talk: the big button, or the space bar anywhere in the view (except while typing). Releasing sends the clip
- * to the server's speech-to-text, then asks the copilot. Pressing while it speaks interrupts it.
+ * Push-to-talk without the button: the space bar anywhere in the view (except while typing) stands in for a suit
+ * button. Releasing sends the clip to the server's speech-to-text, then asks the copilot. Pressing while it speaks
+ * interrupts it. `start` / `finish` drive it from a button too. With `sayOffline`, pressing the space bar while voice
+ * is unavailable sets the error VOICE_OFFLINE instead of doing nothing (the visor has no other way to say so).
  */
-export function PushToTalk({ copilot, prompt, ready }: Props) {
+export function usePushToTalk(copilot: Props['copilot'], prompt: string, ready: boolean, sayOffline = false) {
   const rec = useRef<Recorder | null>(null)
   const held = useRef(false)
   const latest = useRef({ copilot, prompt })
@@ -75,18 +80,21 @@ export function PushToTalk({ copilot, prompt, ready }: Props) {
 
   // Space bar push-to-talk. Capture phase, so a focused HUD button is not also pressed.
   useEffect(() => {
-    if (!ready || !supported) return
+    const live = ready && supported
+    if (!live && !sayOffline) return
     const down = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
       e.preventDefault()
       e.stopPropagation()
-      if (!e.repeat) void start()
+      if (e.repeat) return
+      if (live) void start()
+      else latest.current.copilot.setError(VOICE_OFFLINE)
     }
     const up = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
       e.preventDefault()
       e.stopPropagation()
-      void finish()
+      if (live) void finish()
     }
     window.addEventListener('keydown', down, true)
     window.addEventListener('keyup', up, true)
@@ -95,9 +103,17 @@ export function PushToTalk({ copilot, prompt, ready }: Props) {
       window.removeEventListener('keyup', up, true)
     }
     // start/finish read the latest props through refs, so the listeners are bound once.
-  }, [ready, supported])
+  }, [ready, supported, sayOffline])
 
   useEffect(() => () => rec.current?.release(), [])
+
+  return { start, finish, supported, blocked }
+}
+
+/** Hold to talk: the big button (tablet), with the space bar too. */
+export function PushToTalk({ copilot, prompt, ready }: Props) {
+  const { start, finish, supported, blocked } = usePushToTalk(copilot, prompt, ready)
+  const { phase } = copilot
 
   const listening = phase === 'listening'
   // Each state has its own glyph, word and outline, so it is told apart by shape and word, never by colour alone.

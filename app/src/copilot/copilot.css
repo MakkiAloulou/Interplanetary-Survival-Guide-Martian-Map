@@ -1,6 +1,6 @@
-/* What-if copilot. On the visor it owns the bottom-right slot; on the tablet it sits bottom-left over the map, narrow
-   enough to leave the crew dot (map centre) visible. Its own colour (--visor-copilot) is never a warning or caution
-   colour; states are told apart by glyph, word and outline. No side stripes, no glows. */
+/* What-if copilot. On the visor it owns the bottom-right edge, voice only and see-through; on the tablet it sits
+   bottom-left over the map, narrow enough to leave the crew dot (map centre) visible. Its own colour
+   (--visor-copilot) is never a warning or caution colour; states are told apart by glyph, word and outline. */
 
 .copilot {
   display: grid;
@@ -9,18 +9,150 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- visor slot ---------- */
+/* ---------- visor: voice only, nothing on screen while idle ---------- */
 
 .copilot.is-hud {
   grid-area: copilot;
   align-self: end;
+  justify-self: end;
   min-width: 0;
   color: var(--visor-text);
 }
 
-/* A live warning owns the visor: the answer card steps aside, the controls stay. */
-.visor.is-takeover .copilot-answer {
+.hud-voice {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  text-align: right;
+}
+
+/* No plate: the visor's halo carries the text; icons get the drop-shadow halo. */
+.hud-voice svg {
+  flex: none;
+  filter: var(--visor-halo-icon);
+}
+
+.hud-voice-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  color: var(--visor-copilot);
+  animation: hud-voice-in 160ms var(--ease-out);
+}
+
+.hud-voice-status.is-notice {
+  color: var(--visor-text);
+}
+
+.hud-voice-answer {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  transition: opacity 600ms var(--ease-out);
+  animation: hud-voice-in 200ms var(--ease-out);
+}
+
+.hud-voice-answer.is-fading {
+  opacity: 0;
+}
+
+.hud-voice-verdict {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.hud-voice-verdict strong {
+  font-weight: 600;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hud-voice-answer.is-yes .hud-voice-verdict {
+  color: var(--visor-ok);
+}
+
+.hud-voice-answer.is-partly .hud-voice-verdict {
+  color: var(--visor-caution);
+}
+
+.hud-voice-answer.is-no .hud-voice-verdict {
+  color: var(--visor-warning);
+}
+
+.hud-voice-answer.is-info .hud-voice-verdict {
+  color: var(--visor-copilot);
+}
+
+.hud-voice-big {
+  display: grid;
+  justify-items: end;
+  margin: 0;
+}
+
+.hud-voice-big strong {
+  font-weight: 600;
+  font-size: 56px;
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.hud-voice-big span,
+.hud-voice-hint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--visor-text-2);
+}
+
+.hud-voice .copilot-leave {
+  font-weight: 500;
+  font-size: 20px;
+}
+
+.hud-voice .copilot-leave span {
+  font-size: 17px;
+  color: var(--visor-text-2);
+}
+
+.hud-voice-say {
+  max-width: 34ch;
+  margin: 0;
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+
+/* A live warning owns the visor: the answer steps aside (the status word stays). */
+.visor.is-takeover .hud-voice-answer {
   display: none;
+}
+
+@keyframes hud-voice-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-voice-status,
+  .hud-voice-answer {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* ---------- tablet ---------- */
@@ -44,10 +176,6 @@
   gap: 8px;
   padding: 16px 18px;
   border-radius: var(--radius-card);
-}
-
-.is-hud .copilot-answer {
-  background: var(--visor-plate);
 }
 
 .is-tablet .copilot-answer {
@@ -74,22 +202,6 @@
   font-size: 28px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.is-hud .is-yes .copilot-verdict {
-  color: var(--visor-ok);
-}
-
-.is-hud .is-partly .copilot-verdict {
-  color: var(--visor-caution);
-}
-
-.is-hud .is-no .copilot-verdict {
-  color: var(--visor-warning);
-}
-
-.is-hud .is-info .copilot-verdict {
-  color: var(--visor-copilot);
 }
 
 .is-tablet .is-yes .copilot-verdict {
@@ -125,14 +237,6 @@
   font-size: 16px;
 }
 
-.is-hud .copilot-big span,
-.is-hud .copilot-leave span,
-.is-hud .copilot-limit,
-.is-hud .copilot-hint,
-.is-hud .copilot-asked {
-  color: var(--visor-text-2);
-}
-
 .is-tablet .copilot-big span,
 .is-tablet .copilot-leave span,
 .is-tablet .copilot-hint,
@@ -149,11 +253,6 @@
 .copilot-limit strong,
 .copilot-leave strong {
   font-weight: 600;
-}
-
-.is-hud .copilot-limit strong,
-.is-hud .copilot-leave strong {
-  color: var(--visor-text);
 }
 
 .copilot-say {
@@ -197,10 +296,6 @@
   font-weight: 600;
 }
 
-.is-hud .copilot-applied {
-  color: var(--visor-ok);
-}
-
 .is-tablet .copilot-applied {
   color: var(--green);
 }
@@ -211,12 +306,6 @@
   align-items: center;
   gap: 4px 8px;
   font-size: 14px;
-}
-
-.is-hud .copilot-asked .badge {
-  font-size: 12px;
-  color: var(--visor-text-2);
-  border-color: var(--visor-text-2);
 }
 
 /* ---------- controls ---------- */
@@ -259,19 +348,6 @@
   padding: 0;
 }
 
-.is-hud .copilot-btn,
-.is-hud .copilot-icon-btn {
-  border-color: var(--visor-line);
-  background: var(--visor-plate-strong);
-  color: var(--visor-text);
-}
-
-.is-hud .copilot-btn.is-primary {
-  border-color: var(--visor-copilot);
-  background: var(--visor-copilot);
-  color: var(--hud-bg);
-}
-
 .is-tablet .copilot-btn,
 .is-tablet .copilot-icon-btn {
   border-color: var(--line);
@@ -302,12 +378,6 @@
   border: 1px solid;
   border-radius: var(--radius-control);
   font-size: 17px;
-}
-
-.is-hud .copilot-input {
-  border-color: var(--visor-line);
-  background: var(--visor-plate-strong);
-  color: var(--visor-text);
 }
 
 .is-tablet .copilot-input {
@@ -359,17 +429,6 @@
   font-size: 14px;
 }
 
-.is-hud .copilot-ptt {
-  border-color: var(--visor-copilot);
-  background: var(--visor-plate-strong);
-  color: var(--visor-copilot);
-}
-
-.is-hud .copilot-ptt.is-listening {
-  background: var(--visor-copilot);
-  color: var(--hud-bg);
-}
-
 .is-tablet .copilot-ptt {
   border-color: var(--blue);
   background: var(--surface);
@@ -388,12 +447,6 @@
 .copilot-ptt.is-speaking {
   border-style: double;
   border-width: 5px;
-}
-
-.is-hud .copilot-ptt.is-off,
-.is-hud .copilot-ptt.is-error {
-  border-color: var(--visor-line);
-  color: var(--visor-text-2);
 }
 
 .is-tablet .copilot-ptt.is-off,
@@ -416,13 +469,6 @@
   font-size: 14px;
 }
 
-.is-hud .copilot-mode {
-  padding: 6px 10px;
-  border-radius: var(--radius-control);
-  background: var(--visor-plate);
-  color: var(--visor-text-2);
-}
-
 .is-tablet .copilot-mode {
   padding: 6px 10px;
   border-radius: var(--radius-control);
@@ -437,10 +483,6 @@
   font-weight: 600;
 }
 
-.is-hud .copilot-fallback {
-  color: var(--visor-text);
-}
-
 .is-tablet .copilot-fallback {
   color: var(--text);
 }
@@ -453,11 +495,6 @@
   padding: 8px 12px;
   border-radius: var(--radius-control);
   font-size: 16px;
-}
-
-.is-hud .copilot-error {
-  background: var(--visor-plate);
-  color: var(--visor-text);
 }
 
 .is-tablet .copilot-error {

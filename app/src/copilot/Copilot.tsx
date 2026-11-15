@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { KeyboardIcon, OfflineIcon, SpeakerIcon, SpeakerOffIcon } from '../ui/icons'
 import './copilot.css'
 import { CopilotCard } from './CopilotCard'
+import { HudCopilot } from './HudCopilot'
 import { PushToTalk } from './PushToTalk'
 import { OLLAMA_MODEL } from './ollama'
 import { useDirectOllama, useServerHealth, useServerStages } from './stages'
@@ -16,9 +17,10 @@ interface Props {
 }
 
 /**
- * The what-if copilot in its slot (bottom right of the visor, bottom left of the tablet map): hold to talk, or type.
- * One short answer computed by the planner's own engine; it never changes the plan without Apply or "confirm".
- * When the language model is off, it says so (rules mode) and still answers.
+ * The what-if copilot in its slot. On the visor (bottom right) it is voice only and out of sight until used: the
+ * space bar stands in for a suit button (HudCopilot). On the tablet (bottom left of the map): hold to talk, or type,
+ * with the mode said in words. One short answer computed by the planner's own engine; it never changes the plan
+ * without Apply or "confirm". When the language model is off it still answers, with the rule parser.
  */
 export function Copilot({ plan, live, variant }: Props) {
   const health = useServerHealth()
@@ -43,6 +45,14 @@ export function Copilot({ plan, live, variant }: Props) {
       ? 'Rules mode: language model off'
       : null
   const showInput = typing || !health
+
+  if (variant === 'hud') {
+    return (
+      <div className="copilot is-hud" role="region" aria-label="What-if copilot, voice: hold the space bar to talk">
+        <HudCopilot copilot={copilot} prompt={prompt} ready={!!health?.whisper_loaded} drill={!!live.drill} />
+      </div>
+    )
+  }
 
   return (
     <div className={`copilot is-${variant}`} role="region" aria-label="What-if copilot">
