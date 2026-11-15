@@ -1,10 +1,16 @@
-// Calls to the copilot server (server/, reached through the Vite proxy at /api). Every call has a timeout and returns
+// Calls to the copilot server (server/): through the Vite proxy at /api when the app runs on the laptop, otherwise
+// through the laptop's https tunnel (remote.ts says how the address is found). Every call has a timeout and returns
 // null on any failure, so the copilot carries on with its deterministic path.
 
 import type { UnderstandContext, Understood } from './understand'
+import { findRemote } from './remote'
 import type { WhatIfResult } from './whatIf'
 
-const BASE = `${import.meta.env.BASE_URL}api/copilot`
+const PATH = 'api/copilot'
+/** Same origin: the Vite dev or preview server on the laptop proxies /api to the copilot server. */
+const LOCAL = `${import.meta.env.BASE_URL}${PATH}`
+/** Where calls go: the local proxy, or the laptop's server through its tunnel once that answered. */
+let base = LOCAL
 
 export interface Health {
   ok: boolean
@@ -16,11 +22,11 @@ export interface Health {
   whisper_loaded: boolean
 }
 
-async function call<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T | null> {
+async function call<T>(path: string, init: RequestInit, timeoutMs: number, at = base): Promise<T | null> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    const r = await fetch(BASE + path, { ...init, signal: ctrl.signal })
+    const r = await fetch(at + path, { ...init, signal: ctrl.signal })
     if (!r.ok) return null
     return (await r.json()) as T
   } catch {
@@ -32,8 +38,30 @@ async function call<T>(path: string, init: RequestInit, timeoutMs: number): Prom
 
 const json = (body: unknown): RequestInit => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
-export function fetchHealth(timeoutMs = 2000): Promise<Health | null> {
-  return call<Health>('/health', {}, timeoutMs)
+const healthAt = (at: string, timeoutMs: number) => call<Health>('/health', {}, timeoutMs, at).then((h) => (h?.ok ? h : null))
+
+/**
+ * Server health, or null when no server answers. Tries the server already in use, then the local proxy, then the
+ * laptop's tunnel; later calls go to whichever answered.
+ */
+export async function fetchHealth(timeoutMs = 2000): Promise<Health | null> {
+  if (base !== LOCAL) {
+    const h = await healthAt(base, timeoutMs + 3000)
+    if (h) return h
+    base = LOCAL
+  }
+  const local = await healthAt(LOCAL, timeoutMs)
+  if (local) return local
+  let found: Health | null = null
+  const remote = await findRemote('copilot', async (b) => !!(found = await healthAt(`${b}/${PATH}`, timeoutMs + 3000)))
+  if (!remote || !found) return null
+  base = `${remote}/${PATH}`
+  return found
+}
+
+/** True when the server in use is the laptop's, reached through its tunnel. */
+export function serverIsRemote(): boolean {
+  return base !== LOCAL
 }
 
 export interface Transcribed {
