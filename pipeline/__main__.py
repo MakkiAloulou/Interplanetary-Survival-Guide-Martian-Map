@@ -3,7 +3,8 @@
 `msl-images` fetches Curiosity raw images at those stops; `themis-night-ir` cuts the THEMIS night-IR overlay;
 `gale-surface` maps sand and boulders from HiRISE and rebuilds the CostGrid with them;
 `msl-weather` turns a Curiosity REMS daily report into the planned sol's conditions;
-`gale-panoramas` renders 360° views at the stations from the real terrain."""
+`gale-panoramas` renders 360° views at the stations from the real terrain;
+`crism` makes the mineral overlay from an MRO CRISM observation."""
 
 import argparse
 import json
@@ -42,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser("msl-weather", help="Curiosity REMS daily weather report -> conditions for the planned sol")
     commands.add_parser("gale-surface", help="sand and boulder masks from the HiRISE orthophoto -> CostGrid rebuilt with them")
     commands.add_parser("themis-night-ir", help="THEMIS night-time infrared (Mars Trek) -> thermal overlay for the site")
+    commands.add_parser("crism", help="MRO CRISM summary parameters (PDS) -> mineral overlay for the site")
 
     args = parser.parse_args(argv)
     if args.command == "donki":
@@ -64,6 +66,10 @@ def main(argv: list[str] | None = None) -> int:
         from pipeline.sources.gale_dem import convert_surface
 
         print(json.dumps(convert_surface(), indent=2))
+    elif args.command == "crism":
+        from pipeline.sources.crism import convert as convert_crism
+
+        print(json.dumps(convert_crism(), indent=2))
     elif args.command == "themis-night-ir":
         from pipeline.sources.trek_overlay import convert_themis_night_ir
 

@@ -143,6 +143,23 @@ THEMIS_NIGHT_IR_ZOOM = 9
 # Side of site image overlays sampled from tiles, px (each source pixel shows as a ~10 px block; no smoothing).
 OVERLAY_PX = 500
 
+# ---------- CRISM minerals from orbit (pipeline/sources/crism.py) ----------
+# MRO CRISM map-projected targeted reduced data record (MTRDR), summary parameters (SU), PDS Geosciences Node.
+# FRT0000B6F1 (2008-07-09, 18 m) covers the whole site; FRT000058A3 covers it too but its hydration and sulfate
+# signals over the site are weaker (checked 2026-11-15); HRL0000BABA is 36 m.
+CRISM_OBSERVATION = "frt0000b6f1"
+CRISM_SU_URL = "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-mptargeted-v1/mrocr_4001/mtrdr/2008/2008_191/frt0000b6f1/frt0000b6f1_07_su165j_mtr3"
+# Summary parameters used (Viviano-Beck et al. 2014): BD1900R2 = 1.9 µm water band depth (hydrated minerals);
+# OLINDEX3 = olivine index (dark basaltic sand in Gale). The sulfate index SINDEX2 was too noisy at the site to show.
+CRISM_HYDRATION_BAND = "BD1900R2"
+CRISM_OLIVINE_BAND = "OLINDEX3"
+# Per-pixel values at the site are close to CRISM's noise; a box mean of 5 x 5 pixels (~90 m) after removing the
+# per-column striping shows the regional pattern. Display choice (DERIVED, relative): only the strongest quarter of
+# each signal inside the site shows, growing to full at its 98th percentile.
+CRISM_SMOOTH_PX = 5
+CRISM_SHOW_FROM_PERCENTILE = 75
+CRISM_FULL_AT_PERCENTILE = 98
+
 # ---------- Sand and boulders from the HiRISE orthophoto (pipeline/surface.py; MODELED: team rule) ----------
 
 # USGS MSL Gale Merged Orthophoto Mosaic 25cm v3 (same project as the Gale DEM). Source:

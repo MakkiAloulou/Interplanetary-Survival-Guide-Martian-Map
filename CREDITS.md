@@ -27,6 +27,7 @@ We used **Claude Code** (Anthropic's AI coding assistant, model Claude Opus) thr
 | Boxwork science stops: what Curiosity studied and why | NASA/JPL-Caltech: Curiosity mission blog (science.nasa.gov/blog), posts for sols 4561–4562, 4689–4694, 4709–4715, 4716–4722 and 4804–4811; JPL news 2025-06-23 and 2026-02-23 | URLs per stop in `pipeline/sources/msl_boxwork_targets.json` | Stop names, dates and the "why" texts (paraphrased) |
 | Curiosity raw images at the stops (Navcam, Front Hazcam) | NASA/JPL-Caltech | https://mars.nasa.gov/msl/multimedia/raw-images/ (each image links to its own page) | Stop photos: what the ground looks like on arrival, and the drill workspaces. Resized copies; no other change. |
 | THEMIS night-time infrared mosaic, 100 m | NASA/JPL-Caltech/Arizona State University (Mars Odyssey THEMIS) | NASA Mars Trek, layer `THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018` | Thermal layer: where the ground keeps its heat at night (rock) and where it cools (sand, dust) |
+| CRISM mineral summary parameters, observation FRT0000B6F1 | NASA/JPL-Caltech/JHUAPL (MRO CRISM); Viviano-Beck, C. E. et al. (2014), *JGR Planets* 119, 1403–1431 (parameter definitions) | PDS Geosciences Node, https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-mptargeted-v1/ | Mineral layer: where the water-bearing (hydrated) mineral signal and the olivine (basaltic sand) signal are strongest |
 | Curiosity REMS daily weather report, sol 4718 | NASA/JPL-Caltech/CAB (CSIC-INTA), Rover Environmental Monitoring Station | https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json | Weather on the planned sol: measured min/max air temperature and pressure, and sunrise/sunset used as a check of our Mars clock |
 | Space weather: CME forecasts for Mars and solar particle events | NASA Community Coordinated Modeling Center (CCMC), DONKI database; WSA-Enlil model | https://api.nasa.gov/DONKI/ (event pages at https://ccmc.gsfc.nasa.gov/DONKI/) | Space-weather advisory and alerts for the planned sol, listed in the conditions panel |
 | Mars surface radiation dose rate | Hassler, D. M. et al. (2014), *Science* 343, 1244797 (Curiosity RAD) | Published paper | Radiation dose of a Marswalk (0.64 mSv/day) |
@@ -41,7 +42,7 @@ Full processing details for each dataset are in `data/SOURCES.md`.
 
 | Resource | Used? |
 |---|---|
-| NASA Mars Trek | Yes: HiRISE base map, Gale elevation model, Curiosity traverse, THEMIS night-infrared layer. Its CRISM mineral mosaics do not cover our site (checked). |
+| NASA Mars Trek | Yes: HiRISE base map, Gale elevation model, Curiosity traverse, THEMIS night-infrared layer. Its CRISM mineral mosaics do not cover our site (checked), so the mineral layer comes from a CRISM observation in NASA's PDS archive instead. |
 | USGS Astrogeology interactive maps | Yes: the Gale elevation model and the Gale 25 cm HiRISE orthophoto (used to map sand and rocky ground) |
 | Curiosity's proposed path up Mount Sharp (2019 animation) | Context for the demo story only |
 | NASA Worldview | Design reference only (layered maps, data-source labels). No data used. |

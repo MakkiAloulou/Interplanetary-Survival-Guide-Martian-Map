@@ -59,6 +59,21 @@
       "opacity": 0.6,
       "attribution": "Mars Odyssey THEMIS night-time infrared, controlled mosaic 100 m (NASA/JPL-Caltech/Arizona State University), via NASA Mars Trek. Relative brightness within the site.",
       "status": "OBSERVED"
+    },
+    {
+      "id": "crism-minerals",
+      "name": "Minerals from orbit (CRISM): blue = water-bearing, green = olivine sand",
+      "dataType": "spectral",
+      "imageOverlay": "processed/gale/crism_minerals.png",
+      "bounds": {
+        "latMin": -4.8219706,
+        "latMax": -4.7882294,
+        "lonMin": 137.3644699,
+        "lonMax": 137.3983301
+      },
+      "opacity": 0.75,
+      "attribution": "MRO CRISM observation FRT0000B6F1, summary parameters BD1900R2 and OLINDEX3 (NASA/JPL-Caltech/JHUAPL), PDS Geosciences Node. Smoothed to ~90 m; relative within the site, not abundances.",
+      "status": "DERIVED"
     }
   ],
   "initialLayers": [

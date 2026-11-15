@@ -79,6 +79,7 @@ Every value is labelled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`. Every datase
 | Elevation, slope, hillshade | USGS MSL Gale Merged DEM 1 m (HiRISE, CTX, HRSC) | DERIVED |
 | Sand and rocky ground | Our rule applied to the USGS Gale 25 cm HiRISE orthophoto | MODELED |
 | Night-time warmth (rock vs sand) | Mars Odyssey THEMIS night IR, 100 m (Mars Trek) | OBSERVED |
+| Minerals from orbit (water-bearing, olivine sand) | MRO CRISM observation FRT0000B6F1, 18 m, smoothed to ~90 m (NASA PDS) | DERIVED (relative) |
 | Science stops, Curiosity's path | Curiosity traverse (JPL MMGIS), mission blog, JPL news | DERIVED / OBSERVED |
 | Stop photos | Curiosity Navcam and Hazcam raw images | OBSERVED |
 | 360° views | Rendered from the DEM and orthophoto (not photos) | DERIVED |
@@ -91,7 +92,7 @@ Every value is labelled `OBSERVED`, `DERIVED`, `MODELED` or `MOCK`. Every datase
 
 There is no rover camera in this project, so `getRealPosition()` fakes the answer a real localization system would give (for example a rover matching a 360° stereo view to the HiRISE map, as NASA's Mars Global Localization does for Perseverance). On the tablet, **Get real position** pauses the walk and moves the crew to the simulated fix. The app then plans the quickest walkable way back onto the route ahead (never behind the crew, never past the next stop) and draws it in **pink**, with a dashed line for the correction. Playing on walks the pink path, then continues along the plan from where it rejoins; arrival times shift by the detour. Replacing the body of `getRealPosition()` with a real localization call is the only change needed to use real fixes.
 
-No mineral layer: the official resources have no CRISM data over this site (checked; see [data/SOURCES.md](data/SOURCES.md)).
+Mineral layer: the official resources' CRISM mosaics do not cover this site, so it comes from a CRISM observation in NASA's PDS archive (FRT0000B6F1). Its signals are weak at this site, so it is smoothed to ~90 m and shown as relative strength, not abundances (see [data/SOURCES.md](data/SOURCES.md)).
 
 Full provenance for every dataset (product IDs, URLs, processing and checks) is in **[data/SOURCES.md](data/SOURCES.md)**.
 
@@ -115,6 +116,7 @@ python -m pipeline msl-traverse        # Curiosity's path inside the site
 python -m pipeline msl-images          # Curiosity raw images at each stop
 python -m pipeline gale-panoramas      # 360° views rendered at the habitat and the stops
 python -m pipeline themis-night-ir     # THEMIS night-IR overlay
+python -m pipeline crism               # CRISM mineral overlay (downloads 2 bands, ~5 MB)
 python -m pipeline msl-weather         # REMS weather for sol 4718
 python -m pipeline donki               # space weather around that sol (NASA_API_KEY optional, DEMO_KEY otherwise)
 python -m pipeline msl-weather         # again, so DONKI radiation alerts reach the conditions
