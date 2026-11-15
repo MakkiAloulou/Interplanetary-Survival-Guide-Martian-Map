@@ -382,6 +382,37 @@
   margin: 0;
 }
 
+/* Narrow screens: the preview shrinks the A4 sheet to fit the width (screen only; printing is unchanged), and the
+   toolbar wraps. */
+@media screen and (max-width: 860px) {
+  .print-toolbar {
+    flex-wrap: wrap;
+    padding: 10px 16px;
+  }
+
+  .print-toolbar span {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .sheet {
+    zoom: 0.85;
+    margin: 16px auto;
+  }
+}
+
+@media screen and (max-width: 680px) {
+  .sheet {
+    zoom: 0.62;
+  }
+}
+
+@media screen and (max-width: 520px) {
+  .sheet {
+    zoom: 0.44;
+  }
+}
+
 @media print {
   html,
   body,

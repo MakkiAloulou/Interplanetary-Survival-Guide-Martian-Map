@@ -17,7 +17,9 @@
 
 .control-link > span:nth-child(2) {
   display: inline-flex;
-  flex: 1 1 auto;
+  flex-wrap: wrap;
+  flex: 1 1 180px; /* text beside the dot; the button drops to its own line when there is no room for both */
+  min-width: 0;
   align-items: center;
   gap: 8px;
 }

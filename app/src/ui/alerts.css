@@ -166,3 +166,22 @@
     animation: none;
   }
 }
+
+/* The title takes the room that is left and wraps in it; "+N more" never sits on top of it. */
+.alert-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Narrower visors: the centre column is ~250 px, so "+N more" goes on its own line under the alert. */
+@media (max-width: 1100px) {
+  .alert-slot.is-visor {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .alert-slot.is-visor .alert-more {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}

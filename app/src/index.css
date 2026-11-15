@@ -1078,3 +1078,37 @@ button.prio.is-high {
 button.prio.is-medium {
   color: var(--text-2);
 }
+
+/* ---------- Responsive fixes (2026-11-15) ---------- */
+
+/* The chip row never slides under the directions card: it lives to the right of it and wraps. */
+.map-controls {
+  left: 440px;
+}
+
+.map-controls-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Below 1440 px the chips beside the clock show icons only (name in the tooltip and for screen readers), so the row
+   stays one line next to the directions card. */
+@media (max-width: 1439px) {
+  .chip-label,
+  .clock-label {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .map-controls {
+    left: 12px;
+  }
+
+  /* Panels open under the chip row and stop above the zoom buttons and scale bar of the 58vh map. */
+  .map-controls .layers-panel,
+  .map-controls .side-panel {
+    width: min(340px, calc(100vw - 24px));
+    max-height: calc(58vh - 250px);
+  }
+}

@@ -395,3 +395,18 @@ select.visor-btn option {
     justify-self: stretch;
   }
 }
+
+/* Phones: two gauges a row, numbers sized to fit. */
+@media (max-width: 760px) {
+  .visor-life {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    justify-self: stretch;
+  }
+
+  .visor-life .visor-number {
+    font-size: clamp(24px, 8vw, 40px);
+    white-space: normal;
+  }
+}

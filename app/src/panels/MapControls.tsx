@@ -75,22 +75,22 @@ export function MapControls(props: Props) {
           <LayersIcon size={18} />
           Layers
         </button>
-        <button type="button" className="chip-float layers-btn" aria-expanded={panel === 'saved'} onClick={() => toggle('saved')}>
+        <button type="button" className="chip-float layers-btn" aria-label="Saved plans" title="Saved plans" aria-expanded={panel === 'saved'} onClick={() => toggle('saved')}>
           <BookmarkIcon size={18} />
-          Saved
+          <span className="chip-label">Saved</span>
           {savedCount > 0 && <span className="chip-count">{savedCount}</span>}
         </button>
-        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Tablet carried on the walk' : 'Plan a route first'} onClick={onTablet}>
+        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} aria-label="Tablet" title={hudEnabled ? 'Tablet carried on the walk' : 'Plan a route first'} onClick={onTablet}>
           <TabletIcon size={18} />
-          Tablet
+          <span className="chip-label">Tablet</span>
         </button>
-        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Helmet visor view' : 'Plan a route first'} onClick={onHud}>
+        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} aria-label="HUD" title={hudEnabled ? 'Helmet visor view' : 'Plan a route first'} onClick={onHud}>
           <VisorIcon size={18} />
-          HUD
+          <span className="chip-label">HUD</span>
         </button>
-        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} title={hudEnabled ? 'Mission control: follow the crew and change the rest of the walk' : 'Plan a route first'} onClick={onControl}>
+        <button type="button" className="chip-float layers-btn" disabled={!hudEnabled} aria-label="Mission control" title={hudEnabled ? 'Mission control: follow the crew and change the rest of the walk' : 'Plan a route first'} onClick={onControl}>
           <ControlIcon size={18} />
-          Control
+          <span className="chip-label">Control</span>
         </button>
       </div>
 

@@ -1148,3 +1148,11 @@ button.tl-stop.is-selected {
 .detail-prio .segmented {
   flex: 1;
 }
+
+/* The stop card opens below the chip row (desktop), never over it. */
+@media (min-width: 961px) {
+  .detail {
+    top: 72px;
+    max-height: calc(100vh - 288px);
+  }
+}

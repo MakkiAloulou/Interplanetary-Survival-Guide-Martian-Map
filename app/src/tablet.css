@@ -488,3 +488,42 @@
   margin: 0;
   font-weight: 500;
 }
+
+/* ---------- Responsive fixes (2026-11-15) ---------- */
+
+/* Sections keep their height: a short screen scrolls the side panel instead of squashing its sections to nothing. */
+.tablet-side > * {
+  flex-shrink: 0;
+}
+
+/* Short screens: the controls scroll with the rest instead of covering half of the panel. */
+@media (max-height: 820px) {
+  .tablet-controls {
+    position: static;
+  }
+}
+
+/* Narrow screens: map on top, then the panel, then the copilot; the whole view scrolls as one page. */
+@media (max-width: 960px) {
+  .tablet {
+    grid-template-rows: 45vh auto auto;
+    overflow-y: auto;
+  }
+
+  .tablet-side {
+    min-height: auto; /* grow with its content: the view scrolls, not the panel */
+    overflow: visible;
+  }
+
+  .tablet .copilot.is-tablet {
+    position: static;
+    width: auto;
+    max-height: none;
+    margin: 0 16px 16px;
+    overflow: visible; /* a scrolling box would collapse to nothing in this grid row */
+  }
+
+  .tablet-controls {
+    position: static;
+  }
+}
